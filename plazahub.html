@@ -1,0 +1,2757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlazaHub — SaaS Plaza Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  --bg:       #1e293b;
+  --bg2:      #0f1218;
+  --bg3:      #141820;
+  --card:     #181d27;
+  --card2:    #1e2535;
+  --border:   #242c3d;
+  --border2:  #2e3850;
+  --accent:   #3b82f6;
+  --accent2:  #60a5fa;
+  --accent3:  #1d4ed8;
+  --gold:     #f59e0b;
+  --gold2:    #fbbf24;
+  --green:    #10b981;
+  --green2:   #34d399;
+  --red:      #ef4444;
+  --red2:     #f87171;
+  --orange:   #f97316;
+  --orange2:  #fb923c;
+  --purple:   #8b5cf6;
+  --text:     #e8ecf4;
+  --text2:    #8b95a8;
+  --text3:    #4a5568;
+  --shadow:   0 4px 24px rgba(0,0,0,0.4);
+  --shadow2:  0 8px 40px rgba(0,0,0,0.5);
+  --radius:   12px;
+  --radius2:  16px;
+  --transition: all 0.2s ease;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-size: 14px;
+  line-height: 1.6;
+}
+h1,h2,h3,h4,h5 { font-family: 'Syne', sans-serif; line-height: 1.2; }
+a { text-decoration: none; color: inherit; }
+img { max-width: 100%; }
+button { cursor: pointer; font-family: 'DM Sans', sans-serif; }
+input, select, textarea { font-family: 'DM Sans', sans-serif; }
+
+/* ============================================================
+   SCROLLBAR
+   ============================================================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+.hidden    { display: none !important; }
+.flex      { display: flex; }
+.flex-col  { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.items-start  { align-items: flex-start; }
+.justify-between { justify-content: space-between; }
+.justify-center  { justify-content: center; }
+.justify-end     { justify-content: flex-end; }
+.gap-4  { gap: 4px; }
+.gap-8  { gap: 8px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.gap-20 { gap: 20px; }
+.gap-24 { gap: 24px; }
+.gap-32 { gap: 32px; }
+.w-full { width: 100%; }
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+.font-bold   { font-weight: 700; }
+.font-800    { font-weight: 800; }
+.text-xs  { font-size: 11px; }
+.text-sm  { font-size: 13px; }
+.text-base{ font-size: 14px; }
+.text-lg  { font-size: 16px; }
+.text-xl  { font-size: 18px; }
+.text-2xl { font-size: 22px; }
+.text-muted  { color: var(--text2); }
+.text-faint  { color: var(--text3); }
+.text-accent { color: var(--accent2); }
+.text-gold   { color: var(--gold); }
+.text-green  { color: var(--green); }
+.text-red    { color: var(--red); }
+.text-orange { color: var(--orange); }
+.mb-4  { margin-bottom: 4px; }
+.mb-8  { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+.mb-20 { margin-bottom: 20px; }
+.mb-24 { margin-bottom: 24px; }
+.mb-32 { margin-bottom: 32px; }
+.mt-auto { margin-top: auto; }
+.ml-auto { margin-left: auto; }
+.p-16 { padding: 16px; }
+.p-24 { padding: 24px; }
+.wrap { flex-wrap: wrap; }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  border: none; transition: var(--transition); white-space: nowrap; cursor: pointer;
+}
+.btn-primary  { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.35); }
+.btn-gold     { background: var(--gold); color: #1a1000; }
+.btn-gold:hover { background: var(--gold2); transform: translateY(-1px); }
+.btn-green    { background: var(--green); color: #fff; }
+.btn-green:hover { background: var(--green2); }
+.btn-red      { background: var(--red); color: #fff; }
+.btn-red:hover  { background: var(--red2); }
+.btn-ghost    { background: transparent; color: var(--text2); border: 1px solid var(--border2); }
+.btn-ghost:hover { border-color: var(--accent); color: var(--accent2); }
+.btn-dark     { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+.btn-dark:hover { border-color: var(--border2); }
+.btn-sm  { padding: 5px 12px; font-size: 11px; border-radius: 6px; }
+.btn-lg  { padding: 13px 28px; font-size: 15px; border-radius: 10px; }
+.btn-xl  { padding: 15px 36px; font-size: 16px; border-radius: 10px; }
+.btn-icon { width: 34px; height: 34px; padding: 0; border-radius: 8px; }
+
+/* ============================================================
+   BADGES
+   ============================================================ */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 100px; font-size: 11px; font-weight: 600;
+}
+.badge-green  { background: rgba(16,185,129,0.12);  color: var(--green); }
+.badge-red    { background: rgba(239,68,68,0.12);   color: var(--red); }
+.badge-orange { background: rgba(249,115,22,0.12);  color: var(--orange); }
+.badge-blue   { background: rgba(59,130,246,0.12);  color: var(--accent2); }
+.badge-gold   { background: rgba(245,158,11,0.12);  color: var(--gold); }
+.badge-gray   { background: rgba(74,85,104,0.2);    color: var(--text2); }
+.badge-purple { background: rgba(139,92,246,0.12);  color: var(--purple); }
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.dot-green  { background: var(--green); }
+.dot-red    { background: var(--red); }
+.dot-orange { background: var(--orange); }
+.dot-blue   { background: var(--accent); }
+.dot-gray   { background: var(--text3); }
+
+/* ============================================================
+   FORMS
+   ============================================================ */
+.form-group { display: flex; flex-direction: column; gap: 6px; }
+.form-label {
+  font-size: 11px; font-weight: 600; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.6px;
+}
+.form-input {
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; color: var(--text);
+  font-size: 13px; transition: var(--transition); outline: none;
+}
+.form-input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
+.form-input::placeholder { color: var(--text3); }
+.form-input[disabled] { opacity: 0.5; cursor: not-allowed; }
+select.form-input option { background: var(--bg3); color: var(--text); }
+textarea.form-input { resize: vertical; min-height: 80px; }
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.form-hint { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.form-section-title {
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+  color: var(--text2); padding-bottom: 10px; border-bottom: 1px solid var(--border);
+  margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 24px;
+}
+.card-sm { padding: 16px; border-radius: var(--radius); }
+.card-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 20px; gap: 12px;
+}
+.card-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+.card-subtitle { font-size: 12px; color: var(--text3); margin-top: 3px; }
+.card-actions { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+
+/* Stat Cards */
+.stat-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 22px; display: flex; flex-direction: column; gap: 14px;
+  transition: var(--transition);
+}
+.stat-card:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: var(--shadow); }
+.stat-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.stat-icon {
+  width: 42px; height: 42px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.stat-value { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; line-height: 1; }
+.stat-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.stat-trend { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.stat-trend.up   { color: var(--green); }
+.stat-trend.down { color: var(--red); }
+.stat-trend.neutral { color: var(--text3); }
+.stat-bar { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+.stat-bar-fill { height: 100%; border-radius: 2px; }
+
+/* ============================================================
+   TABLES
+   ============================================================ */
+.table-wrap { overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table th {
+  text-align: left; font-size: 10px; font-weight: 700;
+  color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.data-table td {
+  padding: 12px 14px; font-size: 13px;
+  border-bottom: 1px solid rgba(36,44,61,0.4); vertical-align: middle;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tbody tr { transition: background 0.1s; }
+.data-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+.cell-user { display: flex; align-items: center; gap: 10px; }
+.avatar {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; flex-shrink: 0;
+}
+.avatar-lg { width: 42px; height: 42px; font-size: 16px; border-radius: 50%; }
+.avatar-xl { width: 56px; height: 56px; font-size: 20px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; }
+.cell-name { font-weight: 600; font-size: 13px; }
+.cell-sub  { font-size: 11px; color: var(--text3); }
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(6px); z-index: 1000;
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--card); border: 1px solid var(--border2);
+  border-radius: 18px; padding: 32px; width: 560px; max-width: 100%;
+  max-height: 90vh; overflow-y: auto;
+  animation: modalIn 0.22s cubic-bezier(0.34,1.56,0.64,1);
+}
+.modal-lg { width: 700px; }
+.modal-sm { width: 420px; }
+@keyframes modalIn {
+  from { opacity:0; transform: scale(0.92) translateY(16px); }
+  to   { opacity:1; transform: scale(1) translateY(0); }
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 28px;
+}
+.modal-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+.modal-close {
+  width: 30px; height: 30px; border-radius: 6px; background: var(--bg3);
+  border: 1px solid var(--border); color: var(--text2); font-size: 16px;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  transition: var(--transition);
+}
+.modal-close:hover { border-color: var(--red); color: var(--red); }
+.modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+
+/* ============================================================
+   PROGRESS BAR
+   ============================================================ */
+.progress { height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s ease; }
+.progress-lg { height: 10px; }
+
+/* ============================================================
+   TOGGLE SWITCH
+   ============================================================ */
+.toggle-wrap { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.toggle-wrap:last-child { border-bottom: none; }
+.toggle-info h4 { font-size: 14px; font-weight: 600; }
+.toggle-info p { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.toggle {
+  width: 42px; height: 24px; border-radius: 12px; background: var(--bg3);
+  border: 1px solid var(--border); position: relative; cursor: pointer;
+  transition: background 0.2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--green); border-color: var(--green); }
+.toggle::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 18px; height: 18px; border-radius: 50%; background: var(--text3);
+  transition: all 0.2s;
+}
+.toggle.on::after { left: calc(100% - 20px); background: white; }
+
+/* ============================================================
+   NOTIFICATIONS
+   ============================================================ */
+.notif-item {
+  display: flex; gap: 12px; padding: 14px 0;
+  border-bottom: 1px solid rgba(36,44,61,0.5);
+}
+.notif-item:last-child { border-bottom: none; }
+.notif-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.notif-body { flex: 1; }
+.notif-text { font-size: 13px; line-height: 1.6; }
+.notif-text strong { font-weight: 600; color: var(--text); }
+.notif-time { font-size: 11px; color: var(--text3); margin-top: 3px; }
+.notif-unread .notif-text { color: var(--text); }
+
+/* ============================================================
+   CHARTS (CSS/JS)
+   ============================================================ */
+.bar-chart {
+  display: flex; align-items: flex-end; gap: 10px;
+  height: 160px; padding-bottom: 24px; position: relative;
+}
+.bar-chart::after {
+  content: ''; position: absolute; bottom: 24px; left: 0; right: 0;
+  height: 1px; background: var(--border);
+}
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+.bar-fill { width: 100%; border-radius: 4px 4px 0 0; transition: opacity 0.2s; min-width: 20px; }
+.bar-fill:hover { opacity: 0.75; }
+.bar-lbl { font-size: 10px; color: var(--text3); position: absolute; bottom: 0; white-space: nowrap; }
+
+/* ============================================================
+   UNIT GRID / FLOOR MAP
+   ============================================================ */
+.unit-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.unit-cell {
+  aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; font-size: 10px; font-weight: 700;
+  cursor: pointer; transition: all 0.18s; border: 1px solid transparent;
+}
+.unit-cell:hover { transform: scale(1.08); z-index: 1; }
+.unit-cell .unit-no { font-size: 10px; font-weight: 800; }
+.unit-cell .unit-status { font-size: 8px; font-weight: 500; opacity: 0.8; }
+.unit-occupied { background: rgba(16,185,129,0.15); color: var(--green);  border-color: rgba(16,185,129,0.2); }
+.unit-expiring { background: rgba(249,115,22,0.15); color: var(--orange); border-color: rgba(249,115,22,0.2); }
+.unit-overdue  { background: rgba(239,68,68,0.12);  color: var(--red);    border-color: rgba(239,68,68,0.2); }
+.unit-vacant   { background: rgba(74,85,104,0.1);   color: var(--text3);  border-color: var(--border); }
+.unit-legend { display: flex; gap: 20px; flex-wrap: wrap; }
+.unit-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); }
+.unit-legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+/* ============================================================
+   PAYMENT STEPS
+   ============================================================ */
+.step-indicator { display: flex; align-items: center; margin-bottom: 32px; }
+.step-item { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; position: relative; }
+.step-item::after {
+  content: ''; position: absolute; top: 15px; left: 50%; width: 100%;
+  height: 2px; background: var(--border); z-index: 0;
+}
+.step-item:last-child::after { display: none; }
+.step-circle {
+  width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; background: var(--bg3); z-index: 1;
+  transition: all 0.3s;
+}
+.step-item.active .step-circle { border-color: var(--accent); color: var(--accent); background: rgba(59,130,246,0.1); }
+.step-item.done .step-circle   { background: var(--green); border-color: var(--green); color: white; }
+.step-item.active::after { background: var(--border); }
+.step-item.done::after   { background: var(--green); }
+.step-label { font-size: 11px; color: var(--text3); text-align: center; }
+.step-item.active .step-label { color: var(--accent2); }
+.step-item.done   .step-label { color: var(--green); }
+
+/* ============================================================
+   LANDING PAGE
+   ============================================================ */
+#page-landing { display: block; }
+.lp-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 60px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: rgba(10,12,16,0.96);
+  backdrop-filter: blur(14px); z-index: 200;
+}
+.lp-logo { display: flex; align-items: center; gap: 10px; font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; }
+.lp-logo-mark {
+  width: 34px; height: 34px; background: var(--accent); border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; font-size: 16px;
+}
+.lp-nav-links { display: flex; gap: 36px; }
+.lp-nav-links a { color: var(--text2); font-size: 14px; font-weight: 500; transition: color 0.2s; }
+.lp-nav-links a:hover { color: var(--text); }
+.lp-nav-btns { display: flex; gap: 10px; }
+
+/* Hero */
+.lp-hero {
+  min-height: 88vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 80px 60px; position: relative; overflow: hidden;
+}
+.lp-hero::before {
+  content: ''; position: absolute; width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(59,130,246,0.07) 0%, transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;
+}
+.lp-hero::after {
+  content: ''; position: absolute; inset: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23242c3d' fill-opacity='0.3'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.15; pointer-events: none;
+}
+.lp-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2);
+  border-radius: 100px; padding: 6px 16px; font-size: 12px; font-weight: 600;
+  color: var(--accent2); margin-bottom: 28px; position: relative; z-index: 1;
+  animation: fadeUp 0.5s ease both;
+}
+.lp-hero h1 {
+  font-size: clamp(36px, 6vw, 68px); font-weight: 800; max-width: 820px;
+  margin-bottom: 22px; position: relative; z-index: 1;
+  animation: fadeUp 0.5s 0.1s ease both;
+}
+.lp-hero h1 .highlight { color: var(--accent); }
+.lp-hero h1 .highlight-gold { color: var(--gold); }
+.lp-hero-sub {
+  font-size: 17px; color: var(--text2); max-width: 560px; line-height: 1.75;
+  margin-bottom: 42px; position: relative; z-index: 1;
+  animation: fadeUp 0.5s 0.2s ease both;
+}
+.lp-hero-btns {
+  display: flex; gap: 14px; flex-wrap: wrap; justify-content: center;
+  margin-bottom: 72px; position: relative; z-index: 1;
+  animation: fadeUp 0.5s 0.3s ease both;
+}
+.lp-stats {
+  display: flex; gap: 60px; flex-wrap: wrap; justify-content: center;
+  position: relative; z-index: 1; animation: fadeUp 0.5s 0.4s ease both;
+}
+.lp-stat-num { font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 800; }
+.lp-stat-lbl { font-size: 12px; color: var(--text3); margin-top: 4px; }
+
+/* Features */
+.lp-section { padding: 90px 60px; }
+.lp-section.alt { background: var(--bg2); }
+.section-eyebrow { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px; }
+.section-heading { font-size: clamp(26px, 3.5vw, 38px); font-weight: 800; margin-bottom: 14px; }
+.section-sub { font-size: 15px; color: var(--text2); max-width: 520px; line-height: 1.75; margin-bottom: 56px; }
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; }
+.feature-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 28px; transition: all 0.25s;
+}
+.feature-card:hover { border-color: var(--border2); transform: translateY(-4px); box-shadow: var(--shadow2); }
+.feat-icon {
+  width: 50px; height: 50px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; margin-bottom: 20px;
+}
+.feat-icon.blue   { background: rgba(59,130,246,0.12); }
+.feat-icon.gold   { background: rgba(245,158,11,0.12); }
+.feat-icon.green  { background: rgba(16,185,129,0.12); }
+.feat-icon.red    { background: rgba(239,68,68,0.12); }
+.feat-icon.purple { background: rgba(139,92,246,0.12); }
+.feat-icon.orange { background: rgba(249,115,22,0.12); }
+.feature-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+.feature-card p  { font-size: 13px; color: var(--text2); line-height: 1.75; }
+
+/* How it Works */
+.hiw-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; }
+.hiw-step { text-align: center; padding: 28px 20px; }
+.hiw-num {
+  width: 52px; height: 52px; border-radius: 50%; background: rgba(59,130,246,0.1);
+  border: 2px solid rgba(59,130,246,0.25); display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--accent2);
+  margin: 0 auto 20px;
+}
+.hiw-step h3 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+.hiw-step p  { font-size: 13px; color: var(--text2); line-height: 1.7; }
+
+/* Pricing */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 22px; max-width: 960px; margin: 0 auto; }
+.pricing-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 32px; position: relative;
+  transition: all 0.25s;
+}
+.pricing-card.featured {
+  border-color: var(--accent); background: linear-gradient(135deg, rgba(59,130,246,0.05), var(--card));
+}
+.pricing-popular {
+  position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  background: var(--accent); color: white; font-size: 10px; font-weight: 700;
+  padding: 4px 14px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+.pricing-plan { font-size: 12px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.pricing-price { font-family: 'Syne', sans-serif; font-size: 38px; font-weight: 800; line-height: 1; }
+.pricing-price span { font-size: 16px; font-weight: 500; color: var(--text2); }
+.pricing-period { font-size: 12px; color: var(--text3); margin: 6px 0 20px; }
+.pricing-features { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+.pricing-features li { font-size: 13px; color: var(--text2); display: flex; align-items: center; gap: 8px; }
+.pricing-features li::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+
+/* Testimonials */
+.testimonials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.testimonial-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 28px;
+}
+.testimonial-quote { font-size: 14px; color: var(--text2); line-height: 1.8; margin-bottom: 20px; font-style: italic; }
+.testimonial-quote::before { content: '"'; font-size: 48px; color: var(--accent); font-family: Georgia, serif; line-height: 0; vertical-align: -20px; margin-right: 4px; }
+.testimonial-author { display: flex; align-items: center; gap: 12px; }
+.testimonial-name { font-size: 13px; font-weight: 700; }
+.testimonial-role { font-size: 11px; color: var(--text3); }
+
+/* CTA Banner */
+.lp-cta {
+  background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(245,158,11,0.06));
+  border: 1px solid rgba(59,130,246,0.2); border-radius: 20px; padding: 60px;
+  text-align: center; margin: 0 60px 90px;
+}
+.lp-cta h2 { font-size: 34px; font-weight: 800; margin-bottom: 14px; }
+.lp-cta p  { font-size: 15px; color: var(--text2); margin-bottom: 32px; }
+
+/* Footer */
+.lp-footer {
+  background: var(--bg2); border-top: 1px solid var(--border);
+  padding: 48px 60px; display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 20px;
+}
+.lp-footer-links { display: flex; gap: 24px; }
+.lp-footer-links a { font-size: 13px; color: var(--text3); transition: color 0.2s; }
+.lp-footer-links a:hover { color: var(--text2); }
+
+/* ============================================================
+   LOGIN PAGE
+   ============================================================ */
+#page-login { display: none; }
+.login-layout {
+  min-height: 100vh; display: grid; grid-template-columns: 1fr 480px;
+}
+.login-visual {
+  background: var(--bg2); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 60px;
+  border-right: 1px solid var(--border); position: relative; overflow: hidden;
+}
+.login-visual::before {
+  content: ''; position: absolute; width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(59,130,246,0.09), transparent 70%);
+  top: 50%; left: 50%; transform: translate(-50%, -55%);
+}
+.login-building { display: flex; flex-direction: column; gap: 5px; margin-bottom: 36px; position: relative; z-index: 1; }
+.login-building-row { display: flex; gap: 5px; }
+.lb-unit {
+  width: 38px; height: 30px; border-radius: 4px;
+  background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.15);
+}
+.lb-unit.lit { background: rgba(245,158,11,0.25); border-color: rgba(245,158,11,0.35); animation: shimmer 3s ease-in-out infinite; }
+@keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.5} }
+.lb-unit.lit2 { animation-delay: 0.8s; }
+.lb-unit.lit3 { animation-delay: 1.6s; }
+.login-visual-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; text-align: center; margin-bottom: 12px; position: relative; z-index: 1; }
+.login-visual-sub { font-size: 14px; color: var(--text2); text-align: center; max-width: 300px; line-height: 1.7; position: relative; z-index: 1; }
+
+.login-form-side {
+  background: var(--bg); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 60px 48px;
+}
+.login-logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+.login-logo-mark { width: 32px; height: 32px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.login-form-box { width: 100%; max-width: 360px; }
+.login-heading { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 700; margin-bottom: 6px; }
+.login-sub { font-size: 13px; color: var(--text2); margin-bottom: 28px; }
+.login-tabs { display: flex; background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 26px; }
+.login-tab { flex: 1; padding: 9px; text-align: center; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text2); transition: all 0.2s; }
+.login-tab.active { background: var(--accent); color: white; }
+.login-form-box .form-group { margin-bottom: 16px; }
+.login-btn { width: 100%; margin-top: 8px; padding: 12px; font-size: 14px; }
+.login-link { font-size: 12px; color: var(--text3); text-align: center; margin-top: 18px; }
+.login-link a { color: var(--accent2); cursor: pointer; }
+.login-demo-note {
+  background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.15);
+  border-radius: 8px; padding: 12px 14px; font-size: 12px; color: var(--text2); margin-top: 20px; line-height: 1.6;
+}
+
+/* ============================================================
+   REGISTER PAGE
+   ============================================================ */
+#page-register { display: none; }
+.register-wrap {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+  padding: 60px 20px;
+}
+.register-box {
+  width: 700px; max-width: 100%; background: var(--card);
+  border: 1px solid var(--border); border-radius: 20px; padding: 48px;
+}
+.register-heading { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+.register-sub { font-size: 14px; color: var(--text2); margin-bottom: 36px; }
+
+/* ============================================================
+   APP SHELL
+   ============================================================ */
+#app-shell { display: none; height: 100vh; overflow: hidden; }
+.app-layout { display: flex; height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+  width: 244px; background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0; overflow: hidden;
+}
+.sidebar-head {
+  padding: 22px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.sidebar-logo-text { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; }
+.sidebar-logo-mark { width: 30px; height: 30px; background: var(--accent); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 14px 10px; }
+.nav-group { margin-bottom: 22px; }
+.nav-group-label {
+  font-size: 9px; font-weight: 700; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 1.5px; padding: 0 10px; margin-bottom: 6px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 9px; padding: 9px 10px;
+  border-radius: 8px; cursor: pointer; color: var(--text2); font-size: 13px;
+  font-weight: 500; transition: all 0.15s; margin-bottom: 1px; user-select: none;
+}
+.nav-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.nav-item.active { background: rgba(59,130,246,0.1); color: var(--accent2); }
+.nav-item .nav-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+.nav-item .nav-badge {
+  margin-left: auto; background: var(--red); color: white;
+  font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 100px;
+}
+.sidebar-foot {
+  padding: 14px 18px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.sidebar-user-info { flex: 1; min-width: 0; }
+.sidebar-user-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sidebar-user-role { font-size: 11px; color: var(--text3); }
+
+/* Top Bar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 28px; border-bottom: 1px solid var(--border); background: var(--bg2);
+  flex-shrink: 0;
+}
+.topbar-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.role-switcher { display: flex; background: var(--bg3); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.role-btn { padding: 6px 13px; font-size: 11px; font-weight: 700; cursor: pointer; color: var(--text2); transition: all 0.15s; border: none; background: transparent; font-family: 'DM Sans', sans-serif; text-transform: uppercase; letter-spacing: 0.5px; }
+.role-btn.active { background: var(--accent); color: white; }
+.topbar-icon-btn {
+  width: 34px; height: 34px; border-radius: 8px; background: var(--bg3);
+  border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 15px; transition: var(--transition); position: relative;
+}
+.topbar-icon-btn:hover { border-color: var(--border2); }
+.topbar-notif-dot {
+  position: absolute; top: 5px; right: 5px; width: 7px; height: 7px;
+  background: var(--red); border-radius: 50%; border: 2px solid var(--bg2);
+}
+
+/* Main content */
+.main-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.page-content { flex: 1; overflow-y: auto; padding: 28px 32px; }
+
+/* Page system */
+.app-page { display: none; animation: fadeUp 0.22s ease; }
+.app-page.active { display: block; }
+
+/* ============================================================
+   DASHBOARD LAYOUTS
+   ============================================================ */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; }
+
+/* ============================================================
+   SEARCH + FILTER BAR
+   ============================================================ */
+.filter-bar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 20px; }
+.search-input-wrap { position: relative; flex: 1; min-width: 200px; max-width: 320px; }
+.search-input-wrap .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); font-size: 13px; color: var(--text3); }
+.search-input-wrap input { padding-left: 34px; width: 100%; }
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty-state { text-align: center; padding: 60px 20px; color: var(--text3); }
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 14px; opacity: 0.5; }
+.empty-state h3 { font-size: 16px; font-weight: 600; color: var(--text2); margin-bottom: 8px; }
+.empty-state p  { font-size: 13px; }
+
+/* ============================================================
+   LEASE DETAIL CARD
+   ============================================================ */
+.lease-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px; padding: 20px; }
+.lease-row { display: flex; align-items: flex-start; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.lease-row:last-child { border-bottom: none; }
+.lease-key { font-size: 12px; color: var(--text3); font-weight: 500; }
+.lease-val { font-size: 13px; font-weight: 600; text-align: right; }
+
+/* ============================================================
+   MAINTENANCE CARD
+   ============================================================ */
+.maint-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 10px; }
+.maint-item:last-child { margin-bottom: 0; }
+.maint-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.maint-title { font-size: 13px; font-weight: 600; }
+.maint-desc { font-size: 12px; color: var(--text2); line-height: 1.6; }
+.maint-meta { font-size: 11px; color: var(--text3); margin-top: 8px; }
+
+/* ============================================================
+   RECEIPT CARD
+   ============================================================ */
+.receipt-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid rgba(36,44,61,0.5);
+}
+.receipt-item:last-child { border-bottom: none; }
+.receipt-icon { width: 38px; height: 38px; border-radius: 9px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.15); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.receipt-info { flex: 1; padding: 0 14px; }
+.receipt-name { font-size: 13px; font-weight: 600; }
+.receipt-date { font-size: 11px; color: var(--text3); }
+.receipt-amount { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; text-align: right; }
+.receipt-ref { font-size: 11px; color: var(--text3); }
+
+/* ============================================================
+   PAYSTACK MOCK UI
+   ============================================================ */
+.paystack-frame {
+  background: #fff; border-radius: 14px; padding: 32px; max-width: 400px; margin: 0 auto;
+  color: #1a1a2e; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.paystack-logo { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+.paystack-logo-mark { background: #0BA4DB; border-radius: 6px; padding: 5px 9px; color: white; font-size: 11px; font-weight: 800; }
+.paystack-logo-text { font-size: 15px; font-weight: 700; color: #0BA4DB; }
+.paystack-amount { font-size: 32px; font-weight: 800; color: #1a1a2e; margin-bottom: 4px; }
+.paystack-label { font-size: 12px; color: #666; margin-bottom: 24px; }
+.paystack-input { width: 100%; padding: 10px 14px; border: 1.5px solid #e0e0e0; border-radius: 8px; font-size: 14px; margin-bottom: 12px; outline: none; font-family: 'DM Sans', sans-serif; }
+.paystack-input:focus { border-color: #0BA4DB; }
+.paystack-btn { width: 100%; padding: 13px; background: #0BA4DB; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; margin-top: 8px; }
+.paystack-secure { font-size: 11px; color: #999; text-align: center; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+
+/* ============================================================
+   SUCCESS STATE
+   ============================================================ */
+.success-state { text-align: center; padding: 48px 20px; }
+.success-icon { font-size: 64px; margin-bottom: 20px; animation: bounceIn 0.5s ease; }
+@keyframes bounceIn { 0%{transform:scale(0)} 60%{transform:scale(1.1)} 100%{transform:scale(1)} }
+.success-title { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; margin-bottom: 10px; }
+.success-sub { font-size: 15px; color: var(--text2); max-width: 420px; margin: 0 auto 28px; line-height: 1.7; }
+
+/* ============================================================
+   SUPER ADMIN SPECIFIC
+   ============================================================ */
+.plaza-row-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 18px 22px; display: flex; align-items: center; gap: 16px;
+  transition: all 0.2s; margin-bottom: 10px;
+}
+.plaza-row-card:hover { border-color: var(--border2); }
+.plaza-row-info { flex: 1; min-width: 0; }
+.plaza-row-name { font-size: 14px; font-weight: 700; }
+.plaza-row-meta { font-size: 12px; color: var(--text3); margin-top: 3px; }
+.plaza-row-stats { display: flex; gap: 24px; margin: 0 20px; }
+.plaza-stat { text-align: center; }
+.plaza-stat-v { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; }
+.plaza-stat-l { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ============================================================
+   PLAN CARDS
+   ============================================================ */
+.plan-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 24px; transition: all 0.2s;
+}
+.plan-card.active-plan { border-color: var(--green); }
+.plan-card:hover { border-color: var(--border2); }
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================================
+   TOAST NOTIFICATION
+   ============================================================ */
+#toast-container { position: fixed; bottom: 28px; right: 28px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  background: var(--card2); border: 1px solid var(--border2); border-radius: 10px;
+  padding: 14px 18px; font-size: 13px; display: flex; align-items: center; gap: 10px;
+  animation: fadeUp 0.3s ease; min-width: 260px; box-shadow: var(--shadow2);
+}
+.toast.success { border-left: 3px solid var(--green); }
+.toast.error   { border-left: 3px solid var(--red); }
+.toast.info    { border-left: 3px solid var(--accent); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1024px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-5 { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 768px) {
+  .sidebar { position: fixed; left: -244px; top: 0; bottom: 0; z-index: 300; transition: left 0.3s; }
+  .sidebar.mobile-open { left: 0; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .lp-nav { padding: 16px 20px; }
+  .lp-nav-links { display: none; }
+  .lp-hero { padding: 60px 20px; }
+  .lp-section { padding: 60px 20px; }
+  .lp-cta { margin: 0 20px 60px; padding: 40px 24px; }
+  .lp-footer { padding: 32px 20px; }
+  .login-layout { grid-template-columns: 1fr; }
+  .login-visual { display: none; }
+  .page-content { padding: 20px 16px; }
+  .topbar { padding: 12px 16px; }
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .form-grid-3 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     TOAST CONTAINER
+     ============================================================ -->
+<div id="toast-container"></div>
+
+<!-- ============================================================
+     MODAL OVERLAY (shared)
+     ============================================================ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Modal</div>
+      <div class="modal-close" onclick="closeModalDirect()">✕</div>
+    </div>
+    <div id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: LANDING
+     ============================================================ -->
+<div id="page-landing">
+  <!-- NAV -->
+  <nav class="lp-nav">
+    <div class="lp-logo">
+      <div class="lp-logo-mark">🏢</div>
+      PlazaHub
+    </div>
+    <div class="lp-nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#testimonials">Reviews</a>
+    </div>
+    <div class="lp-nav-btns">
+      <button class="btn btn-ghost" onclick="showLogin('tenant')">Tenant Login</button>
+      <button class="btn btn-ghost" onclick="showLogin('admin')">Plaza Login</button>
+      <button class="btn btn-primary" onclick="showRegister()">Get Started →</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="lp-hero">
+    <div class="lp-badge">✦ Nigeria's #1 Plaza Management SaaS</div>
+    <h1>Manage Your Plaza <span class="highlight">Smarter</span>,<br>Collect Rent <span class="highlight-gold">Faster</span></h1>
+    <p class="lp-hero-sub">PlazaHub gives plaza owners a complete digital platform to manage tenants, track rent expiry, process payments, and grow their property business — all in one place.</p>
+    <div class="lp-hero-btns">
+      <button class="btn btn-primary btn-xl" onclick="showRegister()">🚀 Start Free Trial</button>
+      <button class="btn btn-ghost btn-xl" onclick="showLogin('admin')">👀 View Demo</button>
+    </div>
+    <div class="lp-stats">
+      <div class="text-center"><div class="lp-stat-num">500+</div><div class="lp-stat-lbl">Plazas on Platform</div></div>
+      <div class="text-center"><div class="lp-stat-num">15,000+</div><div class="lp-stat-lbl">Tenants Managed</div></div>
+      <div class="text-center"><div class="lp-stat-num">₦4.8B+</div><div class="lp-stat-lbl">Rent Processed</div></div>
+      <div class="text-center"><div class="lp-stat-num">99.9%</div><div class="lp-stat-lbl">Platform Uptime</div></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="lp-section alt" id="features">
+    <div class="section-eyebrow">Features</div>
+    <div class="section-heading">Everything you need to run your plaza</div>
+    <p class="section-sub">Purpose-built for Nigerian commercial plaza management — from single-block plazas to large multi-block properties.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feat-icon blue">👥</div>
+        <h3>Tenant Management</h3>
+        <p>Register tenants, assign shop numbers, manage contact details, and keep full tenancy histories. Add or remove tenants with ease.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon gold">⏱️</div>
+        <h3>Rent Expiry Tracking</h3>
+        <p>Automatic color-coded alerts for leases expiring soon. Never miss a renewal — get notified 30, 14, and 7 days in advance.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon green">💳</div>
+        <h3>Online Payments</h3>
+        <p>Tenants pay annual fees directly through the portal via Paystack or bank transfer. Auto-confirmation and instant receipts.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon red">📊</div>
+        <h3>Reports & Analytics</h3>
+        <p>Revenue charts, occupancy rates, payment trends, and exportable reports. Know your plaza's financial health at a glance.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon purple">🗺️</div>
+        <h3>Visual Floor Map</h3>
+        <p>Color-coded unit grid showing occupied, vacant, expiring, and overdue shops across all blocks — updated in real time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon orange">🔔</div>
+        <h3>Smart Notifications</h3>
+        <p>Bulk SMS and email reminders to tenants for renewals, overdue balances, and maintenance updates — sent automatically.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="lp-section" id="how-it-works">
+    <div class="section-eyebrow">How It Works</div>
+    <div class="section-heading">Up and running in minutes</div>
+    <p class="section-sub">Getting started with PlazaHub is simple — no technical knowledge required.</p>
+    <div class="hiw-grid">
+      <div class="hiw-step"><div class="hiw-num">1</div><h3>Create Your Plaza Account</h3><p>Sign up and set up your plaza profile — add your plaza name, address, blocks, and total units in a few clicks.</p></div>
+      <div class="hiw-step"><div class="hiw-num">2</div><h3>Register Your Tenants</h3><p>Add each tenant to the system, assign them a shop, set the rent amount and payment period, and send them their login details.</p></div>
+      <div class="hiw-step"><div class="hiw-num">3</div><h3>Tenants Pay Online</h3><p>Tenants log in to their personal portal to check their status, pay annual fees via Paystack, and download receipts.</p></div>
+      <div class="hiw-step"><div class="hiw-num">4</div><h3>You Monitor Everything</h3><p>The admin dashboard gives you full visibility — payments, expiring leases, occupancy, and revenue — all in one place.</p></div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="lp-section alt" id="pricing">
+    <div class="section-eyebrow">Pricing</div>
+    <div class="section-heading text-center" style="text-align:center;">Simple, transparent pricing</div>
+    <p class="section-sub text-center" style="text-align:center; margin: 0 auto 56px;">No hidden charges. Pay monthly or yearly. Cancel anytime.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-plan">Basic</div>
+        <div class="pricing-price">₦15,000 <span>/mo</span></div>
+        <div class="pricing-period">Up to 20 units · 1 plaza</div>
+        <ul class="pricing-features">
+          <li>Tenant & shop management</li>
+          <li>Rent expiry tracking</li>
+          <li>Online payment collection</li>
+          <li>Payment receipts</li>
+          <li>Email notifications</li>
+          <li>Basic reports</li>
+        </ul>
+        <button class="btn btn-ghost w-full" onclick="showRegister()">Get Started</button>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-popular">Most Popular</div>
+        <div class="pricing-plan">Standard</div>
+        <div class="pricing-price">₦35,000 <span>/mo</span></div>
+        <div class="pricing-period">Up to 100 units · 1 plaza</div>
+        <ul class="pricing-features">
+          <li>Everything in Basic</li>
+          <li>Visual floor map</li>
+          <li>Bulk SMS reminders</li>
+          <li>Advanced reports & export</li>
+          <li>Maintenance requests</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="btn btn-primary w-full" onclick="showRegister()">Start Free Trial</button>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-plan">Premium</div>
+        <div class="pricing-price">₦75,000 <span>/mo</span></div>
+        <div class="pricing-period">Unlimited units · Multiple plazas</div>
+        <ul class="pricing-features">
+          <li>Everything in Standard</li>
+          <li>Multiple plazas / blocks</li>
+          <li>Custom plaza branding</li>
+          <li>API access</li>
+          <li>Dedicated account manager</li>
+          <li>Custom integrations</li>
+        </ul>
+        <button class="btn btn-gold w-full" onclick="showRegister()">Contact Sales</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="lp-section" id="testimonials">
+    <div class="section-eyebrow">Testimonials</div>
+    <div class="section-heading">Trusted by plaza owners across Nigeria</div>
+    <p class="section-sub">Here's what our customers say about PlazaHub.</p>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <p class="testimonial-quote">PlazaHub completely changed how I manage my plaza. I used to track everything in notebooks — now I get alerts on my phone when rent is due. It's brilliant.</p>
+        <div class="testimonial-author">
+          <div class="avatar" style="background:rgba(59,130,246,0.2);color:var(--accent2);">C</div>
+          <div><div class="testimonial-name">Chief Chukwuemeka Obi</div><div class="testimonial-role">Owner, Emeka Business Plaza, Onitsha</div></div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <p class="testimonial-quote">My tenants can now pay online without coming to my office. The payment records are clean and I can export them anytime. This is exactly what I needed.</p>
+        <div class="testimonial-author">
+          <div class="avatar" style="background:rgba(245,158,11,0.2);color:var(--gold);">A</div>
+          <div><div class="testimonial-name">Alhaja Aminat Adeyemi</div><div class="testimonial-role">Owner, Adeyemi Plaza, Ibadan</div></div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <p class="testimonial-quote">I manage 3 plazas and used to struggle keeping track of who paid and who didn't. PlazaHub Premium gives me one dashboard for everything. Worth every kobo.</p>
+        <div class="testimonial-author">
+          <div class="avatar" style="background:rgba(16,185,129,0.2);color:var(--green);">E</div>
+          <div><div class="testimonial-name">Engr. Emeka Nwosu</div><div class="testimonial-role">MD, Nwosu Properties Ltd, Enugu</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="lp-cta">
+    <h2>Ready to modernize your plaza?</h2>
+    <p>Join 500+ plaza owners already using PlazaHub. Start your free 30-day trial — no credit card required.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-primary btn-xl" onclick="showRegister()">Start Free Trial</button>
+      <button class="btn btn-ghost btn-xl" onclick="showLogin('admin')">View Live Demo</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="lp-footer">
+    <div class="lp-logo"><div class="lp-logo-mark">🏢</div> PlazaHub</div>
+    <div class="lp-footer-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="#">Support</a>
+      <a href="#">Contact</a>
+    </div>
+    <div style="font-size:12px;color:var(--text3);">© 2025 PlazaHub. Made for Nigeria 🇳🇬</div>
+  </footer>
+</div>
+
+<!-- ============================================================
+     PAGE: LOGIN
+     ============================================================ -->
+<div id="page-login">
+  <div class="login-layout">
+    <!-- Left visual -->
+    <div class="login-visual">
+      <div class="login-building">
+        <div class="login-building-row"><div class="lb-unit lit"></div><div class="lb-unit"></div><div class="lb-unit lit2"></div><div class="lb-unit lit"></div><div class="lb-unit"></div></div>
+        <div class="login-building-row"><div class="lb-unit"></div><div class="lb-unit lit3"></div><div class="lb-unit"></div><div class="lb-unit lit2"></div><div class="lb-unit lit"></div></div>
+        <div class="login-building-row"><div class="lb-unit lit2"></div><div class="lb-unit lit"></div><div class="lb-unit"></div><div class="lb-unit"></div><div class="lb-unit lit3"></div></div>
+        <div class="login-building-row"><div class="lb-unit"></div><div class="lb-unit"></div><div class="lb-unit lit"></div><div class="lb-unit lit2"></div><div class="lb-unit"></div></div>
+        <div class="login-building-row"><div class="lb-unit lit3"></div><div class="lb-unit lit"></div><div class="lb-unit lit2"></div><div class="lb-unit"></div><div class="lb-unit lit"></div></div>
+      </div>
+      <div class="login-visual-title">Welcome to PlazaHub</div>
+      <p class="login-visual-sub">Nigeria's smartest plaza management platform. Secure, fast, and built for property owners like you.</p>
+    </div>
+    <!-- Right form -->
+    <div class="login-form-side">
+      <div class="login-logo"><div class="login-logo-mark">🏢</div> PlazaHub</div>
+      <div class="login-form-box">
+        <div class="login-heading">Sign In</div>
+        <p class="login-sub">Access your account dashboard</p>
+        <div class="login-tabs">
+          <div class="login-tab active" id="ltab-super" onclick="switchLoginTab('super')">Super Admin</div>
+          <div class="login-tab" id="ltab-admin" onclick="switchLoginTab('admin')">Plaza Admin</div>
+          <div class="login-tab" id="ltab-tenant" onclick="switchLoginTab('tenant')">Tenant</div>
+        </div>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Email Address</label>
+          <input class="form-input w-full" type="email" id="login-email" placeholder="your@email.com">
+        </div>
+        <div class="form-group" style="margin-bottom:6px;">
+          <label class="form-label">Password</label>
+          <input class="form-input w-full" type="password" id="login-password" placeholder="••••••••">
+        </div>
+        <div style="text-align:right;margin-bottom:18px;"><a href="#" style="font-size:12px;color:var(--accent2);">Forgot password?</a></div>
+        <button class="btn btn-primary login-btn" id="login-submit-btn" onclick="doLogin()">Sign In as Super Admin</button>
+        <div class="login-link">Don't have an account? <a onclick="showRegister()">Register your plaza →</a></div>
+        <div class="login-demo-note">
+          🔑 <strong>Demo credentials:</strong><br>
+          Use any email + password to sign in.<br>
+          Switch tabs to demo each role.
+        </div>
+        <div style="margin-top:16px;text-align:center;">
+          <a onclick="showLanding()" style="font-size:12px;color:var(--text3);cursor:pointer;">← Back to homepage</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: REGISTER
+     ============================================================ -->
+<div id="page-register">
+  <div class="register-wrap">
+    <div class="register-box">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;">
+        <div class="lp-logo-mark">🏢</div>
+        <span style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;">PlazaHub</span>
+      </div>
+      <div class="register-heading">Create Your Plaza Account</div>
+      <p class="register-sub">Set up your plaza on PlazaHub in minutes. Start your 30-day free trial today.</p>
+
+      <div class="form-section-title">Your Information</div>
+      <div class="form-grid-2 mb-16">
+        <div class="form-group"><label class="form-label">First Name</label><input class="form-input" placeholder="Chukwuemeka"></div>
+        <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" placeholder="Obi"></div>
+      </div>
+      <div class="form-grid-2 mb-20">
+        <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" placeholder="admin@yourplaza.com"></div>
+        <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" placeholder="0801 234 5678"></div>
+      </div>
+
+      <div class="form-section-title">Plaza Details</div>
+      <div class="form-grid-2 mb-16">
+        <div class="form-group"><label class="form-label">Plaza Name</label><input class="form-input" placeholder="Sunshine Business Plaza"></div>
+        <div class="form-group"><label class="form-label">City / State</label><input class="form-input" placeholder="Lagos, Lagos State"></div>
+      </div>
+      <div class="form-grid-3 mb-20">
+        <div class="form-group"><label class="form-label">Total Units</label><input class="form-input" type="number" placeholder="48"></div>
+        <div class="form-group"><label class="form-label">Number of Blocks</label><input class="form-input" type="number" placeholder="2"></div>
+        <div class="form-group"><label class="form-label">Subscription Plan</label>
+          <select class="form-input">
+            <option>Basic — ₦15,000/mo</option>
+            <option selected>Standard — ₦35,000/mo</option>
+            <option>Premium — ₦75,000/mo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section-title">Security</div>
+      <div class="form-grid-2 mb-28">
+        <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" placeholder="Min. 8 characters"></div>
+        <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" type="password" placeholder="Repeat password"></div>
+      </div>
+
+      <div style="display:flex;gap:14px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-lg" onclick="showLanding()">← Back</button>
+        <button class="btn btn-primary btn-lg" onclick="doRegister()">Create Account & Start Trial 🚀</button>
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin-top:16px;text-align:center;">By registering, you agree to our <a href="#" style="color:var(--accent2);">Terms of Service</a> and <a href="#" style="color:var(--accent2);">Privacy Policy</a>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div id="app-shell">
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div class="sidebar-logo-mark">🏢</div>
+        <div class="sidebar-logo-text">PlazaHub</div>
+      </div>
+      <div class="sidebar-nav" id="sidebar-nav">
+        <!-- Populated by JS -->
+      </div>
+      <div class="sidebar-foot">
+        <div class="avatar" id="sidebar-avatar" style="background:rgba(59,130,246,0.2);color:var(--accent2);">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-username">Admin User</div>
+          <div class="sidebar-user-role" id="sidebar-userrole">Plaza Owner</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-wrap">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:16px;">
+          <button class="btn-icon btn-dark" id="mobile-menu-btn" onclick="toggleMobileSidebar()" style="display:none;">☰</button>
+          <div class="topbar-title" id="topbar-title">Dashboard</div>
+        </div>
+        <div class="topbar-right">
+          <!-- Role Switcher (demo) -->
+          <div class="role-switcher" id="role-switcher">
+            <button class="role-btn active" id="rbtn-super"  onclick="switchRole('super')">Super</button>
+            <button class="role-btn"        id="rbtn-admin"  onclick="switchRole('admin')">Admin</button>
+            <button class="role-btn"        id="rbtn-tenant" onclick="switchRole('tenant')">Tenant</button>
+          </div>
+          <div class="topbar-icon-btn" onclick="navTo('notifications')">
+            🔔<div class="topbar-notif-dot"></div>
+          </div>
+          <div class="avatar" id="topbar-avatar" style="background:rgba(59,130,246,0.2);color:var(--accent2);cursor:pointer;" onclick="navTo('settings')">A</div>
+        </div>
+      </div>
+
+      <div class="page-content">
+
+        <!-- ====================================================
+             SUPER ADMIN PAGES
+             ==================================================== -->
+
+        <!-- Super: Dashboard -->
+        <div class="app-page" id="page-super-dashboard">
+          <div class="grid-4 mb-24">
+            <div class="stat-card">
+              <div class="stat-top">
+                <div><div class="stat-value">127</div><div class="stat-label">Total Plazas</div></div>
+                <div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏢</div>
+              </div>
+              <div class="stat-trend up">↑ 12 new this month</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:78%;background:var(--accent);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top">
+                <div><div class="stat-value">8,940</div><div class="stat-label">Total Tenants</div></div>
+                <div class="stat-icon" style="background:rgba(16,185,129,0.12);">👥</div>
+              </div>
+              <div class="stat-trend up">↑ 340 this month</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:65%;background:var(--green);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top">
+                <div><div class="stat-value">₦4.84B</div><div class="stat-label">Rent Processed</div></div>
+                <div class="stat-icon" style="background:rgba(245,158,11,0.12);">💰</div>
+              </div>
+              <div class="stat-trend up">↑ 18% vs last year</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:82%;background:var(--gold);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top">
+                <div><div class="stat-value">₦3.2M</div><div class="stat-label">Subscription Revenue</div></div>
+                <div class="stat-icon" style="background:rgba(139,92,246,0.12);">📈</div>
+              </div>
+              <div class="stat-trend up">↑ ₦420k this month</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:70%;background:var(--purple);"></div></div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-24">
+            <div class="card">
+              <div class="card-header">
+                <div><div class="card-title">Platform Revenue (2025)</div><div class="card-subtitle">Monthly subscription income</div></div>
+              </div>
+              <div class="bar-chart" id="super-revenue-chart"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div><div class="card-title">Plan Distribution</div><div class="card-subtitle">Active subscriptions by tier</div></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px;padding-top:8px;">
+                <div>
+                  <div class="flex items-center justify-between mb-8"><span class="text-sm">Basic (54 plazas)</span><span class="text-sm font-bold" style="color:var(--text2);">43%</span></div>
+                  <div class="progress"><div class="progress-fill" style="width:43%;background:var(--text3);"></div></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-8"><span class="text-sm">Standard (52 plazas)</span><span class="text-sm font-bold text-accent">41%</span></div>
+                  <div class="progress"><div class="progress-fill" style="width:41%;background:var(--accent);"></div></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-8"><span class="text-sm">Premium (21 plazas)</span><span class="text-sm font-bold text-gold">16%</span></div>
+                  <div class="progress"><div class="progress-fill" style="width:16%;background:var(--gold);"></div></div>
+                </div>
+                <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--border);">
+                  <div class="flex items-center justify-between mb-8"><span class="text-sm text-muted">Trial (14 plazas)</span><span class="badge badge-blue">14 active</span></div>
+                  <div class="flex items-center justify-between"><span class="text-sm text-muted">Suspended (3 plazas)</span><span class="badge badge-red">3</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Recently Registered Plazas</div><div class="card-subtitle">Latest 5 onboarded accounts</div></div>
+              <button class="btn btn-sm btn-ghost" onclick="navTo('super-plazas')">View All →</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Plaza</th><th>Owner</th><th>City</th><th>Units</th><th>Plan</th><th>Status</th><th>Joined</th></tr></thead>
+                <tbody id="super-recent-plazas"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Super: Plazas Management -->
+        <div class="app-page" id="page-super-plazas">
+          <div class="filter-bar">
+            <div class="search-input-wrap"><span class="search-icon">🔍</span><input class="form-input" type="text" placeholder="Search plazas..." oninput="filterPlazas(this.value)"></div>
+            <select class="form-input" style="width:150px;"><option>All Status</option><option>Active</option><option>Trial</option><option>Suspended</option><option>Expired</option></select>
+            <select class="form-input" style="width:150px;"><option>All Plans</option><option>Basic</option><option>Standard</option><option>Premium</option></select>
+            <button class="btn btn-primary ml-auto" onclick="openAddPlaza()">+ Add Plaza Manually</button>
+          </div>
+          <div id="plazas-list"></div>
+        </div>
+
+        <!-- Super: Subscriptions -->
+        <div class="app-page" id="page-super-subscriptions">
+          <div class="grid-3 mb-24">
+            <div class="plan-card">
+              <div class="flex items-center justify-between mb-16">
+                <div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);">Basic</div><div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-top:4px;">₦15,000</div><div style="font-size:12px;color:var(--text3);">per month</div></div>
+                <span class="badge badge-gray">54 active</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Max Units</span><span>20</span></div>
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Monthly Revenue</span><span class="text-green">₦810,000</span></div>
+              </div>
+              <button class="btn btn-ghost w-full btn-sm" onclick="openEditPlan('basic')">Edit Plan</button>
+            </div>
+            <div class="plan-card active-plan">
+              <div class="flex items-center justify-between mb-16">
+                <div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent2);">Standard</div><div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-top:4px;">₦35,000</div><div style="font-size:12px;color:var(--text3);">per month</div></div>
+                <span class="badge badge-blue">52 active</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Max Units</span><span>100</span></div>
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Monthly Revenue</span><span class="text-green">₦1,820,000</span></div>
+              </div>
+              <button class="btn btn-primary w-full btn-sm" onclick="openEditPlan('standard')">Edit Plan</button>
+            </div>
+            <div class="plan-card">
+              <div class="flex items-center justify-between mb-16">
+                <div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">Premium</div><div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-top:4px;">₦75,000</div><div style="font-size:12px;color:var(--text3);">per month</div></div>
+                <span class="badge badge-gold">21 active</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Max Units</span><span>Unlimited</span></div>
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Monthly Revenue</span><span class="text-green">₦1,575,000</span></div>
+              </div>
+              <button class="btn btn-ghost w-full btn-sm" onclick="openEditPlan('premium')">Edit Plan</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Subscription Payments</div><button class="btn btn-sm btn-ghost">📥 Export</button></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Plaza</th><th>Plan</th><th>Amount</th><th>Period</th><th>Date</th><th>Status</th></tr></thead>
+                <tbody id="sub-payments-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Super: Platform Revenue -->
+        <div class="app-page" id="page-super-revenue">
+          <div class="grid-4 mb-24">
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦38.4M</div><div class="stat-label">Total Revenue (2025)</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">💵</div></div><div class="stat-trend up">↑ 28% vs 2024</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦3.2M</div><div class="stat-label">This Month</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">📅</div></div><div class="stat-trend up">↑ ₦420k vs last month</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">127</div><div class="stat-label">Paying Plazas</div></div><div class="stat-icon" style="background:rgba(245,158,11,0.12);">🏢</div></div><div class="stat-trend up">↑ 12 new this month</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦25,354</div><div class="stat-label">Avg. Per Plaza</div></div><div class="stat-icon" style="background:rgba(139,92,246,0.12);">📊</div></div><div class="stat-trend up">↑ ₦1,200 MoM</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Revenue Breakdown by Month</div></div>
+            <div class="bar-chart" id="super-monthly-chart" style="height:200px;"></div>
+          </div>
+        </div>
+
+        <!-- Super: Settings -->
+        <div class="app-page" id="page-super-settings">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Platform Settings</div></div>
+              <div class="form-group mb-16"><label class="form-label">Platform Name</label><input class="form-input" value="PlazaHub"></div>
+              <div class="form-group mb-16"><label class="form-label">Support Email</label><input class="form-input" value="support@plazahub.ng"></div>
+              <div class="form-group mb-16"><label class="form-label">Support Phone</label><input class="form-input" value="0800-PLAZAHUB"></div>
+              <div class="form-group mb-24"><label class="form-label">Trial Period (days)</label><input class="form-input" type="number" value="30"></div>
+              <button class="btn btn-primary" onclick="showToast('Settings saved successfully','success')">Save Changes</button>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Notification Preferences</div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>New Plaza Registration</h4><p>Email alert when a new plaza signs up</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Subscription Expiry Alert</h4><p>Notify 7 days before a plaza subscription expires</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Failed Payments</h4><p>Alert on failed subscription payments</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Monthly Revenue Report</h4><p>Auto-email monthly revenue summary</p></div><div class="toggle" onclick="toggleThis(this)"></div></div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ====================================================
+             PLAZA ADMIN PAGES
+             ==================================================== -->
+
+        <!-- Admin: Dashboard -->
+        <div class="app-page" id="page-admin-dashboard">
+          <div class="grid-4 mb-24">
+            <div class="stat-card">
+              <div class="stat-top"><div><div class="stat-value">48</div><div class="stat-label">Total Units</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏪</div></div>
+              <div class="stat-trend neutral">Block A (24) + Block B (24)</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:100%;background:var(--accent);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top"><div><div class="stat-value">41</div><div class="stat-label">Active Tenants</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">👥</div></div>
+              <div class="stat-trend up">↑ 85.4% occupancy</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:85%;background:var(--green);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top"><div><div class="stat-value">₦14.8M</div><div class="stat-label">Annual Revenue</div></div><div class="stat-icon" style="background:rgba(245,158,11,0.12);">💰</div></div>
+              <div class="stat-trend up">↑ 11% vs last year</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:74%;background:var(--gold);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top"><div><div class="stat-value">5</div><div class="stat-label">Expiring Soon</div></div><div class="stat-icon" style="background:rgba(239,68,68,0.12);">⚠️</div></div>
+              <div class="stat-trend down">3 critical — under 30 days</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:25%;background:var(--red);"></div></div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-24">
+            <div class="card">
+              <div class="card-header">
+                <div><div class="card-title">Monthly Revenue 2025</div><div class="card-subtitle">Rent collected per month</div></div>
+              </div>
+              <div class="bar-chart" id="admin-revenue-chart"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div><div class="card-title">Expiring Leases</div><div class="card-subtitle">Next 90 days</div></div>
+                <button class="btn btn-sm btn-ghost" onclick="navTo('admin-tenants')">View All</button>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Tenant</th><th>Unit</th><th>Expires</th><th>Status</th></tr></thead>
+                  <tbody id="admin-expiring-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Recent Transactions</div><div class="card-subtitle">Latest payment activity</div></div>
+              <button class="btn btn-sm btn-primary" onclick="navTo('admin-payments')">All Payments</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Tenant</th><th>Unit</th><th>Amount</th><th>Type</th><th>Date</th><th>Status</th></tr></thead>
+                <tbody id="admin-recent-payments"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Tenants -->
+        <div class="app-page" id="page-admin-tenants">
+          <div class="filter-bar">
+            <div class="search-input-wrap"><span class="search-icon">🔍</span><input class="form-input" type="text" placeholder="Search tenants..." oninput="filterTenants(this.value)" id="tenant-search"></div>
+            <select class="form-input" style="width:160px;" id="tenant-status-filter" onchange="filterTenants(document.getElementById('tenant-search').value)">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="expiring">Expiring Soon</option>
+              <option value="overdue">Overdue</option>
+            </select>
+            <button class="btn btn-primary ml-auto" onclick="openAddTenant()">+ Add Tenant</button>
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Tenant</th><th>Unit</th><th>Business Type</th><th>Annual Rent</th><th>Lease Start</th><th>Lease Expires</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="tenants-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Units/Shops -->
+        <div class="app-page" id="page-admin-units">
+          <div class="grid-4 mb-24">
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">41</div><div class="stat-label">Occupied</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">✅</div></div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">7</div><div class="stat-label">Vacant</div></div><div class="stat-icon" style="background:rgba(74,85,104,0.1);">⬜</div></div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">3</div><div class="stat-label">Expiring &lt;30d</div></div><div class="stat-icon" style="background:rgba(239,68,68,0.12);">🔴</div></div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">2</div><div class="stat-label">Overdue</div></div><div class="stat-icon" style="background:rgba(249,115,22,0.12);">⚠️</div></div></div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header">
+              <div><div class="card-title">Floor Map — All Units</div><div class="card-subtitle">Click a unit to view details</div></div>
+              <div class="unit-legend">
+                <div class="unit-legend-item"><div class="unit-legend-dot" style="background:var(--green);"></div>Occupied</div>
+                <div class="unit-legend-item"><div class="unit-legend-dot" style="background:var(--orange);"></div>Expiring</div>
+                <div class="unit-legend-item"><div class="unit-legend-dot" style="background:var(--red);"></div>Overdue</div>
+                <div class="unit-legend-item"><div class="unit-legend-dot" style="background:var(--text3);"></div>Vacant</div>
+              </div>
+            </div>
+            <div style="margin-bottom:12px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Block A</div>
+            <div class="unit-grid mb-20" id="unit-grid-A"></div>
+            <div style="margin-bottom:12px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Block B</div>
+            <div class="unit-grid" id="unit-grid-B"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Units List</div><button class="btn btn-sm btn-primary" onclick="openAddUnit()">+ Add Unit</button></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Unit No.</th><th>Block</th><th>Size</th><th>Annual Rent</th><th>Tenant</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="units-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Payments -->
+        <div class="app-page" id="page-admin-payments">
+          <div class="grid-4 mb-24">
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦12.6M</div><div class="stat-label">Total Collected</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">✅</div></div><div class="stat-trend up">38 tenants paid</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦2.2M</div><div class="stat-label">Outstanding</div></div><div class="stat-icon" style="background:rgba(239,68,68,0.12);">⏳</div></div><div class="stat-trend down">3 tenants overdue</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦480K</div><div class="stat-label">Pending Clearance</div></div><div class="stat-icon" style="background:rgba(249,115,22,0.12);">🔄</div></div><div class="stat-trend neutral">2 pending transfers</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">93%</div><div class="stat-label">Collection Rate</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">📊</div></div><div class="stat-trend up">↑ 3% vs last year</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">All Payment Records</div></div>
+              <div class="card-actions">
+                <button class="btn btn-sm btn-ghost">📥 Export CSV</button>
+                <button class="btn btn-sm btn-primary" onclick="openRecordPayment()">+ Record Payment</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Ref #</th><th>Tenant</th><th>Unit</th><th>Amount</th><th>Period</th><th>Method</th><th>Date</th><th>Status</th><th></th></tr></thead>
+                <tbody id="payments-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Reports -->
+        <div class="app-page" id="page-admin-reports">
+          <div class="grid-2 mb-24">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Revenue by Quarter (2025)</div></div>
+              <div class="bar-chart" id="reports-quarterly-chart" style="height:180px;"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Occupancy & Payment Stats</div></div>
+              <div style="display:flex;flex-direction:column;gap:16px;padding-top:4px;">
+                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Occupied Units</span><span class="text-sm font-bold text-green">41/48 — 85%</span></div><div class="progress progress-lg"><div class="progress-fill" style="width:85%;background:var(--green);"></div></div></div>
+                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Rent Collected</span><span class="text-sm font-bold text-accent">38/41 — 93%</span></div><div class="progress progress-lg"><div class="progress-fill" style="width:93%;background:var(--accent);"></div></div></div>
+                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Renewals Confirmed</span><span class="text-sm font-bold text-gold">28/41 — 68%</span></div><div class="progress progress-lg"><div class="progress-fill" style="width:68%;background:var(--gold);"></div></div></div>
+                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Overdue Payments</span><span class="text-sm font-bold text-red">3/41 — 7%</span></div><div class="progress progress-lg"><div class="progress-fill" style="width:7%;background:var(--red);"></div></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Top Revenue Units</div><button class="btn btn-sm btn-ghost">📄 Export Report</button></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>#</th><th>Unit</th><th>Tenant</th><th>Annual Rent</th><th>Collected</th><th>Balance</th><th>Status</th></tr></thead>
+                <tbody id="reports-top-units"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Notifications -->
+        <div class="app-page" id="page-admin-notifications">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <div><div class="card-title">Alerts & Notifications</div></div>
+                <span class="badge badge-red">5 new</span>
+              </div>
+              <div id="admin-notif-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Send Bulk Reminder</div></div>
+              <div class="form-group mb-16"><label class="form-label">Recipients</label>
+                <select class="form-input">
+                  <option>Expiring in 30 days (5 tenants)</option>
+                  <option>Overdue payments (3 tenants)</option>
+                  <option>Expiring in 60 days (9 tenants)</option>
+                  <option>All tenants (41 tenants)</option>
+                </select>
+              </div>
+              <div class="form-group mb-16"><label class="form-label">Subject</label><input class="form-input" value="Rent Renewal Reminder — Sunshine Business Plaza"></div>
+              <div class="form-group mb-16"><label class="form-label">Message</label>
+                <textarea class="form-input" rows="5">Dear Tenant,
+
+This is a reminder that your annual rent is due for renewal soon. Please log in to your PlazaHub tenant portal to make your payment and avoid any disruption.
+
+For assistance, contact plaza management.
+
+— Sunshine Business Plaza Management</textarea>
+              </div>
+              <div class="form-group mb-20"><label class="form-label">Delivery Channel</label>
+                <select class="form-input"><option>Email + SMS</option><option>Email only</option><option>SMS only</option></select>
+              </div>
+              <button class="btn btn-primary w-full" onclick="showToast('Bulk reminder sent to 5 tenants','success')">📤 Send Reminder</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Settings -->
+        <div class="app-page" id="page-admin-settings">
+          <div class="grid-2">
+            <div>
+              <div class="card mb-20">
+                <div class="card-header"><div class="card-title">Plaza Profile</div></div>
+                <div class="form-group mb-14"><label class="form-label">Plaza Name</label><input class="form-input" value="Sunshine Business Plaza"></div>
+                <div class="form-group mb-14"><label class="form-label">Full Address</label><input class="form-input" value="14 Adeola Odeku Street, Victoria Island, Lagos"></div>
+                <div class="form-grid-2 mb-14">
+                  <div class="form-group"><label class="form-label">City</label><input class="form-input" value="Lagos"></div>
+                  <div class="form-group"><label class="form-label">State</label><input class="form-input" value="Lagos State"></div>
+                </div>
+                <div class="form-group mb-20"><label class="form-label">Admin Contact Email</label><input class="form-input" value="admin@sunshineplaza.ng"></div>
+                <button class="btn btn-primary" onclick="showToast('Plaza profile updated','success')">Save Profile</button>
+              </div>
+              <div class="card">
+                <div class="card-header"><div class="card-title">Bank Account Details</div><div class="card-subtitle">For tenant payment transfers</div></div>
+                <div class="form-group mb-14"><label class="form-label">Bank Name</label><input class="form-input" value="Zenith Bank PLC"></div>
+                <div class="form-group mb-14"><label class="form-label">Account Number</label><input class="form-input" value="2103456789"></div>
+                <div class="form-group mb-20"><label class="form-label">Account Name</label><input class="form-input" value="Sunshine Business Plaza Ltd"></div>
+                <button class="btn btn-primary" onclick="showToast('Bank details saved','success')">Save Bank Details</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Notification Settings</div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Rent Expiry Alerts</h4><p>Notify admin 30, 14 and 7 days before lease expires</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Payment Confirmation</h4><p>Email admin when a tenant makes a payment</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Overdue Payment Reminders</h4><p>Weekly auto-reminder to overdue tenants</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>New Tenant Welcome Email</h4><p>Auto-send login credentials to new tenants</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Monthly Revenue Summary</h4><p>Auto-email monthly collection report to admin</p></div><div class="toggle" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Maintenance Request Alerts</h4><p>Notify admin when a tenant submits a request</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ====================================================
+             TENANT PAGES
+             ==================================================== -->
+
+        <!-- Tenant: Dashboard -->
+        <div class="app-page" id="page-tenant-dashboard">
+          <div style="background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(245,158,11,0.05));border:1px solid rgba(59,130,246,0.15);border-radius:16px;padding:28px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+            <div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Welcome back</div>
+              <h2 style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px;">Funmi Boutique 👋</h2>
+              <p style="font-size:14px;color:var(--text2);">Unit D-09 · Block D, Sunshine Business Plaza, Lagos</p>
+              <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+                <span class="badge badge-green"><span class="dot dot-green"></span> Rent Paid</span>
+                <span class="badge badge-blue">Active Lease</span>
+                <span class="badge badge-gray">Standard Plan</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:var(--gold);line-height:1;">247</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:4px;">days until lease expires</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px;">Expires Aug 14, 2026</div>
+            </div>
+          </div>
+
+          <div class="grid-3 mb-24">
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦480,000</div><div class="stat-label">Annual Rent</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">💰</div></div><div class="stat-trend up">✓ Paid in full — Dec 5, 2024</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">D-09</div><div class="stat-label">Your Shop Unit</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏪</div></div><div class="stat-trend neutral">Ground Floor · 45 sqm</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">3 yrs</div><div class="stat-label">Tenancy Duration</div></div><div class="stat-icon" style="background:rgba(245,158,11,0.12);">🌟</div></div><div class="stat-trend up">Since January 2022</div></div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Recent Payments</div><button class="btn btn-sm btn-ghost" onclick="navTo('tenant-receipts')">All Receipts</button></div>
+              <div id="tenant-recent-payments"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Quick Actions</div></div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <button class="btn btn-primary w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-pay')">💳 Pay Annual Rent</button>
+                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-maintenance')">🔧 Submit Maintenance Request</button>
+                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-lease')">📄 View Lease Agreement</button>
+                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-receipts')">🧾 Download Receipts</button>
+                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-notifications')">🔔 View Notifications</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tenant: Pay Fees -->
+        <div class="app-page" id="page-tenant-pay">
+          <div class="step-indicator" id="pay-step-indicator">
+            <div class="step-item active" id="pstep-1"><div class="step-circle">1</div><div class="step-label">Review Invoice</div></div>
+            <div class="step-item" id="pstep-2"><div class="step-circle">2</div><div class="step-label">Select Payment</div></div>
+            <div class="step-item" id="pstep-3"><div class="step-circle">3</div><div class="step-label">Confirm</div></div>
+          </div>
+          <div id="pay-content"></div>
+        </div>
+
+        <!-- Tenant: Receipts -->
+        <div class="app-page" id="page-tenant-receipts">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Payment History & Receipts</div><button class="btn btn-sm btn-ghost">📥 Download All</button></div>
+            <div id="tenant-receipts-list"></div>
+          </div>
+        </div>
+
+        <!-- Tenant: Maintenance -->
+        <div class="app-page" id="page-tenant-maintenance">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Submit New Request</div></div>
+              <div class="form-group mb-14"><label class="form-label">Issue Category</label>
+                <select class="form-input"><option>Electrical</option><option>Plumbing</option><option>Structural / Walls</option><option>Roof / Ceiling</option><option>Doors / Windows</option><option>Cleaning</option><option>Security</option><option>Other</option></select>
+              </div>
+              <div class="form-group mb-14"><label class="form-label">Priority Level</label>
+                <select class="form-input"><option>Low — Can wait</option><option>Medium — Needs attention</option><option>High — Urgent</option><option>Emergency — Immediate</option></select>
+              </div>
+              <div class="form-group mb-14"><label class="form-label">Subject</label><input class="form-input" placeholder="Brief description of the issue"></div>
+              <div class="form-group mb-20"><label class="form-label">Detailed Description</label><textarea class="form-input" rows="5" placeholder="Please describe the issue in detail — what happened, where exactly, and when it started..."></textarea></div>
+              <button class="btn btn-primary w-full" onclick="submitMaintenanceRequest()">Submit Request</button>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">My Requests</div></div>
+              <div id="maintenance-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tenant: Lease -->
+        <div class="app-page" id="page-tenant-lease">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Lease Agreement Details</div><button class="btn btn-sm btn-ghost">📄 Download PDF</button></div>
+              <div class="lease-card">
+                <div class="lease-row"><div class="lease-key">Tenant Name</div><div class="lease-val">Funmi Boutique (Mrs. Olufunmilayo Adebisi)</div></div>
+                <div class="lease-row"><div class="lease-key">Plaza Name</div><div class="lease-val">Sunshine Business Plaza</div></div>
+                <div class="lease-row"><div class="lease-key">Shop / Unit Number</div><div class="lease-val">Unit D-09, Block D</div></div>
+                <div class="lease-row"><div class="lease-key">Floor / Level</div><div class="lease-val">Ground Floor</div></div>
+                <div class="lease-row"><div class="lease-key">Unit Size</div><div class="lease-val">45 square meters</div></div>
+                <div class="lease-row"><div class="lease-key">Business Type</div><div class="lease-val">Fashion Boutique / Retail</div></div>
+                <div class="lease-row"><div class="lease-key">Annual Rent</div><div class="lease-val" style="color:var(--gold);font-family:'Syne',sans-serif;font-size:16px;">₦480,000</div></div>
+                <div class="lease-row"><div class="lease-key">Lease Start Date</div><div class="lease-val">January 14, 2022</div></div>
+                <div class="lease-row"><div class="lease-key">Current Lease Period</div><div class="lease-val">Jan 14, 2025 — Aug 14, 2026</div></div>
+                <div class="lease-row"><div class="lease-key">Payment Due Date</div><div class="lease-val">Every January 14th</div></div>
+                <div class="lease-row"><div class="lease-key">Lease Status</div><div class="lease-val"><span class="badge badge-green">✓ Active</span></div></div>
+                <div class="lease-row"><div class="lease-key">Security Deposit</div><div class="lease-val">₦480,000 (paid)</div></div>
+                <div class="lease-row"><div class="lease-key">Management Contact</div><div class="lease-val">admin@sunshineplaza.ng</div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Lease Terms Summary</div></div>
+              <div style="display:flex;flex-direction:column;gap:14px;font-size:13px;color:var(--text2);line-height:1.8;">
+                <p>📋 <strong style="color:var(--text);">Payment Terms:</strong> Annual rent is due in full by January 14th each year. A 10-day grace period applies. Late payments attract a 5% monthly penalty charge.</p>
+                <p>🔧 <strong style="color:var(--text);">Maintenance:</strong> The tenant is responsible for interior maintenance and fixtures. Structural repairs are the responsibility of plaza management.</p>
+                <p>🚫 <strong style="color:var(--text);">Subletting:</strong> Subletting or transferring the tenancy to a third party without written consent from plaza management is strictly prohibited.</p>
+                <p>📢 <strong style="color:var(--text);">Termination:</strong> Either party may terminate this lease with 90 days written notice. Breach of terms may result in immediate termination.</p>
+                <p>🔄 <strong style="color:var(--text);">Renewal:</strong> The tenant must notify management at least 30 days before expiry to confirm renewal. Rent may be reviewed annually.</p>
+              </div>
+              <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
+                <button class="btn btn-primary w-full mb-8" onclick="showToast('Renewal request submitted. Management will contact you shortly.','success')">🔄 Request Lease Renewal</button>
+                <button class="btn btn-ghost w-full" onclick="showToast('A copy has been sent to your email.','info')">📧 Email Me a Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tenant: Notifications -->
+        <div class="app-page" id="page-tenant-notifications">
+          <div class="card" style="max-width:700px;">
+            <div class="card-header"><div class="card-title">Your Notifications</div><span class="badge badge-blue">3 unread</span></div>
+            <div id="tenant-notif-list"></div>
+          </div>
+        </div>
+
+      </div><!-- /page-content -->
+    </div><!-- /main-wrap -->
+  </div><!-- /app-layout -->
+</div><!-- /app-shell -->
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+let currentRole = 'super';  // super | admin | tenant
+let currentPage = '';
+let payStep = 1;
+let loginRole = 'super';
+
+/* ============================================================
+   SAMPLE DATA
+   ============================================================ */
+const TENANTS = [
+  { id:1, name:'Adaeze Obi',          shop:'A-01', block:'A', business:'Fashion Retail',       rent:360000, start:'2022-01-10', expires:'2025-01-10', paid:true,  status:'expiring' },
+  { id:2, name:'Biodun Stores',        shop:'A-04', block:'A', business:'Provisions / FMCG',    rent:300000, start:'2022-02-01', expires:'2025-02-01', paid:true,  status:'expiring' },
+  { id:3, name:'Chidi Fabrics',        shop:'A-07', block:'A', business:'Textile & Fabrics',    rent:280000, start:'2023-03-15', expires:'2026-03-15', paid:true,  status:'active' },
+  { id:4, name:'Damilola Electronics', shop:'A-10', block:'A', business:'Electronics & Gadgets',rent:420000, start:'2023-05-20', expires:'2026-05-20', paid:true,  status:'active' },
+  { id:5, name:'Emeka POS Agent',      shop:'A-13', block:'A', business:'Financial Services',   rent:180000, start:'2023-08-01', expires:'2025-08-01', paid:false, status:'overdue' },
+  { id:6, name:'Funmi Boutique',       shop:'D-09', block:'D', business:'Fashion & Accessories',rent:480000, start:'2022-01-14', expires:'2026-08-14', paid:true,  status:'active' },
+  { id:7, name:'Grace Pharmacy',       shop:'B-03', block:'B', business:'Pharmacy & Health',    rent:540000, start:'2023-06-01', expires:'2026-06-01', paid:true,  status:'active' },
+  { id:8, name:'Hassan Auto Parts',    shop:'B-06', block:'B', business:'Auto Parts & Tools',   rent:380000, start:'2022-11-01', expires:'2025-11-01', paid:true,  status:'active' },
+  { id:9, name:'Ifeoma Catering',      shop:'B-09', block:'B', business:'Food & Catering',      rent:240000, start:'2023-04-10', expires:'2025-04-10', paid:false, status:'overdue' },
+  { id:10,name:'Jide Legal Services',  shop:'B-12', block:'B', business:'Professional Services',rent:600000, start:'2023-07-01', expires:'2026-07-01', paid:true,  status:'active' },
+  { id:11,name:'Kemi Baby World',      shop:'A-16', block:'A', business:'Baby Products',        rent:260000, start:'2024-01-01', expires:'2027-01-01', paid:true,  status:'active' },
+  { id:12,name:'Leke Tailoring',       shop:'B-15', block:'B', business:'Tailoring & Alterations',rent:200000,start:'2024-03-01',expires:'2027-03-01', paid:true,  status:'active' },
+];
+
+const PAYMENTS = [
+  { ref:'TXN-2025-0841', tenant:'Funmi Boutique',       unit:'D-09', amount:480000, period:'2025', method:'Paystack',       date:'2025-01-05', status:'paid' },
+  { ref:'TXN-2025-0840', tenant:'Jide Legal Services',  unit:'B-12', amount:600000, period:'2025', method:'Bank Transfer',  date:'2025-01-04', status:'paid' },
+  { ref:'TXN-2025-0839', tenant:'Grace Pharmacy',       unit:'B-03', amount:540000, period:'2025', method:'Paystack',       date:'2025-01-03', status:'paid' },
+  { ref:'TXN-2025-0838', tenant:'Damilola Electronics', unit:'A-10', amount:420000, period:'2025', method:'Paystack',       date:'2025-01-02', status:'paid' },
+  { ref:'TXN-2025-0837', tenant:'Hassan Auto Parts',    unit:'B-06', amount:380000, period:'2025', method:'Bank Transfer',  date:'2024-12-30', status:'paid' },
+  { ref:'TXN-2024-0819', tenant:'Emeka POS Agent',      unit:'A-13', amount:180000, period:'2024', method:'Bank Transfer',  date:'2024-11-01', status:'pending' },
+  { ref:'TXN-2024-0805', tenant:'Ifeoma Catering',      unit:'B-09', amount:240000, period:'2024', method:'—',              date:'2024-09-10', status:'overdue' },
+  { ref:'TXN-2025-0842', tenant:'Chidi Fabrics',        unit:'A-07', amount:280000, period:'2025', method:'USSD',           date:'2025-01-06', status:'paid' },
+  { ref:'TXN-2025-0843', tenant:'Kemi Baby World',      unit:'A-16', amount:260000, period:'2025', method:'Paystack',       date:'2025-01-07', status:'paid' },
+  { ref:'TXN-2025-0844', tenant:'Leke Tailoring',       unit:'B-15', amount:200000, period:'2025', method:'Bank Transfer',  date:'2025-01-08', status:'paid' },
+];
+
+const PLAZAS = [
+  { id:1, name:'Sunshine Business Plaza', owner:'Chief Emeka Obi',      city:'Lagos',    units:48, tenants:41, plan:'Standard', status:'active', joined:'2024-03-15' },
+  { id:2, name:'Adeyemi Shopping Complex',owner:'Alhaja A. Adeyemi',    city:'Ibadan',   units:32, tenants:29, plan:'Basic',    status:'active', joined:'2024-05-20' },
+  { id:3, name:'Nwosu Commercial Plaza',  owner:'Engr. E. Nwosu',       city:'Enugu',    units:96, tenants:88, plan:'Premium',  status:'active', joined:'2024-01-10' },
+  { id:4, name:'Eko Market Suites',       owner:'Mr. Tunde Afolabi',    city:'Lagos',    units:120,tenants:104,plan:'Premium',  status:'active', joined:'2023-11-05' },
+  { id:5, name:'Abuja Grand Plaza',       owner:'Alhaji M. Ibrahim',    city:'Abuja',    units:60, tenants:52, plan:'Standard', status:'active', joined:'2024-07-22' },
+  { id:6, name:'Delta Trade Center',      owner:'Chief A. Oghenekaro',  city:'Warri',    units:24, tenants:18, plan:'Basic',    status:'trial',  joined:'2025-01-01' },
+  { id:7, name:'Kano Commercial Hub',     owner:'Alhaji S. Maigida',    city:'Kano',     units:40, tenants:35, plan:'Standard', status:'active', joined:'2024-09-14' },
+  { id:8, name:'Calabar Suites',          owner:'Dr. E. Effiom',        city:'Calabar',  units:18, tenants:12, plan:'Basic',    status:'suspended',joined:'2024-04-30' },
+];
+
+const SUB_PAYMENTS = [
+  { plaza:'Sunshine Business Plaza', plan:'Standard', amount:35000, period:'Jan 2025', date:'2025-01-01', status:'paid' },
+  { plaza:'Nwosu Commercial Plaza',  plan:'Premium',  amount:75000, period:'Jan 2025', date:'2025-01-01', status:'paid' },
+  { plaza:'Eko Market Suites',       plan:'Premium',  amount:75000, period:'Jan 2025', date:'2025-01-01', status:'paid' },
+  { plaza:'Adeyemi Shopping Complex',plan:'Basic',    amount:15000, period:'Jan 2025', date:'2025-01-01', status:'paid' },
+  { plaza:'Abuja Grand Plaza',       plan:'Standard', amount:35000, period:'Jan 2025', date:'2025-01-01', status:'paid' },
+  { plaza:'Kano Commercial Hub',     plan:'Standard', amount:35000, period:'Jan 2025', date:'2024-12-28', status:'paid' },
+  { plaza:'Calabar Suites',          plan:'Basic',    amount:15000, period:'Dec 2024', date:'2024-12-01', status:'failed' },
+];
+
+const ADMIN_NOTIFICATIONS = [
+  { type:'red',    text:'<strong>Adaeze Obi (A-01)</strong> lease expires in <strong>8 days</strong>. Immediate renewal action required.', time:'1 hour ago', unread:true },
+  { type:'red',    text:'<strong>Biodun Stores (A-04)</strong> lease expires in <strong>25 days</strong>. Reminder sent.', time:'3 hours ago', unread:true },
+  { type:'orange', text:'<strong>Emeka POS Agent (A-13)</strong> has an overdue payment of <strong>₦180,000</strong> for 2024.', time:'1 day ago', unread:true },
+  { type:'orange', text:'<strong>Ifeoma Catering (B-09)</strong> has an overdue payment of <strong>₦240,000</strong> since September 2024.', time:'2 days ago', unread:true },
+  { type:'green',  text:'<strong>Leke Tailoring (B-15)</strong> successfully paid ₦200,000 annual rent via bank transfer.', time:'3 days ago', unread:false },
+  { type:'green',  text:'<strong>Kemi Baby World (A-16)</strong> successfully paid ₦260,000 via Paystack.', time:'4 days ago', unread:false },
+  { type:'blue',   text:'<strong>Unit B-18</strong> is now vacant. Consider listing it to new prospects.', time:'1 week ago', unread:false },
+];
+
+const TENANT_NOTIFICATIONS = [
+  { type:'gold',   text:'Your lease expires in <strong>247 days</strong> (Aug 14, 2026). You can renew anytime from your portal.', time:'Today', unread:true },
+  { type:'green',  text:'Your payment of <strong>₦480,000</strong> for 2025 annual rent has been confirmed. Receipt #TXN-2025-0841.', time:'Jan 5, 2025', unread:false },
+  { type:'blue',   text:'Maintenance request <strong>#MR-004</strong> (Electrical) has been attended to and marked completed.', time:'Dec 20, 2024', unread:false },
+];
+
+const MAINTENANCE_REQUESTS = [
+  { id:'MR-004', category:'Electrical', subject:'Faulty light socket near entrance', priority:'Medium', date:'Dec 15, 2024', status:'resolved' },
+  { id:'MR-003', category:'Plumbing',   subject:'Water leakage from ceiling corner', priority:'High',   date:'Nov 2, 2024',  status:'completed' },
+  { id:'MR-002', category:'Structural', subject:'Cracked wall behind display shelf',  priority:'Low',    date:'Aug 10, 2024', status:'completed' },
+];
+
+/* ============================================================
+   NAV CONFIG PER ROLE
+   ============================================================ */
+const NAV_CONFIG = {
+  super: [
+    { label:'Main', items:[
+      { icon:'📊', text:'Dashboard',           page:'super-dashboard' },
+      { icon:'🏢', text:'Plazas',              page:'super-plazas' },
+      { icon:'💎', text:'Subscriptions',       page:'super-subscriptions' },
+      { icon:'💵', text:'Platform Revenue',    page:'super-revenue' },
+    ]},
+    { label:'System', items:[
+      { icon:'⚙️', text:'Settings',            page:'super-settings' },
+      { icon:'🚪', text:'Sign Out',             page:'logout' },
+    ]},
+  ],
+  admin: [
+    { label:'Management', items:[
+      { icon:'📊', text:'Dashboard',           page:'admin-dashboard' },
+      { icon:'👥', text:'Tenants',             page:'admin-tenants',      badge:'3' },
+      { icon:'🏪', text:'Units & Shops',       page:'admin-units' },
+      { icon:'💳', text:'Payments',            page:'admin-payments' },
+    ]},
+    { label:'Analytics', items:[
+      { icon:'📈', text:'Reports',             page:'admin-reports' },
+      { icon:'🔔', text:'Notifications',       page:'admin-notifications', badge:'5' },
+    ]},
+    { label:'Account', items:[
+      { icon:'⚙️', text:'Settings',            page:'admin-settings' },
+      { icon:'🚪', text:'Sign Out',             page:'logout' },
+    ]},
+  ],
+  tenant: [
+    { label:'My Account', items:[
+      { icon:'🏠', text:'Dashboard',           page:'tenant-dashboard' },
+      { icon:'💳', text:'Pay Fees',            page:'tenant-pay' },
+      { icon:'🧾', text:'My Receipts',         page:'tenant-receipts' },
+    ]},
+    { label:'Services', items:[
+      { icon:'🔧', text:'Maintenance',         page:'tenant-maintenance' },
+      { icon:'📄', text:'My Lease',            page:'tenant-lease' },
+      { icon:'🔔', text:'Notifications',       page:'tenant-notifications', badge:'3' },
+    ]},
+    { label:'Account', items:[
+      { icon:'🚪', text:'Sign Out',             page:'logout' },
+    ]},
+  ],
+};
+
+const ROLE_DEFAULTS = { super:'super-dashboard', admin:'admin-dashboard', tenant:'tenant-dashboard' };
+
+const ROLE_USER = {
+  super:  { name:'Super Admin', role:'Platform Owner',  initial:'S', bg:'rgba(139,92,246,0.2)',  color:'var(--purple)' },
+  admin:  { name:'Emeka Obi',   role:'Plaza Admin',     initial:'E', bg:'rgba(59,130,246,0.2)',  color:'var(--accent2)' },
+  tenant: { name:'Funmi Boutique',role:'Shop D-09',     initial:'F', bg:'rgba(245,158,11,0.2)',  color:'var(--gold)' },
+};
+
+/* ============================================================
+   PAGE / ROLE SWITCHING
+   ============================================================ */
+function showLanding() {
+  hideAll(); document.getElementById('page-landing').style.display = 'block';
+}
+function showLogin(role) {
+  hideAll(); document.getElementById('page-login').style.display = 'block';
+  switchLoginTab(role || 'super');
+}
+function showRegister() {
+  hideAll(); document.getElementById('page-register').style.display = 'block';
+}
+function hideAll() {
+  document.getElementById('page-landing').style.display = 'none';
+  document.getElementById('page-login').style.display = 'none';
+  document.getElementById('page-register').style.display = 'none';
+  document.getElementById('app-shell').style.display = 'none';
+}
+
+function switchLoginTab(role) {
+  loginRole = role;
+  ['super','admin','tenant'].forEach(r => {
+    document.getElementById('ltab-'+r).classList.toggle('active', r===role);
+  });
+  const labels = { super:'Sign In as Super Admin', admin:'Sign In as Plaza Admin', tenant:'Sign In as Tenant' };
+  document.getElementById('login-submit-btn').textContent = labels[role];
+}
+
+function doLogin() {
+  switchRole(loginRole);
+  hideAll();
+  document.getElementById('app-shell').style.display = 'block';
+  showToast('Welcome back! You are logged in.', 'success');
+}
+
+function doRegister() {
+  showToast('Account created! Redirecting to your dashboard...', 'success');
+  setTimeout(() => { switchRole('admin'); hideAll(); document.getElementById('app-shell').style.display = 'block'; }, 1500);
+}
+
+function switchRole(role) {
+  currentRole = role;
+  // Role switcher buttons
+  ['super','admin','tenant'].forEach(r => {
+    document.getElementById('rbtn-'+r)?.classList.toggle('active', r===role);
+  });
+  // Sidebar user info
+  const u = ROLE_USER[role];
+  document.getElementById('sidebar-avatar').style.background = u.bg;
+  document.getElementById('sidebar-avatar').style.color = u.color;
+  document.getElementById('sidebar-avatar').textContent = u.initial;
+  document.getElementById('sidebar-username').textContent = u.name;
+  document.getElementById('sidebar-userrole').textContent = u.role;
+  document.getElementById('topbar-avatar').style.background = u.bg;
+  document.getElementById('topbar-avatar').style.color = u.color;
+  document.getElementById('topbar-avatar').textContent = u.initial;
+  // Build sidebar
+  buildSidebar(role);
+  // Navigate to default page
+  navTo(ROLE_DEFAULTS[role]);
+}
+
+function buildSidebar(role) {
+  const nav = document.getElementById('sidebar-nav');
+  nav.innerHTML = '';
+  NAV_CONFIG[role].forEach(group => {
+    const grp = document.createElement('div');
+    grp.className = 'nav-group';
+    grp.innerHTML = `<div class="nav-group-label">${group.label}</div>`;
+    group.items.forEach(item => {
+      const el = document.createElement('div');
+      el.className = 'nav-item';
+      el.id = 'nav-'+item.page;
+      el.innerHTML = `<span class="nav-icon">${item.icon}</span>${item.text}${item.badge ? `<span class="nav-badge">${item.badge}</span>` : ''}`;
+      el.onclick = () => { if(item.page === 'logout') { showLanding(); } else { navTo(item.page); } };
+      grp.appendChild(el);
+    });
+    nav.appendChild(grp);
+  });
+}
+
+function navTo(page) {
+  if (page === 'notifications') {
+    page = currentRole === 'tenant' ? 'tenant-notifications' : currentRole === 'admin' ? 'admin-notifications' : 'super-settings';
+  }
+  if (page === 'settings') {
+    page = currentRole === 'tenant' ? 'tenant-lease' : currentRole === 'admin' ? 'admin-settings' : 'super-settings';
+  }
+  currentPage = page;
+  // Hide all app pages
+  document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById('page-'+page);
+  if (target) target.classList.add('active');
+  // Update active nav
+  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+  const navEl = document.getElementById('nav-'+page);
+  if (navEl) navEl.classList.add('active');
+  // Update topbar title
+  const titles = {
+    'super-dashboard':'Dashboard', 'super-plazas':'Plazas Management',
+    'super-subscriptions':'Subscriptions & Plans', 'super-revenue':'Platform Revenue',
+    'super-settings':'Settings',
+    'admin-dashboard':'Dashboard', 'admin-tenants':'Tenants',
+    'admin-units':'Units & Shops', 'admin-payments':'Payments',
+    'admin-reports':'Reports', 'admin-notifications':'Notifications',
+    'admin-settings':'Settings',
+    'tenant-dashboard':'My Dashboard', 'tenant-pay':'Pay Fees',
+    'tenant-receipts':'My Receipts', 'tenant-maintenance':'Maintenance Requests',
+    'tenant-lease':'My Lease', 'tenant-notifications':'Notifications',
+  };
+  document.getElementById('topbar-title').textContent = titles[page] || 'PlazaHub';
+  // Render dynamic content
+  renderPage(page);
+}
+
+/* ============================================================
+   PAGE RENDERERS
+   ============================================================ */
+function renderPage(page) {
+  switch(page) {
+    case 'super-dashboard':    renderSuperDashboard(); break;
+    case 'super-plazas':       renderPlazasList(); break;
+    case 'super-subscriptions':renderSubPayments(); break;
+    case 'super-revenue':      renderSuperRevenue(); break;
+    case 'admin-dashboard':    renderAdminDashboard(); break;
+    case 'admin-tenants':      renderTenants(TENANTS); break;
+    case 'admin-units':        renderUnits(); break;
+    case 'admin-payments':     renderPayments(); break;
+    case 'admin-reports':      renderReports(); break;
+    case 'admin-notifications':renderAdminNotifs(); break;
+    case 'tenant-dashboard':   renderTenantDashboard(); break;
+    case 'tenant-pay':         renderPayStep(1); break;
+    case 'tenant-receipts':    renderReceipts(); break;
+    case 'tenant-maintenance': renderMaintenance(); break;
+    case 'tenant-notifications':renderTenantNotifs(); break;
+  }
+}
+
+/* ---- Super Admin ---- */
+function renderSuperDashboard() {
+  // Recent plazas table
+  const tbody = document.getElementById('super-recent-plazas');
+  if (!tbody) return;
+  tbody.innerHTML = PLAZAS.slice(0,5).map(p => `
+    <tr>
+      <td><div class="cell-user"><div class="avatar" style="background:rgba(59,130,246,0.15);color:var(--accent2);">${p.name[0]}</div><div><div class="cell-name">${p.name}</div><div class="cell-sub">${p.city}</div></div></div></td>
+      <td>${p.owner}</td>
+      <td>${p.city}</td>
+      <td>${p.units}</td>
+      <td><span class="badge ${p.plan==='Premium'?'badge-gold':p.plan==='Standard'?'badge-blue':'badge-gray'}">${p.plan}</span></td>
+      <td>${statusBadge(p.status)}</td>
+      <td>${formatDate(p.joined)}</td>
+    </tr>`).join('');
+  buildBarChart('super-revenue-chart', [180,210,195,240,220,280,265,290,275,300,310,320], ['J','F','M','A','M','J','J','A','S','O','N','D'], 'var(--accent)');
+}
+
+function renderPlazasList() {
+  const container = document.getElementById('plazas-list');
+  if (!container) return;
+  container.innerHTML = PLAZAS.map(p => `
+    <div class="plaza-row-card">
+      <div class="avatar-lg" style="background:rgba(59,130,246,0.15);color:var(--accent2);">${p.name[0]}</div>
+      <div class="plaza-row-info">
+        <div class="plaza-row-name">${p.name}</div>
+        <div class="plaza-row-meta">👤 ${p.owner} &nbsp;·&nbsp; 📍 ${p.city} &nbsp;·&nbsp; Joined ${formatDate(p.joined)}</div>
+      </div>
+      <div class="plaza-row-stats">
+        <div class="plaza-stat"><div class="plaza-stat-v">${p.units}</div><div class="plaza-stat-l">Units</div></div>
+        <div class="plaza-stat"><div class="plaza-stat-v">${p.tenants}</div><div class="plaza-stat-l">Tenants</div></div>
+        <div class="plaza-stat"><div class="plaza-stat-v">${Math.round(p.tenants/p.units*100)}%</div><div class="plaza-stat-l">Occupied</div></div>
+      </div>
+      <span class="badge ${p.plan==='Premium'?'badge-gold':p.plan==='Standard'?'badge-blue':'badge-gray'}">${p.plan}</span>
+      ${statusBadge(p.status)}
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm btn-ghost" onclick="showToast('Viewing ${p.name}','info')">View</button>
+        ${p.status==='suspended' ? `<button class="btn btn-sm btn-green" onclick="showToast('${p.name} re-activated','success')">Activate</button>` : `<button class="btn btn-sm btn-red" onclick="showToast('${p.name} suspended','error')">Suspend</button>`}
+      </div>
+    </div>`).join('');
+}
+
+function filterPlazas(q) {
+  const filtered = PLAZAS.filter(p => p.name.toLowerCase().includes(q.toLowerCase()) || p.owner.toLowerCase().includes(q.toLowerCase()) || p.city.toLowerCase().includes(q.toLowerCase()));
+  const container = document.getElementById('plazas-list');
+  if (!container) return;
+  if (filtered.length === 0) { container.innerHTML = '<div class="empty-state"><div class="empty-icon">🏢</div><h3>No plazas found</h3><p>Try a different search term</p></div>'; return; }
+  container.innerHTML = filtered.map(p => `
+    <div class="plaza-row-card">
+      <div class="avatar-lg" style="background:rgba(59,130,246,0.15);color:var(--accent2);">${p.name[0]}</div>
+      <div class="plaza-row-info"><div class="plaza-row-name">${p.name}</div><div class="plaza-row-meta">👤 ${p.owner} · 📍 ${p.city}</div></div>
+      <span class="badge ${p.plan==='Premium'?'badge-gold':p.plan==='Standard'?'badge-blue':'badge-gray'}">${p.plan}</span>
+      ${statusBadge(p.status)}
+      <button class="btn btn-sm btn-ghost">View</button>
+    </div>`).join('');
+}
+
+function renderSubPayments() {
+  const tbody = document.getElementById('sub-payments-body');
+  if (!tbody) return;
+  tbody.innerHTML = SUB_PAYMENTS.map(s => `
+    <tr>
+      <td>${s.plaza}</td>
+      <td><span class="badge ${s.plan==='Premium'?'badge-gold':s.plan==='Standard'?'badge-blue':'badge-gray'}">${s.plan}</span></td>
+      <td>₦${s.amount.toLocaleString()}</td>
+      <td>${s.period}</td>
+      <td>${s.date}</td>
+      <td>${s.status==='paid'?'<span class="badge badge-green">✓ Paid</span>':'<span class="badge badge-red">✗ Failed</span>'}</td>
+    </tr>`).join('');
+}
+
+function renderSuperRevenue() {
+  buildBarChart('super-monthly-chart', [2800,3100,2950,3400,3200,3800,3600,4100,3900,4300,4500,4800], ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], 'var(--purple)', 200);
+}
+
+/* ---- Plaza Admin ---- */
+function renderAdminDashboard() {
+  // Expiring leases
+  const expTbody = document.getElementById('admin-expiring-body');
+  if (expTbody) {
+    const expiring = TENANTS.filter(t => t.status === 'expiring' || t.status === 'overdue');
+    expTbody.innerHTML = expiring.slice(0,5).map(t => {
+      const days = daysUntil(t.expires);
+      return `<tr>
+        <td><div class="cell-user"><div class="avatar" style="${avatarStyle(t.name)}">${t.name[0]}</div><span>${t.name}</span></div></td>
+        <td>${t.shop}</td>
+        <td>${formatDate(t.expires)}</td>
+        <td>${expiryBadge(days)}</td>
+      </tr>`;
+    }).join('');
+  }
+  // Recent payments
+  const payTbody = document.getElementById('admin-recent-payments');
+  if (payTbody) {
+    payTbody.innerHTML = PAYMENTS.slice(0,5).map(p => `
+      <tr>
+        <td><div class="cell-user"><div class="avatar" style="${avatarStyle(p.tenant)}">${p.tenant[0]}</div><span>${p.tenant}</span></div></td>
+        <td>${p.unit}</td>
+        <td style="font-weight:700;">₦${p.amount.toLocaleString()}</td>
+        <td><span class="badge badge-gray">${p.method}</span></td>
+        <td>${formatDate(p.date)}</td>
+        <td>${payStatusBadge(p.status)}</td>
+      </tr>`).join('');
+  }
+  buildBarChart('admin-revenue-chart', [1100,980,1250,1400,1180,1600,1350,1800,1550,1900,1750,1400], ['J','F','M','A','M','J','J','A','S','O','N','D'], 'var(--accent)');
+}
+
+function renderTenants(list) {
+  const tbody = document.getElementById('tenants-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = list.map(t => {
+    const days = daysUntil(t.expires);
+    return `<tr>
+      <td><div class="cell-user"><div class="avatar" style="${avatarStyle(t.name)}">${t.name[0]}</div><div><div class="cell-name">${t.name}</div></div></div></td>
+      <td><span class="badge badge-gray">${t.shop}</span></td>
+      <td>${t.business}</td>
+      <td style="font-weight:700;">₦${t.rent.toLocaleString()}</td>
+      <td>${formatDate(t.start)}</td>
+      <td>${formatDate(t.expires)}</td>
+      <td>${expiryBadge(days)}</td>
+      <td>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-sm btn-ghost" onclick="openEditTenant(${t.id})">✏️ Edit</button>
+          <button class="btn btn-sm btn-red" onclick="deleteTenant(${t.id})">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterTenants(q) {
+  const filter = (document.getElementById('tenant-status-filter')?.value || '').toLowerCase();
+  const filtered = TENANTS.filter(t => {
+    const matchQ = !q || t.name.toLowerCase().includes(q.toLowerCase()) || t.shop.toLowerCase().includes(q.toLowerCase()) || t.business.toLowerCase().includes(q.toLowerCase());
+    const matchF = !filter || t.status === filter;
+    return matchQ && matchF;
+  });
+  renderTenants(filtered);
+}
+
+function renderUnits() {
+  // Floor map
+  const UNIT_DATA = {};
+  TENANTS.forEach(t => { UNIT_DATA[t.shop] = t.status; });
+  ['A','B'].forEach(block => {
+    const grid = document.getElementById('unit-grid-'+block);
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (let i = 1; i <= 24; i++) {
+      const no = `${block}-${String(i).padStart(2,'0')}`;
+      const st = UNIT_DATA[no] || 'vacant';
+      const cls = { active:'unit-occupied', expiring:'unit-expiring', overdue:'unit-overdue', vacant:'unit-vacant' }[st] || 'unit-vacant';
+      const cell = document.createElement('div');
+      cell.className = `unit-cell ${cls}`;
+      cell.innerHTML = `<div class="unit-no">${no}</div>`;
+      cell.title = no + ' — ' + (st.charAt(0).toUpperCase() + st.slice(1));
+      cell.onclick = () => showUnitDetail(no, st);
+      grid.appendChild(cell);
+    }
+  });
+  // Units table
+  const tbody = document.getElementById('units-tbody');
+  if (!tbody) return;
+  const allUnits = [];
+  ['A','B'].forEach(block => { for(let i=1;i<=24;i++) allUnits.push(`${block}-${String(i).padStart(2,'0')}`); });
+  const tenantMap = {};
+  TENANTS.forEach(t => { tenantMap[t.shop] = t; });
+  tbody.innerHTML = allUnits.slice(0,20).map(no => {
+    const t = tenantMap[no];
+    const st = t ? t.status : 'vacant';
+    return `<tr>
+      <td><span class="badge badge-gray">${no}</span></td>
+      <td>Block ${no[0]}</td>
+      <td>${no.startsWith('A') ? '30 sqm' : '45 sqm'}</td>
+      <td>₦${t ? t.rent.toLocaleString() : '—'}</td>
+      <td>${t ? t.name : '<span class="text-faint">—</span>'}</td>
+      <td>${t ? expiryBadge(daysUntil(t.expires)) : '<span class="badge badge-gray">Vacant</span>'}</td>
+      <td><button class="btn btn-sm btn-ghost">${t ? 'View Tenant' : 'Assign Tenant'}</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function showUnitDetail(no, status) {
+  const tenantMap = {}; TENANTS.forEach(t => { tenantMap[t.shop] = t; });
+  const t = tenantMap[no];
+  openModal(`Unit ${no} Details`, t ? `
+    <div class="lease-card">
+      <div class="lease-row"><div class="lease-key">Unit</div><div class="lease-val">${no}</div></div>
+      <div class="lease-row"><div class="lease-key">Block</div><div class="lease-val">Block ${no[0]}</div></div>
+      <div class="lease-row"><div class="lease-key">Tenant</div><div class="lease-val">${t.name}</div></div>
+      <div class="lease-row"><div class="lease-key">Business</div><div class="lease-val">${t.business}</div></div>
+      <div class="lease-row"><div class="lease-key">Annual Rent</div><div class="lease-val" style="color:var(--gold);">₦${t.rent.toLocaleString()}</div></div>
+      <div class="lease-row"><div class="lease-key">Lease Expires</div><div class="lease-val">${formatDate(t.expires)}</div></div>
+      <div class="lease-row"><div class="lease-key">Status</div><div class="lease-val">${expiryBadge(daysUntil(t.expires))}</div></div>
+    </div>` : `<div class="empty-state"><div class="empty-icon">⬜</div><h3>Unit is Vacant</h3><p>This unit currently has no tenant assigned.</p></div>`,
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Close</button>${t ? '<button class="btn btn-primary" onclick="openEditTenant('+t.id+')">Edit Tenant</button>' : '<button class="btn btn-primary" onclick="closeModalDirect();openAddTenant()">Assign Tenant</button>'}`);
+}
+
+function renderPayments() {
+  const tbody = document.getElementById('payments-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = PAYMENTS.map(p => `
+    <tr>
+      <td><span style="font-size:11px;font-family:monospace;color:var(--text2);">${p.ref}</span></td>
+      <td><div class="cell-user"><div class="avatar" style="${avatarStyle(p.tenant)}">${p.tenant[0]}</div><span>${p.tenant}</span></div></td>
+      <td>${p.unit}</td>
+      <td style="font-weight:700;">₦${p.amount.toLocaleString()}</td>
+      <td>${p.period}</td>
+      <td><span class="badge badge-gray">${p.method}</span></td>
+      <td>${formatDate(p.date)}</td>
+      <td>${payStatusBadge(p.status)}</td>
+      <td><button class="btn btn-sm btn-ghost" onclick="showToast('Receipt downloaded','info')">🧾</button></td>
+    </tr>`).join('');
+}
+
+function renderReports() {
+  buildBarChart('reports-quarterly-chart',
+    [3850, 4200, 3900, 2850], ['Q1 2025','Q2 2025','Q3 2025','Q4 2025 (proj.)'],
+    ['var(--accent)','var(--accent)','var(--gold)','rgba(59,130,246,0.3)'], 180);
+  // Top units
+  const tbody = document.getElementById('reports-top-units');
+  if (!tbody) return;
+  const topTenants = [...TENANTS].sort((a,b) => b.rent - a.rent).slice(0,8);
+  tbody.innerHTML = topTenants.map((t,i) => {
+    const collected = t.paid ? t.rent : Math.round(t.rent * 0.5);
+    const balance = t.rent - collected;
+    return `<tr>
+      <td style="color:var(--text3);font-weight:700;">${i+1}</td>
+      <td><span class="badge badge-gray">${t.shop}</span></td>
+      <td>${t.name}</td>
+      <td>₦${t.rent.toLocaleString()}</td>
+      <td style="color:var(--green);">₦${collected.toLocaleString()}</td>
+      <td style="color:${balance>0?'var(--red)':'var(--green)'};">₦${balance.toLocaleString()}</td>
+      <td>${balance === 0 ? '<span class="badge badge-green">✓ Paid</span>' : t.status==='overdue'?'<span class="badge badge-red">Overdue</span>':'<span class="badge badge-orange">Partial</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAdminNotifs() {
+  const list = document.getElementById('admin-notif-list');
+  if (!list) return;
+  list.innerHTML = ADMIN_NOTIFICATIONS.map(n => `
+    <div class="notif-item ${n.unread?'notif-unread':''}">
+      <div class="notif-dot" style="background:${n.type==='red'?'var(--red)':n.type==='orange'?'var(--orange)':n.type==='green'?'var(--green)':'var(--accent)'};"></div>
+      <div class="notif-body"><div class="notif-text">${n.text}</div><div class="notif-time">${n.time}</div></div>
+    </div>`).join('');
+}
+
+/* ---- Tenant ---- */
+function renderTenantDashboard() {
+  const list = document.getElementById('tenant-recent-payments');
+  if (!list) return;
+  list.innerHTML = PAYMENTS.slice(0,3).map(p => `
+    <div class="receipt-item">
+      <div class="receipt-icon">✅</div>
+      <div class="receipt-info"><div class="receipt-name">${p.period} Annual Rent</div><div class="receipt-date">${formatDate(p.date)} · ${p.method}</div></div>
+      <div><div class="receipt-amount">₦${p.amount.toLocaleString()}</div><div class="receipt-ref">${p.ref}</div></div>
+    </div>`).join('');
+}
+
+function renderReceipts() {
+  const list = document.getElementById('tenant-receipts-list');
+  if (!list) return;
+  list.innerHTML = PAYMENTS.filter(p=>p.status==='paid').map(p => `
+    <div class="receipt-item">
+      <div class="receipt-icon">🧾</div>
+      <div class="receipt-info"><div class="receipt-name">${p.period} Annual Rent — Unit ${p.unit}</div><div class="receipt-date">${formatDate(p.date)} · via ${p.method} · Ref: ${p.ref}</div></div>
+      <div style="text-align:right;"><div class="receipt-amount">₦${p.amount.toLocaleString()}</div><div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end;"><button class="btn btn-sm btn-ghost" onclick="showToast('Receipt PDF downloaded','info')">📄 PDF</button><button class="btn btn-sm btn-ghost" onclick="showToast('Receipt emailed to you','info')">📧</button></div></div>
+    </div>`).join('');
+}
+
+function renderMaintenance() {
+  const list = document.getElementById('maintenance-list');
+  if (!list) return;
+  list.innerHTML = MAINTENANCE_REQUESTS.map(m => `
+    <div class="maint-item">
+      <div class="maint-header">
+        <div style="display:flex;gap:8px;align-items:center;"><span class="badge badge-gray">${m.id}</span><span class="maint-title">${m.subject}</span></div>
+        ${m.status==='resolved'?'<span class="badge badge-green">✓ Resolved</span>':'<span class="badge badge-blue">✓ Completed</span>'}
+      </div>
+      <div class="maint-desc">${m.category} · Priority: ${m.priority}</div>
+      <div class="maint-meta">Submitted: ${m.date}</div>
+    </div>`).join('');
+}
+
+function renderTenantNotifs() {
+  const list = document.getElementById('tenant-notif-list');
+  if (!list) return;
+  list.innerHTML = TENANT_NOTIFICATIONS.map(n => `
+    <div class="notif-item ${n.unread?'notif-unread':''}">
+      <div class="notif-dot" style="background:${n.type==='gold'?'var(--gold)':n.type==='green'?'var(--green)':'var(--accent)'};"></div>
+      <div class="notif-body"><div class="notif-text">${n.text}</div><div class="notif-time">${n.time}</div></div>
+    </div>`).join('');
+}
+
+/* ---- Payment Flow ---- */
+function renderPayStep(step) {
+  payStep = step;
+  // Update step indicator
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('pstep-'+i);
+    if (!el) return;
+    el.classList.remove('active','done');
+    if (i < step) el.classList.add('done');
+    else if (i === step) el.classList.add('active');
+  });
+  const content = document.getElementById('pay-content');
+  if (!content) return;
+
+  if (step === 1) {
+    content.innerHTML = `
+      <div class="card mb-20">
+        <div class="card-header"><div class="card-title">Annual Fee Invoice — 2026</div><span class="badge badge-blue">Renewal Due</span></div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr><th>Description</th><th>Period</th><th>Amount</th></tr></thead>
+            <tbody>
+              <tr><td>Annual Rent — Unit D-09</td><td>Jan 2026 – Dec 2026</td><td style="font-weight:700;">₦480,000</td></tr>
+              <tr><td>Service Charge</td><td>2026</td><td>₦24,000</td></tr>
+              <tr><td>Waste Management Levy</td><td>2026</td><td>₦6,000</td></tr>
+              <tr style="border-top:2px solid var(--border);"><td colspan="2" style="font-weight:800;font-size:14px;">Total Due</td><td style="font-weight:800;font-size:18px;color:var(--gold);">₦510,000</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:14px;padding:12px 14px;background:rgba(59,130,246,0.06);border-radius:8px;font-size:12px;color:var(--text2);">
+          📅 <strong>Payment due date:</strong> January 14, 2026 &nbsp;·&nbsp; ⚠️ Late payments attract a 5% monthly penalty
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary btn-lg" onclick="renderPayStep(2)">Proceed to Payment →</button>
+      </div>`;
+  } else if (step === 2) {
+    content.innerHTML = `
+      <div class="card mb-20">
+        <div class="card-header"><div class="card-title">Select Payment Method</div></div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;" id="pay-methods">
+          <div class="pay-method-btn" onclick="selectPayMethod(this,'paystack')" style="border:2px solid var(--accent);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:rgba(59,130,246,0.06);transition:all 0.2s;">
+            <div style="font-size:26px;margin-bottom:6px;">💳</div><div style="font-size:13px;font-weight:700;">Paystack</div><div style="font-size:11px;color:var(--text3);">Card / USSD / Bank</div>
+          </div>
+          <div class="pay-method-btn" onclick="selectPayMethod(this,'transfer')" style="border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;">
+            <div style="font-size:26px;margin-bottom:6px;">🏦</div><div style="font-size:13px;font-weight:700;">Bank Transfer</div><div style="font-size:11px;color:var(--text3);">Direct to account</div>
+          </div>
+          <div class="pay-method-btn" onclick="selectPayMethod(this,'ussd')" style="border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;">
+            <div style="font-size:26px;margin-bottom:6px;">📱</div><div style="font-size:13px;font-weight:700;">USSD</div><div style="font-size:11px;color:var(--text3);">Dial *822# etc.</div>
+          </div>
+        </div>
+        <div id="pay-method-detail">
+          <div style="background:rgba(11,164,219,0.05);border:1px solid rgba(11,164,219,0.2);border-radius:10px;padding:20px;">
+            <div class="paystack-logo"><div class="paystack-logo-mark">P</div><div class="paystack-logo-text">Paystack</div></div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Amount to pay: <strong style="color:var(--gold);font-size:16px;">₦510,000</strong></div>
+            <input class="paystack-input" placeholder="Enter email address" value="funmi@boutique.ng">
+            <input class="paystack-input" placeholder="Card number">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+              <input class="paystack-input" placeholder="MM/YY">
+              <input class="paystack-input" placeholder="CVV">
+            </div>
+            <div class="paystack-secure">🔒 Secured by Paystack · SSL encrypted</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;">
+        <button class="btn btn-ghost btn-lg" onclick="renderPayStep(1)">← Back</button>
+        <button class="btn btn-primary btn-lg" onclick="processPayment()">Pay ₦510,000 →</button>
+      </div>`;
+  } else if (step === 3) {
+    content.innerHTML = `
+      <div class="card">
+        <div class="success-state">
+          <div class="success-icon">✅</div>
+          <div class="success-title">Payment Successful!</div>
+          <p class="success-sub">Your payment of <strong style="color:var(--gold);">₦510,000</strong> has been received and your lease has been renewed for 2026.</p>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;max-width:360px;margin:0 auto 28px;text-align:left;">
+            <div class="lease-row"><div class="lease-key">Reference</div><div class="lease-val" style="font-family:monospace;color:var(--accent2);">TXN-2026-0001</div></div>
+            <div class="lease-row"><div class="lease-key">Amount Paid</div><div class="lease-val" style="color:var(--gold);">₦510,000</div></div>
+            <div class="lease-row"><div class="lease-key">Lease Renewed Until</div><div class="lease-val">December 31, 2026</div></div>
+            <div class="lease-row"><div class="lease-key">Status</div><div class="lease-val"><span class="badge badge-green">✓ Confirmed</span></div></div>
+          </div>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-lg" onclick="showToast('Receipt PDF downloaded','info')">📄 Download Receipt</button>
+            <button class="btn btn-ghost btn-lg" onclick="navTo('tenant-dashboard')">← Back to Dashboard</button>
+          </div>
+        </div>
+      </div>`;
+  }
+}
+
+function selectPayMethod(el, method) {
+  document.querySelectorAll('.pay-method-btn').forEach(b => {
+    b.style.border = '1px solid var(--border)';
+    b.style.background = 'transparent';
+  });
+  el.style.border = '2px solid var(--accent)';
+  el.style.background = 'rgba(59,130,246,0.06)';
+  const detail = document.getElementById('pay-method-detail');
+  if (method === 'transfer') {
+    detail.innerHTML = `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Bank Transfer Details</div>
+      <div class="form-grid-2" style="gap:12px;margin-bottom:12px;">
+        <div><div style="font-size:11px;color:var(--text3);">Bank</div><div style="font-weight:700;font-size:15px;">Zenith Bank PLC</div></div>
+        <div><div style="font-size:11px;color:var(--text3);">Account Number</div><div style="font-weight:800;font-size:17px;color:var(--accent2);">2103456789</div></div>
+        <div><div style="font-size:11px;color:var(--text3);">Account Name</div><div style="font-weight:700;font-size:14px;">Sunshine Business Plaza Ltd</div></div>
+        <div><div style="font-size:11px;color:var(--text3);">Reference Code</div><div style="font-weight:800;font-size:17px;color:var(--gold);">D09-2026-FNM</div></div>
+      </div>
+      <div style="font-size:12px;color:var(--orange);padding:10px;background:rgba(249,115,22,0.08);border-radius:6px;">⚠️ Always include reference <strong>D09-2026-FNM</strong> in your transfer narration to ensure automatic matching.</div>
+    </div>`;
+  } else if (method === 'ussd') {
+    detail.innerHTML = `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;font-weight:700;">USSD Codes — Choose your bank:</div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--card);border-radius:6px;"><span>Zenith Bank</span><span style="font-family:monospace;font-weight:700;color:var(--accent2);">*966*Amount#</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--card);border-radius:6px;"><span>GTBank</span><span style="font-family:monospace;font-weight:700;color:var(--accent2);">*737*Amount#</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--card);border-radius:6px;"><span>Access Bank</span><span style="font-family:monospace;font-weight:700;color:var(--accent2);">*901*Amount#</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--card);border-radius:6px;"><span>First Bank</span><span style="font-family:monospace;font-weight:700;color:var(--accent2);">*894*Amount#</span></div>
+      </div>
+    </div>`;
+  } else {
+    detail.innerHTML = `<div style="background:rgba(11,164,219,0.05);border:1px solid rgba(11,164,219,0.2);border-radius:10px;padding:20px;"><div class="paystack-logo"><div class="paystack-logo-mark">P</div><div class="paystack-logo-text">Paystack</div></div><div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Amount: <strong style="color:var(--gold);font-size:16px;">₦510,000</strong></div><input class="paystack-input" placeholder="Email address" value="funmi@boutique.ng"><input class="paystack-input" placeholder="Card number"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><input class="paystack-input" placeholder="MM/YY"><input class="paystack-input" placeholder="CVV"></div><div class="paystack-secure">🔒 Secured by Paystack</div></div>`;
+  }
+}
+
+function processPayment() {
+  showToast('Processing payment...','info');
+  setTimeout(() => { renderPayStep(3); showToast('Payment successful! ₦510,000 received.','success'); }, 1500);
+}
+
+function submitMaintenanceRequest() {
+  showToast('Maintenance request submitted. Ref: #MR-005','success');
+  const list = document.getElementById('maintenance-list');
+  if (!list) return;
+  const newItem = `<div class="maint-item"><div class="maint-header"><div style="display:flex;gap:8px;align-items:center;"><span class="badge badge-gray">#MR-005</span><span class="maint-title">New Request</span></div><span class="badge badge-orange">⏳ Pending</span></div><div class="maint-desc">Submitted just now</div><div class="maint-meta">Priority: Medium</div></div>`;
+  list.innerHTML = newItem + list.innerHTML;
+}
+
+/* ============================================================
+   CHART BUILDER
+   ============================================================ */
+function buildBarChart(containerId, values, labels, colors, height) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const max = Math.max(...values);
+  const isSingleColor = typeof colors === 'string';
+  container.innerHTML = values.map((v, i) => {
+    const pct = Math.round((v / max) * 100);
+    const color = isSingleColor ? colors : (colors[i] || colors[0]);
+    return `<div class="bar-col">
+      <div class="bar-fill" style="height:${pct}%;background:${color};min-height:4px;" title="${labels[i]}: ${typeof v==='number'&&v>1000?'₦'+(v/1000)+'K':v}"></div>
+      <div class="bar-lbl" style="position:relative;bottom:auto;">${labels[i]}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+function openModal(title, body, footer) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = body;
+  document.getElementById('modal-footer').innerHTML = footer || `<button class="btn btn-ghost" onclick="closeModalDirect()">Close</button>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(e) { if (e.target === document.getElementById('modal-overlay')) closeModalDirect(); }
+function closeModalDirect() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+/* TENANT MODALS */
+function openAddTenant() {
+  openModal('Add New Tenant', `
+    <div class="form-section-title">Tenant Information</div>
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label">Full Name / Business Name</label><input class="form-input" placeholder="e.g. Adaeze Boutique" id="nt-name"></div>
+      <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" placeholder="0801 234 5678" id="nt-phone"></div>
+    </div>
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" placeholder="tenant@email.com" id="nt-email"></div>
+      <div class="form-group"><label class="form-label">Business Type</label>
+        <select class="form-input" id="nt-biz"><option>Fashion & Retail</option><option>Food & Catering</option><option>Electronics</option><option>Pharmacy & Health</option><option>Financial Services</option><option>Professional Services</option><option>Provisions / FMCG</option><option>Other</option></select>
+      </div>
+    </div>
+    <div class="form-section-title">Shop & Lease</div>
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label">Shop / Unit Number</label>
+        <select class="form-input" id="nt-unit"><option>A-02</option><option>A-06</option><option>A-08</option><option>A-11</option><option>B-01</option><option>B-04</option><option>B-08</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Annual Rent (₦)</label><input class="form-input" type="number" placeholder="300000" id="nt-rent"></div>
+    </div>
+    <div class="form-grid-2 mb-4">
+      <div class="form-group"><label class="form-label">Lease Start Date</label><input class="form-input" type="date" id="nt-start"></div>
+      <div class="form-group"><label class="form-label">Lease End Date</label><input class="form-input" type="date" id="nt-end"></div>
+    </div>`,
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-primary" onclick="saveTenant()">Add Tenant</button>`);
+}
+
+function saveTenant() {
+  const name = document.getElementById('nt-name')?.value;
+  if (!name) { showToast('Please enter tenant name','error'); return; }
+  closeModalDirect();
+  showToast(`Tenant "${name}" added successfully`,'success');
+}
+
+function openEditTenant(id) {
+  const t = TENANTS.find(x => x.id === id);
+  if (!t) return;
+  openModal(`Edit Tenant — ${t.name}`, `
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" value="${t.name}"></div>
+      <div class="form-group"><label class="form-label">Business Type</label><input class="form-input" value="${t.business}"></div>
+    </div>
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label">Unit</label><input class="form-input" value="${t.shop}" disabled></div>
+      <div class="form-group"><label class="form-label">Annual Rent (₦)</label><input class="form-input" type="number" value="${t.rent}"></div>
+    </div>
+    <div class="form-grid-2 mb-4">
+      <div class="form-group"><label class="form-label">Lease Start</label><input class="form-input" type="date" value="${t.start}"></div>
+      <div class="form-group"><label class="form-label">Lease End</label><input class="form-input" type="date" value="${t.expires}"></div>
+    </div>`,
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-primary" onclick="closeModalDirect();showToast('Tenant updated successfully','success')">Save Changes</button>`);
+}
+
+function deleteTenant(id) {
+  const t = TENANTS.find(x => x.id === id);
+  openModal('Confirm Delete', `<p style="font-size:14px;line-height:1.7;">Are you sure you want to remove <strong>${t?.name}</strong> from the system? This action cannot be undone.</p>`,
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-red" onclick="closeModalDirect();showToast('Tenant removed','error')">Delete Tenant</button>`);
+}
+
+function openAddUnit() {
+  openModal('Add New Unit', `
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label">Unit Number</label><input class="form-input" placeholder="e.g. A-25"></div>
+      <div class="form-group"><label class="form-label">Block</label><select class="form-input"><option>Block A</option><option>Block B</option><option>Block C</option></select></div>
+    </div>
+    <div class="form-grid-2 mb-4">
+      <div class="form-group"><label class="form-label">Size (sqm)</label><input class="form-input" type="number" placeholder="45"></div>
+      <div class="form-group"><label class="form-label">Suggested Annual Rent (₦)</label><input class="form-input" type="number" placeholder="300000"></div>
+    </div>`,
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-primary" onclick="closeModalDirect();showToast('Unit added successfully','success')">Add Unit</button>`);
+}
+
+function openRecordPayment() {
+  openModal('Record Manual Payment', `
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label">Tenant</label>
+        <select class="form-input">${TENANTS.map(t=>`<option>${t.name} (${t.shop})</option>`).join('')}</select>
+      </div>
+      <div class="form-group"><label class="form-label">Amount (₦)</label><input class="form-input" type="number" placeholder="480000"></div>
+    </div>
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label">Payment Method</label>
+        <select class="form-input"><option>Bank Transfer</option><option>Cash</option><option>Paystack</option><option>Cheque</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Payment Date</label><input class="form-input" type="date"></div>
+    </div>
+    <div class="form-group mb-4"><label class="form-label">Period</label>
+      <select class="form-input"><option>2025</option><option>2026</option><option>2024</option></select>
+    </div>`,
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-primary" onclick="closeModalDirect();showToast('Payment recorded successfully','success')">Record Payment</button>`);
+}
+
+function openAddPlaza() {
+  openModal('Onboard New Plaza Manually', `
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label">Plaza Name</label><input class="form-input" placeholder="e.g. Emeka Business Plaza"></div>
+      <div class="form-group"><label class="form-label">Owner Name</label><input class="form-input" placeholder="Chief Emeka Obi"></div>
+    </div>
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label">Owner Email</label><input class="form-input" type="email" placeholder="owner@plaza.com"></div>
+      <div class="form-group"><label class="form-label">City</label><input class="form-input" placeholder="Lagos"></div>
+    </div>
+    <div class="form-grid-2 mb-4">
+      <div class="form-group"><label class="form-label">Total Units</label><input class="form-input" type="number" placeholder="48"></div>
+      <div class="form-group"><label class="form-label">Subscription Plan</label>
+        <select class="form-input"><option>Basic</option><option>Standard</option><option>Premium</option><option>Trial (30 days)</option></select>
+      </div>
+    </div>`,
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-primary" onclick="closeModalDirect();showToast('Plaza onboarded and credentials sent','success')">Onboard Plaza</button>`);
+}
+
+function openEditPlan(plan) {
+  const prices = { basic:15000, standard:35000, premium:75000 };
+  openModal(`Edit ${plan.charAt(0).toUpperCase()+plan.slice(1)} Plan`, `
+    <div class="form-group mb-14"><label class="form-label">Monthly Price (₦)</label><input class="form-input" type="number" value="${prices[plan]}"></div>
+    <div class="form-group mb-14"><label class="form-label">Max Units</label><input class="form-input" type="number" value="${plan==='basic'?20:plan==='standard'?100:9999}"></div>
+    <div class="form-group mb-4"><label class="form-label">Features (one per line)</label><textarea class="form-input" rows="5">Tenant management\nShop management\nRent tracking\nOnline payments\nNotifications</textarea></div>`,
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-primary" onclick="closeModalDirect();showToast('Plan updated successfully','success')">Save Plan</button>`);
+}
+
+/* ============================================================
+   TOAST NOTIFICATIONS
+   ============================================================ */
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const icons = { success:'✅', error:'❌', info:'ℹ️' };
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span>${icons[type]}</span> ${msg}`;
+  container.appendChild(toast);
+  setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateY(10px)'; toast.style.transition='all 0.3s'; setTimeout(()=>toast.remove(),300); }, 3000);
+}
+
+/* ============================================================
+   TOGGLE SWITCHES
+   ============================================================ */
+function toggleThis(el) { el.classList.toggle('on'); }
+
+/* ============================================================
+   MOBILE SIDEBAR
+   ============================================================ */
+function toggleMobileSidebar() {
+  document.getElementById('sidebar').classList.toggle('mobile-open');
+}
+
+/* ============================================================
+   HELPER FUNCTIONS
+   ============================================================ */
+function formatDate(d) {
+  if (!d) return '—';
+  const date = new Date(d);
+  return date.toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function daysUntil(dateStr) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateStr);
+  return Math.ceil((target - today) / (1000*60*60*24));
+}
+
+function expiryBadge(days) {
+  if (days < 0)  return `<span class="badge badge-red">🔴 Overdue</span>`;
+  if (days <= 30) return `<span class="badge badge-red">🔴 ${days}d left</span>`;
+  if (days <= 60) return `<span class="badge badge-orange">🟠 ${days}d left</span>`;
+  return `<span class="badge badge-green">🟢 Active</span>`;
+}
+
+function payStatusBadge(s) {
+  if (s==='paid')    return '<span class="badge badge-green">✓ Paid</span>';
+  if (s==='pending') return '<span class="badge badge-orange">⏳ Pending</span>';
+  if (s==='overdue') return '<span class="badge badge-red">✗ Overdue</span>';
+  return '<span class="badge badge-gray">—</span>';
+}
+
+function statusBadge(s) {
+  const map = { active:'<span class="badge badge-green">Active</span>', trial:'<span class="badge badge-blue">Trial</span>', suspended:'<span class="badge badge-red">Suspended</span>', expired:'<span class="badge badge-gray">Expired</span>' };
+  return map[s] || '<span class="badge badge-gray">—</span>';
+}
+
+const AVATAR_COLORS = [
+  'rgba(59,130,246,0.2);color:var(--accent2)',
+  'rgba(16,185,129,0.2);color:var(--green)',
+  'rgba(245,158,11,0.2);color:var(--gold)',
+  'rgba(239,68,68,0.2);color:var(--red)',
+  'rgba(139,92,246,0.2);color:var(--purple)',
+  'rgba(249,115,22,0.2);color:var(--orange)',
+];
+function avatarStyle(name) {
+  const idx = name.charCodeAt(0) % AVATAR_COLORS.length;
+  return `background:${AVATAR_COLORS[idx]};`;
+}
+
+/* ============================================================
+   RESPONSIVE: show mobile menu btn
+   ============================================================ */
+function checkMobile() {
+  const mBtn = document.getElementById('mobile-menu-btn');
+  if (mBtn) mBtn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+}
+window.addEventListener('resize', checkMobile);
+checkMobile();
+
+/* ============================================================
+   SCROLL TO FEATURES (landing)
+   ============================================================ */
+function scrollToFeatures() {
+  document.getElementById('features')?.scrollIntoView({ behavior:'smooth' });
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+showLanding();
+</script>
+</body>
+</html>
