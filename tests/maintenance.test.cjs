@@ -3,10 +3,10 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { loadApp } = require('./helpers/load-app.cjs');
 
-const source = fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8');
 
-function createDemo() {
+async function createDemo() {
   const elements = new Map();
   const element = id => {
     if (!elements.has(id)) elements.set(id, { value:'', innerHTML:'', textContent:'', style:{}, classList:{ remove() {}, add() {}, toggle() {} } });
@@ -18,7 +18,7 @@ function createDemo() {
     setTimeout() {},
   });
   const run = code => vm.runInContext(code, context);
-  run(source);
+  await loadApp(context);
   run("showToast = (message, type) => { globalThis.lastToast = {message, type}; }; closeModalDirect = () => {}; openModal = (title, body) => { globalThis.modal = body; };");
   element('maintenance-form').reset = () => {
     element('maintenance-subject').value = '';
@@ -30,13 +30,13 @@ function createDemo() {
     element('maintenance-priority').value = 'High';
     element('maintenance-subject').value = subject;
     element('maintenance-description').value = description;
-    run("currentRole = 'tenant'; submitMaintenanceRequest();");
+    run("session.role = 'tenant'; submitMaintenanceRequest();");
   }
   return { element, run, submit };
 }
 
-test('submission retains actual details and unique references across re-renders', () => {
-  const { run, submit, element } = createDemo();
+test('submission retains actual details and unique references across re-renders', async () => {
+  const { run, submit, element } = await createDemo();
   submit();
   assert.equal(run('MAINTENANCE_REQUESTS[0].id'), 'MR-005');
   assert.equal(run('MAINTENANCE_REQUESTS[0].unit'), 'D-09');
@@ -51,8 +51,8 @@ test('submission retains actual details and unique references across re-renders'
   assert.equal(run('MAINTENANCE_REQUESTS[0].id'), 'MR-006');
 });
 
-test('validation rejects blank fields, invalid options, and oversized input', () => {
-  const { run, submit, element } = createDemo();
+test('validation rejects blank fields, invalid options, and oversized input', async () => {
+  const { run, submit, element } = await createDemo();
   for (const [subject, description] of [['  ', 'Details'], ['Subject', '  '], ['x'.repeat(121), 'Details'], ['Subject', 'x'.repeat(2001)]]) {
     submit(subject, description);
     assert.equal(run('MAINTENANCE_REQUESTS.length'), 3);
@@ -69,10 +69,10 @@ test('validation rejects blank fields, invalid options, and oversized input', ()
   assert.equal(run('MAINTENANCE_REQUESTS.length'), 3);
 });
 
-test('admin updates appear for tenants and resolution requires a note', () => {
-  const { run, submit, element } = createDemo();
+test('admin updates appear for tenants and resolution requires a note', async () => {
+  const { run, submit, element } = await createDemo();
   submit();
-  run("currentRole = 'admin'; openMaintenanceReview('MR-005');");
+  run("session.role = 'admin'; openMaintenanceReview('MR-005');");
   assert.match(run('modal'), /Leaking pipe/);
   element('maintenance-status').value = 'in-progress';
   element('maintenance-note').value = 'A plumber is on the way.';
@@ -90,8 +90,8 @@ test('admin updates appear for tenants and resolution requires a note', () => {
   assert.match(element('maintenance-summary').textContent, /0 open/);
 });
 
-test('filters include historical completions and display empty states', () => {
-  const { run, element } = createDemo();
+test('filters include historical completions and display empty states', async () => {
+  const { run, element } = await createDemo();
   element('maintenance-filter').value = 'resolved';
   run('renderAdminMaintenance();');
   assert.match(element('admin-maintenance-list').innerHTML, /MR-002/);
@@ -101,8 +101,8 @@ test('filters include historical completions and display empty states', () => {
   assert.match(element('admin-maintenance-list').innerHTML, /No requests match/);
 });
 
-test('user text is escaped, tenant lists are scoped, and review is admin-only', () => {
-  const { run, submit, element } = createDemo();
+test('user text is escaped, tenant lists are scoped, and review is admin-only', async () => {
+  const { run, submit, element } = await createDemo();
   submit('<img src=x onerror=alert(1)>', '<script>alert(1)</script>');
   assert.match(element('maintenance-list').innerHTML, /&lt;img/);
   assert.doesNotMatch(element('maintenance-list').innerHTML, /<script>|<img/);
@@ -114,8 +114,8 @@ test('user text is escaped, tenant lists are scoped, and review is admin-only', 
   assert.doesNotMatch(element('maintenance-list').innerHTML, /MR-005/);
 });
 
-test('page contains the form and admin controls referenced by the workflow', () => {
-  const html = fs.readFileSync(path.join(__dirname, '../plazahub.html'), 'utf8');
+test('page contains the form and admin controls referenced by the workflow', async () => {
+  const html = fs.readFileSync(path.join(__dirname, '../index.html'), 'utf8');
   const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
   for (const id of ['maintenance-form', 'maintenance-category', 'maintenance-priority', 'maintenance-subject', 'maintenance-description', 'maintenance-summary', 'maintenance-filter', 'admin-maintenance-list', 'page-admin-maintenance']) {
     assert.equal(ids.filter(value => value === id).length, 1, `${id} must exist exactly once`);

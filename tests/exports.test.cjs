@@ -3,8 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { loadApp } = require('./helpers/load-app.cjs');
 
-function createDemo() {
+async function createDemo() {
   const elements = new Map();
   const state = { clicks:0, removed:0, revoked:[] };
   const element = id => {
@@ -19,42 +20,42 @@ function createDemo() {
     setTimeout(callback) { state.cleanup = callback; },
   });
   const run = code => vm.runInContext(code, context);
-  run(fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8'));
-  run("showToast = () => {}; currentRole = 'admin';");
+  await loadApp(context);
+  run("showToast = () => {}; session.role = 'admin';");
   return { run, element, state };
 }
 
-test('CSV preserves commas, quotes, line breaks, Unicode, and numeric amounts', () => {
-  const { run } = createDemo();
+test('CSV preserves commas, quotes, line breaks, Unicode, and numeric amounts', async () => {
+  const { run } = await createDemo();
   const rows = [['Tenant', 'Amount'], ['Ada, "A"\nShop ₦', 360000]];
   assert.equal(run(`buildCsv(${JSON.stringify(rows)})`), '\uFEFF"Tenant","Amount"\r\n"Ada, ""A""\nShop ₦","360000"');
 });
 
-test('spreadsheet formulas are neutralized in text but numbers stay numeric', () => {
-  const { run } = createDemo();
+test('spreadsheet formulas are neutralized in text but numbers stay numeric', async () => {
+  const { run } = await createDemo();
   for (const value of ['=1+1', '+SUM(A1)', '-1+1', '@SUM(A1)', '  =1+1', '\ttext', '\ntext']) {
     assert.match(run(`buildCsv([[${JSON.stringify(value)}]])`), /^\uFEFF"'/);
   }
   assert.equal(run('buildCsv([[-100]])'), '\uFEFF"-100"');
 });
 
-test('exports enforce the demo role and preserve payment statuses', () => {
-  const { run } = createDemo();
+test('exports enforce the demo role and preserve payment statuses', async () => {
+  const { run } = await createDemo();
   assert.equal(run("getExportData('payments').rows.length"), run('PAYMENTS.length + 1'));
   assert.equal(run("getExportData('tenants').rows.length"), run('TENANTS.length + 1'));
   assert.match(run("buildCsv(getExportData('payments').rows)"), /"pending"/);
   assert.equal(run("getExportData('subscriptions')"), null);
-  run("currentRole = 'tenant';");
+  run("session.role = 'tenant';");
   for (const kind of ['tenants', 'payments', 'subscriptions', 'report']) {
     assert.equal(run(`getExportData('${kind}')`), null);
   }
-  run("currentRole = 'super';");
+  run("session.role = 'super';");
   assert.equal(run("getExportData('subscriptions').rows.length"), run('SUB_PAYMENTS.length + 1'));
   assert.equal(run("getExportData('payments')"), null);
 });
 
-test('report export matches the displayed rows and excludes unapproved amounts', () => {
-  const { run, element } = createDemo();
+test('report export matches the displayed rows and excludes unapproved amounts', async () => {
+  const { run, element } = await createDemo();
   run('renderReports();');
   const rows = JSON.parse(run("JSON.stringify(getExportData('report').rows)"));
   assert.equal(rows.length, 9);
@@ -66,7 +67,7 @@ test('report export matches the displayed rows and excludes unapproved amounts',
 });
 
 test('download creates a CSV blob, clicks a dated filename, and releases its URL', async () => {
-  const { run, state } = createDemo();
+  const { run, state } = await createDemo();
   run("exportCsv('payments');");
   assert.equal(state.clicks, 1);
   assert.equal(state.removed, 1);

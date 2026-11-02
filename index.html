@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlazaHub — SaaS Plaza Management System</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel=stylesheet href=css/style.css>
+</head>
+<body>
+
+<div class="demo-banner" role="status">
+  <strong>Prototype demo:</strong> all names and figures are sample data. Login, registration, payments, receipts, email, and saved changes are simulated in this browser only.
+</div>
+
+<!-- ============================================================
+     TOAST CONTAINER
+     ============================================================ -->
+<div id="toast-container"></div>
+
+<!-- ============================================================
+     MODAL OVERLAY (shared)
+     ============================================================ -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal" id="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Modal</div>
+      <div class="modal-close" onclick="closeModalDirect()">✕</div>
+    </div>
+    <div id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: LANDING
+     ============================================================ -->
+<div id="page-landing">
+  <!-- NAV -->
+  <nav class="lp-nav">
+    <div class="lp-logo">
+      <div class="lp-logo-mark">🏢</div>
+      PlazaHub
+    </div>
+    <div class="lp-nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#testimonials">Reviews</a>
+    </div>
+    <div class="lp-nav-btns">
+      <button class="btn btn-ghost" onclick="showLogin('tenant')">Tenant Login</button>
+      <button class="btn btn-ghost" onclick="showLogin('admin')">Plaza Login</button>
+      <button class="btn btn-primary" onclick="showRegister()">Get Started →</button>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="lp-hero">
+    <div class="lp-badge">✦ Nigeria's #1 Plaza Management SaaS</div>
+    <h1>Manage Your Plaza <span class="highlight">Smarter</span>,<br>Collect Rent <span class="highlight-gold">Faster</span></h1>
+    <p class="lp-hero-sub">PlazaHub gives plaza owners a complete digital platform to manage tenants, track rent expiry, process payments, and grow their property business — all in one place.</p>
+    <div class="lp-hero-btns">
+      <button class="btn btn-primary btn-xl" onclick="showRegister()">🚀 Start Free Trial</button>
+      <button class="btn btn-ghost btn-xl" onclick="showLogin('admin')">👀 View Demo</button>
+    </div>
+    <div class="lp-stats">
+      <div class="text-center"><div class="lp-stat-num">500+</div><div class="lp-stat-lbl">Plazas on Platform</div></div>
+      <div class="text-center"><div class="lp-stat-num">15,000+</div><div class="lp-stat-lbl">Tenants Managed</div></div>
+      <div class="text-center"><div class="lp-stat-num">₦4.8B+</div><div class="lp-stat-lbl">Rent Processed</div></div>
+      <div class="text-center"><div class="lp-stat-num">99.9%</div><div class="lp-stat-lbl">Platform Uptime</div></div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="lp-section alt" id="features">
+    <div class="section-eyebrow">Features</div>
+    <div class="section-heading">Everything you need to run your plaza</div>
+    <p class="section-sub">Purpose-built for Nigerian commercial plaza management — from single-block plazas to large multi-block properties.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feat-icon blue">👥</div>
+        <h3>Tenant Management</h3>
+        <p>Register tenants, assign shop numbers, manage contact details, and keep full tenancy histories. Add or remove tenants with ease.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon gold">⏱️</div>
+        <h3>Rent Expiry Tracking</h3>
+        <p>Automatic color-coded alerts for leases expiring soon. Never miss a renewal — get notified 30, 14, and 7 days in advance.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon green">💳</div>
+        <h3>Online Payments</h3>
+        <p>Tenants pay annual fees directly through the portal via Paystack or bank transfer. Auto-confirmation and instant receipts.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon red">📊</div>
+        <h3>Reports & Analytics</h3>
+        <p>Revenue charts, occupancy rates, payment trends, and exportable reports. Know your plaza's financial health at a glance.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon purple">🗺️</div>
+        <h3>Visual Floor Map</h3>
+        <p>Color-coded unit grid showing occupied, vacant, expiring, and overdue shops across all blocks — updated in real time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feat-icon orange">🔔</div>
+        <h3>Smart Notifications</h3>
+        <p>Bulk SMS and email reminders to tenants for renewals, overdue balances, and maintenance updates — sent automatically.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="lp-section" id="how-it-works">
+    <div class="section-eyebrow">How It Works</div>
+    <div class="section-heading">Up and running in minutes</div>
+    <p class="section-sub">Getting started with PlazaHub is simple — no technical knowledge required.</p>
+    <div class="hiw-grid">
+      <div class="hiw-step"><div class="hiw-num">1</div><h3>Create Your Plaza Account</h3><p>Sign up and set up your plaza profile — add your plaza name, address, blocks, and total units in a few clicks.</p></div>
+      <div class="hiw-step"><div class="hiw-num">2</div><h3>Register Your Tenants</h3><p>Add each tenant to the system, assign them a shop, set the rent amount and payment period, and send them their login details.</p></div>
+      <div class="hiw-step"><div class="hiw-num">3</div><h3>Tenants Pay Online</h3><p>Tenants log in to their personal portal to check their status, pay annual fees via Paystack, and download receipts.</p></div>
+      <div class="hiw-step"><div class="hiw-num">4</div><h3>You Monitor Everything</h3><p>The admin dashboard gives you full visibility — payments, expiring leases, occupancy, and revenue — all in one place.</p></div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="lp-section alt" id="pricing">
+    <div class="section-eyebrow">Pricing</div>
+    <div class="section-heading text-center" style="text-align:center;">Simple, transparent pricing</div>
+    <p class="section-sub text-center" style="text-align:center; margin: 0 auto 56px;">No hidden charges. Pay monthly or yearly. Cancel anytime.</p>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <div class="pricing-plan">Basic</div>
+        <div class="pricing-price">₦15,000 <span>/mo</span></div>
+        <div class="pricing-period">Up to 20 units · 1 plaza</div>
+        <ul class="pricing-features">
+          <li>Tenant & shop management</li>
+          <li>Rent expiry tracking</li>
+          <li>Online payment collection</li>
+          <li>Payment receipts</li>
+          <li>Email notifications</li>
+          <li>Basic reports</li>
+        </ul>
+        <button class="btn btn-ghost w-full" onclick="showRegister()">Get Started</button>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-popular">Most Popular</div>
+        <div class="pricing-plan">Standard</div>
+        <div class="pricing-price">₦35,000 <span>/mo</span></div>
+        <div class="pricing-period">Up to 100 units · 1 plaza</div>
+        <ul class="pricing-features">
+          <li>Everything in Basic</li>
+          <li>Visual floor map</li>
+          <li>Bulk SMS reminders</li>
+          <li>Advanced reports & export</li>
+          <li>Maintenance requests</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="btn btn-primary w-full" onclick="showRegister()">Start Free Trial</button>
+      </div>
+      <div class="pricing-card">
+        <div class="pricing-plan">Premium</div>
+        <div class="pricing-price">₦75,000 <span>/mo</span></div>
+        <div class="pricing-period">Unlimited units · Multiple plazas</div>
+        <ul class="pricing-features">
+          <li>Everything in Standard</li>
+          <li>Multiple plazas / blocks</li>
+          <li>Custom plaza branding</li>
+          <li>API access</li>
+          <li>Dedicated account manager</li>
+          <li>Custom integrations</li>
+        </ul>
+        <button class="btn btn-gold w-full" onclick="showRegister()">Contact Sales</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="lp-section" id="testimonials">
+    <div class="section-eyebrow">Testimonials</div>
+    <div class="section-heading">Trusted by plaza owners across Nigeria</div>
+    <p class="section-sub">Here's what our customers say about PlazaHub.</p>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <p class="testimonial-quote">PlazaHub completely changed how I manage my plaza. I used to track everything in notebooks — now I get alerts on my phone when rent is due. It's brilliant.</p>
+        <div class="testimonial-author">
+          <div class="avatar" style="background:rgba(59,130,246,0.2);color:var(--accent2);">C</div>
+          <div><div class="testimonial-name">Chief Chukwuemeka Obi</div><div class="testimonial-role">Owner, Emeka Business Plaza, Onitsha</div></div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <p class="testimonial-quote">My tenants can now pay online without coming to my office. The payment records are clean and I can export them anytime. This is exactly what I needed.</p>
+        <div class="testimonial-author">
+          <div class="avatar" style="background:rgba(245,158,11,0.2);color:var(--gold);">A</div>
+          <div><div class="testimonial-name">Alhaja Aminat Adeyemi</div><div class="testimonial-role">Owner, Adeyemi Plaza, Ibadan</div></div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <p class="testimonial-quote">I manage 3 plazas and used to struggle keeping track of who paid and who didn't. PlazaHub Premium gives me one dashboard for everything. Worth every kobo.</p>
+        <div class="testimonial-author">
+          <div class="avatar" style="background:rgba(16,185,129,0.2);color:var(--green);">E</div>
+          <div><div class="testimonial-name">Engr. Emeka Nwosu</div><div class="testimonial-role">MD, Nwosu Properties Ltd, Enugu</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="lp-cta">
+    <h2>Ready to modernize your plaza?</h2>
+    <p>Join 500+ plaza owners already using PlazaHub. Start your free 30-day trial — no credit card required.</p>
+    <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-primary btn-xl" onclick="showRegister()">Start Free Trial</button>
+      <button class="btn btn-ghost btn-xl" onclick="showLogin('admin')">View Live Demo</button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="lp-footer">
+    <div class="lp-logo"><div class="lp-logo-mark">🏢</div> PlazaHub</div>
+    <div class="lp-footer-links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="#">Support</a>
+      <a href="#">Contact</a>
+    </div>
+    <div style="font-size:12px;color:var(--text3);">© 2025 PlazaHub. Made for Nigeria 🇳🇬</div>
+  </footer>
+</div>
+
+<!-- ============================================================
+     PAGE: LOGIN
+     ============================================================ -->
+<div id="page-login">
+  <div class="login-layout">
+    <!-- Left visual -->
+    <div class="login-visual">
+      <div class="login-building">
+        <div class="login-building-row"><div class="lb-unit lit"></div><div class="lb-unit"></div><div class="lb-unit lit2"></div><div class="lb-unit lit"></div><div class="lb-unit"></div></div>
+        <div class="login-building-row"><div class="lb-unit"></div><div class="lb-unit lit3"></div><div class="lb-unit"></div><div class="lb-unit lit2"></div><div class="lb-unit lit"></div></div>
+        <div class="login-building-row"><div class="lb-unit lit2"></div><div class="lb-unit lit"></div><div class="lb-unit"></div><div class="lb-unit"></div><div class="lb-unit lit3"></div></div>
+        <div class="login-building-row"><div class="lb-unit"></div><div class="lb-unit"></div><div class="lb-unit lit"></div><div class="lb-unit lit2"></div><div class="lb-unit"></div></div>
+        <div class="login-building-row"><div class="lb-unit lit3"></div><div class="lb-unit lit"></div><div class="lb-unit lit2"></div><div class="lb-unit"></div><div class="lb-unit lit"></div></div>
+      </div>
+      <div class="login-visual-title">Welcome to PlazaHub</div>
+      <p class="login-visual-sub">Nigeria's smartest plaza management platform. Secure, fast, and built for property owners like you.</p>
+    </div>
+    <!-- Right form -->
+    <div class="login-form-side">
+      <div class="login-logo"><div class="login-logo-mark">🏢</div> PlazaHub</div>
+      <div class="login-form-box">
+        <div class="login-heading">Demo Sign In</div>
+        <p class="login-sub">Explore the sample dashboards; this is not production authentication.</p>
+        <div class="login-tabs">
+          <div class="login-tab active" id="ltab-super" onclick="switchLoginTab('super')">Super Admin</div>
+          <div class="login-tab" id="ltab-admin" onclick="switchLoginTab('admin')">Plaza Admin</div>
+          <div class="login-tab" id="ltab-tenant" onclick="switchLoginTab('tenant')">Tenant</div>
+        </div>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Email Address</label>
+          <input class="form-input w-full" type="email" id="login-email" placeholder="your@email.com">
+        </div>
+        <div class="form-group" style="margin-bottom:6px;">
+          <label class="form-label">Password</label>
+          <input class="form-input w-full" type="password" id="login-password" placeholder="••••••••">
+        </div>
+        <div style="text-align:right;margin-bottom:18px;"><a href="#" style="font-size:12px;color:var(--accent2);">Forgot password?</a></div>
+        <button class="btn btn-primary login-btn" id="login-submit-btn" onclick="doLogin()">Sign In as Super Admin</button>
+        <div class="login-link">Don't have an account? <a onclick="showRegister()">Register your plaza →</a></div>
+        <div class="login-demo-note">
+          🔑 <strong>Demo access:</strong><br>
+          No account is created and no password is checked or stored.<br>
+          Switch tabs to demo each role.
+        </div>
+        <div style="margin-top:16px;text-align:center;">
+          <a onclick="showLanding()" style="font-size:12px;color:var(--text3);cursor:pointer;">← Back to homepage</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: REGISTER
+     ============================================================ -->
+<div id="page-register">
+  <div class="register-wrap">
+    <div class="register-box">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;">
+        <div class="lp-logo-mark">🏢</div>
+        <span style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;">PlazaHub</span>
+      </div>
+      <div class="register-heading">Create a Demo Plaza</div>
+      <p class="register-sub">This screen previews the future onboarding flow. It does not create an account or start a trial.</p>
+
+      <div class="form-section-title">Your Information</div>
+      <div class="form-grid-2 mb-16">
+        <div class="form-group"><label class="form-label">First Name</label><input class="form-input" placeholder="Chukwuemeka"></div>
+        <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" placeholder="Obi"></div>
+      </div>
+      <div class="form-grid-2 mb-20">
+        <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" placeholder="admin@yourplaza.com"></div>
+        <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" placeholder="0801 234 5678"></div>
+      </div>
+
+      <div class="form-section-title">Plaza Details</div>
+      <div class="form-grid-2 mb-16">
+        <div class="form-group"><label class="form-label">Plaza Name</label><input class="form-input" placeholder="Sunshine Business Plaza"></div>
+        <div class="form-group"><label class="form-label">City / State</label><input class="form-input" placeholder="Lagos, Lagos State"></div>
+      </div>
+      <div class="form-grid-3 mb-20">
+        <div class="form-group"><label class="form-label">Total Units</label><input class="form-input" type="number" placeholder="48"></div>
+        <div class="form-group"><label class="form-label">Number of Blocks</label><input class="form-input" type="number" placeholder="2"></div>
+        <div class="form-group"><label class="form-label">Subscription Plan</label>
+          <select class="form-input">
+            <option>Basic — ₦15,000/mo</option>
+            <option selected>Standard — ₦35,000/mo</option>
+            <option>Premium — ₦75,000/mo</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-section-title">Security</div>
+      <div class="form-grid-2 mb-28">
+        <div class="form-group"><label class="form-label">Password</label><input class="form-input" type="password" placeholder="Min. 8 characters"></div>
+        <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-input" type="password" placeholder="Repeat password"></div>
+      </div>
+
+      <div style="display:flex;gap:14px;justify-content:flex-end;flex-wrap:wrap;">
+        <button class="btn btn-ghost btn-lg" onclick="showLanding()">← Back</button>
+        <button class="btn btn-primary btn-lg" onclick="doRegister()">Open Admin Demo 🚀</button>
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin-top:16px;text-align:center;">By registering, you agree to our <a href="#" style="color:var(--accent2);">Terms of Service</a> and <a href="#" style="color:var(--accent2);">Privacy Policy</a>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div id="app-shell">
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <div class="sidebar-logo-mark">🏢</div>
+        <div class="sidebar-logo-text">PlazaHub</div>
+      </div>
+      <div class="sidebar-nav" id="sidebar-nav">
+        <!-- Populated by JS -->
+      </div>
+      <div class="sidebar-foot">
+        <div class="avatar" id="sidebar-avatar" style="background:rgba(59,130,246,0.2);color:var(--accent2);">A</div>
+        <div class="sidebar-user-info">
+          <div class="sidebar-user-name" id="sidebar-username">Admin User</div>
+          <div class="sidebar-user-role" id="sidebar-userrole">Plaza Owner</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main-wrap">
+      <div class="topbar">
+        <div style="display:flex;align-items:center;gap:16px;">
+          <button class="btn-icon btn-dark" id="mobile-menu-btn" onclick="toggleMobileSidebar()" style="display:none;">☰</button>
+          <div class="topbar-title" id="topbar-title">Dashboard</div>
+        </div>
+        <div class="topbar-right">
+          <!-- Role Switcher (demo) -->
+          <div class="role-switcher" id="role-switcher">
+            <button class="role-btn active" id="rbtn-super"  onclick="switchRole('super')">Super</button>
+            <button class="role-btn"        id="rbtn-admin"  onclick="switchRole('admin')">Admin</button>
+            <button class="role-btn"        id="rbtn-tenant" onclick="switchRole('tenant')">Tenant</button>
+          </div>
+          <div class="topbar-icon-btn" onclick="navTo('notifications')">
+            🔔<div class="topbar-notif-dot"></div>
+          </div>
+          <div class="avatar" id="topbar-avatar" style="background:rgba(59,130,246,0.2);color:var(--accent2);cursor:pointer;" onclick="navTo('settings')">A</div>
+        </div>
+      </div>
+
+      <div class="page-content">
+
+        <!-- ====================================================
+             SUPER ADMIN PAGES
+             ==================================================== -->
+
+        <!-- Super: Dashboard -->
+        <div class="app-page" id="page-super-dashboard">
+          <div class="grid-4 mb-24">
+            <div class="stat-card">
+              <div class="stat-top">
+                <div><div class="stat-value" id="super-plaza-count">—</div><div class="stat-label">Total Plazas</div></div>
+                <div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏢</div>
+              </div>
+              <div class="stat-trend">Plazas in this demo session</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:78%;background:var(--accent);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top">
+                <div><div class="stat-value" id="super-tenant-count">—</div><div class="stat-label">Total Tenants</div></div>
+                <div class="stat-icon" style="background:rgba(16,185,129,0.12);">👥</div>
+              </div>
+              <div class="stat-trend">Across the sample plazas</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:65%;background:var(--green);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top">
+                <div><div class="stat-value">₦4.84B</div><div class="stat-label">Rent Processed</div></div>
+                <div class="stat-icon" style="background:rgba(245,158,11,0.12);">💰</div>
+              </div>
+              <div class="stat-trend up">↑ 18% vs last year</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:82%;background:var(--gold);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top">
+                <div><div class="stat-value">₦3.2M</div><div class="stat-label">Subscription Revenue</div></div>
+                <div class="stat-icon" style="background:rgba(139,92,246,0.12);">📈</div>
+              </div>
+              <div class="stat-trend up">↑ ₦420k this month</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:70%;background:var(--purple);"></div></div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-24">
+            <div class="card">
+              <div class="card-header">
+                <div><div class="card-title">Platform Revenue (2025)</div><div class="card-subtitle">Monthly subscription income</div></div>
+              </div>
+              <div class="bar-chart" id="super-revenue-chart"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div><div class="card-title">Plan Distribution</div><div class="card-subtitle">Active subscriptions by tier</div></div>
+              </div>
+              <div id="super-plan-distribution" style="display:flex;flex-direction:column;gap:14px;padding-top:8px;">
+                <div>
+                  <div class="flex items-center justify-between mb-8"><span class="text-sm">Basic (54 plazas)</span><span class="text-sm font-bold" style="color:var(--text2);">43%</span></div>
+                  <div class="progress"><div class="progress-fill" style="width:43%;background:var(--text3);"></div></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-8"><span class="text-sm">Standard (52 plazas)</span><span class="text-sm font-bold text-accent">41%</span></div>
+                  <div class="progress"><div class="progress-fill" style="width:41%;background:var(--accent);"></div></div>
+                </div>
+                <div>
+                  <div class="flex items-center justify-between mb-8"><span class="text-sm">Premium (21 plazas)</span><span class="text-sm font-bold text-gold">16%</span></div>
+                  <div class="progress"><div class="progress-fill" style="width:16%;background:var(--gold);"></div></div>
+                </div>
+                <div style="margin-top:8px;padding-top:14px;border-top:1px solid var(--border);">
+                  <div class="flex items-center justify-between mb-8"><span class="text-sm text-muted">Trial (14 plazas)</span><span class="badge badge-blue">14 active</span></div>
+                  <div class="flex items-center justify-between"><span class="text-sm text-muted">Suspended (3 plazas)</span><span class="badge badge-red">3</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Recently Registered Plazas</div><div class="card-subtitle">Latest 5 onboarded accounts</div></div>
+              <button class="btn btn-sm btn-ghost" onclick="navTo('super-plazas')">View All →</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Plaza</th><th>Owner</th><th>City</th><th>Units</th><th>Plan</th><th>Status</th><th>Joined</th></tr></thead>
+                <tbody id="super-recent-plazas"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Super: Plazas Management -->
+        <div class="app-page" id="page-super-plazas">
+          <div class="filter-bar">
+            <div class="search-input-wrap"><span class="search-icon">🔍</span><input class="form-input" id="plaza-search" type="search" aria-label="Search plazas by name, owner, or city" placeholder="Search plazas..." oninput="filterPlazas(this.value)"></div>
+            <select class="form-input" id="plaza-status-filter" aria-label="Filter plazas by status" style="width:150px;" onchange="renderPlazasList()"><option value="all">All Status</option><option value="active">Active</option><option value="trial">Trial</option><option value="suspended">Suspended</option><option value="expired">Expired</option></select>
+            <select class="form-input" id="plaza-plan-filter" aria-label="Filter plazas by plan" style="width:150px;" onchange="renderPlazasList()"><option value="all">All Plans</option><option>Basic</option><option>Standard</option><option>Premium</option></select>
+            <button class="btn btn-primary ml-auto" onclick="openAddPlaza()">+ Add Plaza Manually</button>
+          </div>
+          <p class="maint-meta mb-16" id="plaza-summary" role="status"></p>
+          <div id="plazas-list"></div>
+        </div>
+
+        <!-- Super: Subscriptions -->
+        <div class="app-page" id="page-super-subscriptions">
+          <div class="grid-3 mb-24" id="subscription-plan-cards">
+            <div class="plan-card">
+              <div class="flex items-center justify-between mb-16">
+                <div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text2);">Basic</div><div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-top:4px;">₦15,000</div><div style="font-size:12px;color:var(--text3);">per month</div></div>
+                <span class="badge badge-gray">54 active</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Max Units</span><span>20</span></div>
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Monthly Revenue</span><span class="text-green">₦810,000</span></div>
+              </div>
+              <button class="btn btn-ghost w-full btn-sm" onclick="openEditPlan('basic')">Edit Plan</button>
+            </div>
+            <div class="plan-card active-plan">
+              <div class="flex items-center justify-between mb-16">
+                <div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--accent2);">Standard</div><div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-top:4px;">₦35,000</div><div style="font-size:12px;color:var(--text3);">per month</div></div>
+                <span class="badge badge-blue">52 active</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Max Units</span><span>100</span></div>
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Monthly Revenue</span><span class="text-green">₦1,820,000</span></div>
+              </div>
+              <button class="btn btn-primary w-full btn-sm" onclick="openEditPlan('standard')">Edit Plan</button>
+            </div>
+            <div class="plan-card">
+              <div class="flex items-center justify-between mb-16">
+                <div><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--gold);">Premium</div><div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin-top:4px;">₦75,000</div><div style="font-size:12px;color:var(--text3);">per month</div></div>
+                <span class="badge badge-gold">21 active</span>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Max Units</span><span>Unlimited</span></div>
+                <div class="flex items-center justify-between text-sm"><span class="text-muted">Monthly Revenue</span><span class="text-green">₦1,575,000</span></div>
+              </div>
+              <button class="btn btn-ghost w-full btn-sm" onclick="openEditPlan('premium')">Edit Plan</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><div class="card-title">Subscription Payments</div><button class="btn btn-sm btn-ghost" onclick="exportCsv('subscriptions')">📥 Export CSV</button></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Plaza</th><th>Plan</th><th>Amount</th><th>Period</th><th>Date</th><th>Status</th></tr></thead>
+                <tbody id="sub-payments-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Super: Platform Revenue -->
+        <div class="app-page" id="page-super-revenue">
+          <div class="grid-4 mb-24">
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦38.4M</div><div class="stat-label">Total Revenue (2025)</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">💵</div></div><div class="stat-trend up">↑ 28% vs 2024</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦3.2M</div><div class="stat-label">This Month</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">📅</div></div><div class="stat-trend up">↑ ₦420k vs last month</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">127</div><div class="stat-label">Paying Plazas</div></div><div class="stat-icon" style="background:rgba(245,158,11,0.12);">🏢</div></div><div class="stat-trend up">↑ 12 new this month</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦25,354</div><div class="stat-label">Avg. Per Plaza</div></div><div class="stat-icon" style="background:rgba(139,92,246,0.12);">📊</div></div><div class="stat-trend up">↑ ₦1,200 MoM</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Revenue Breakdown by Month</div></div>
+            <div class="bar-chart" id="super-monthly-chart" style="height:200px;"></div>
+          </div>
+        </div>
+
+        <!-- Super: Settings -->
+        <div class="app-page" id="page-super-settings">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Platform Settings</div></div>
+              <div class="form-group mb-16"><label class="form-label">Platform Name</label><input class="form-input" value="PlazaHub"></div>
+              <div class="form-group mb-16"><label class="form-label">Support Email</label><input class="form-input" value="support@plazahub.ng"></div>
+              <div class="form-group mb-16"><label class="form-label">Support Phone</label><input class="form-input" value="0800-PLAZAHUB"></div>
+              <div class="form-group mb-24"><label class="form-label">Trial Period (days)</label><input class="form-input" type="number" value="30"></div>
+              <button class="btn btn-primary" onclick="showToast('Settings saved successfully','success')">Save Changes</button>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Notification Preferences</div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>New Plaza Registration</h4><p>Email alert when a new plaza signs up</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Subscription Expiry Alert</h4><p>Notify 7 days before a plaza subscription expires</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Failed Payments</h4><p>Alert on failed subscription payments</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Monthly Revenue Report</h4><p>Auto-email monthly revenue summary</p></div><div class="toggle" onclick="toggleThis(this)"></div></div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ====================================================
+             PLAZA ADMIN PAGES
+             ==================================================== -->
+
+        <!-- Admin: Dashboard -->
+        <div class="app-page" id="page-admin-dashboard">
+          <div class="grid-4 mb-24">
+            <div class="stat-card">
+              <div class="stat-top"><div><div class="stat-value">48</div><div class="stat-label">Total Units</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏪</div></div>
+              <div class="stat-trend neutral">Block A (24) + Block B (24)</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:100%;background:var(--accent);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top"><div><div class="stat-value">41</div><div class="stat-label">Active Tenants</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">👥</div></div>
+              <div class="stat-trend up">↑ 85.4% occupancy</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:85%;background:var(--green);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top"><div><div class="stat-value" id="admin-annual-revenue">₦14.8M</div><div class="stat-label">Approved Collections</div></div><div class="stat-icon" style="background:rgba(245,158,11,0.12);">💰</div></div>
+              <div class="stat-trend up">↑ 11% vs last year</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:74%;background:var(--gold);"></div></div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-top"><div><div class="stat-value" id="admin-expiring-count">5</div><div class="stat-label">Expiring Soon</div></div><div class="stat-icon" style="background:rgba(239,68,68,0.12);">⚠️</div></div>
+              <div class="stat-trend down">3 critical — under 30 days</div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:25%;background:var(--red);"></div></div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-24">
+            <div class="card">
+              <div class="card-header">
+                <div><div class="card-title">Monthly Revenue 2025</div><div class="card-subtitle">Rent collected per month</div></div>
+              </div>
+              <div class="bar-chart" id="admin-revenue-chart"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div><div class="card-title">Expiring Leases</div><div class="card-subtitle">Next 90 days</div></div>
+                <button class="btn btn-sm btn-ghost" onclick="navTo('admin-tenants')">View All</button>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Tenant</th><th>Unit</th><th>Expires</th><th>Status</th></tr></thead>
+                  <tbody id="admin-expiring-body"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Recent Transactions</div><div class="card-subtitle">Latest payment activity</div></div>
+              <button class="btn btn-sm btn-primary" onclick="navTo('admin-payments')">All Payments</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Tenant</th><th>Unit</th><th>Amount</th><th>Type</th><th>Date</th><th>Status</th></tr></thead>
+                <tbody id="admin-recent-payments"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Tenants -->
+        <div class="app-page" id="page-admin-tenants">
+          <div class="filter-bar">
+            <div class="search-input-wrap"><span class="search-icon">🔍</span><input class="form-input" type="text" placeholder="Search tenants..." oninput="filterTenants(this.value)" id="tenant-search"></div>
+            <select class="form-input" style="width:160px;" id="tenant-status-filter" onchange="filterTenants(document.getElementById('tenant-search').value)">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="expiring">Expiring Soon</option>
+              <option value="overdue">Overdue</option>
+            </select>
+            <button class="btn btn-primary ml-auto" onclick="openAddTenant()">+ Add Tenant</button>
+            <button class="btn btn-ghost" onclick="exportCsv('tenants')">📥 Export All CSV</button>
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Tenant</th><th>Unit</th><th>Business Type</th><th>Annual Rent</th><th>Lease Start</th><th>Lease Expires</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="tenants-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Units/Shops -->
+        <div class="app-page" id="page-admin-units">
+          <div class="grid-4 mb-24">
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="unit-occupied-count">41</div><div class="stat-label">Occupied</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">✅</div></div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="unit-vacant-count">7</div><div class="stat-label">Vacant</div></div><div class="stat-icon" style="background:rgba(74,85,104,0.1);">⬜</div></div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="unit-expiring-count">3</div><div class="stat-label">Expiring &lt;30d</div></div><div class="stat-icon" style="background:rgba(239,68,68,0.12);">🔴</div></div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="unit-overdue-count">2</div><div class="stat-label">Overdue</div></div><div class="stat-icon" style="background:rgba(249,115,22,0.12);">⚠️</div></div></div>
+          </div>
+          <div class="card mb-24">
+            <div class="card-header">
+              <div><div class="card-title">Floor Map — All Units</div><div class="card-subtitle">Click a unit to view details</div></div>
+              <div class="unit-legend">
+                <div class="unit-legend-item"><div class="unit-legend-dot" style="background:var(--green);"></div>Occupied</div>
+                <div class="unit-legend-item"><div class="unit-legend-dot" style="background:var(--orange);"></div>Expiring</div>
+                <div class="unit-legend-item"><div class="unit-legend-dot" style="background:var(--red);"></div>Overdue</div>
+                <div class="unit-legend-item"><div class="unit-legend-dot" style="background:var(--text3);"></div>Vacant</div>
+              </div>
+            </div>
+            <div id="unit-map-blocks"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div class="card-title">Units List</div><button class="btn btn-sm btn-primary" onclick="openAddUnit()">+ Add Unit</button></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Unit No.</th><th>Block</th><th>Size</th><th>Annual Rent</th><th>Tenant</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="units-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Payments -->
+        <div class="app-page" id="page-admin-payments">
+          <div class="grid-4 mb-24">
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="payments-total-collected">₦12.6M</div><div class="stat-label">Total Collected</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">✅</div></div><div class="stat-trend up" id="payments-paid-count">38 approved records</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="payments-outstanding">₦2.2M</div><div class="stat-label">Outstanding</div></div><div class="stat-icon" style="background:rgba(239,68,68,0.12);">⏳</div></div><div class="stat-trend down" id="payments-overdue-count">3 tenant obligations</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="payments-pending">₦480K</div><div class="stat-label">Pending Clearance</div></div><div class="stat-icon" style="background:rgba(249,158,11,0.12);">🔄</div></div><div class="stat-trend neutral" id="payments-pending-count">2 pending transfers</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="payments-collection-rate">93%</div><div class="stat-label">Collection Rate</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">📊</div></div><div class="stat-trend up">Based on approved records and obligations</div></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">All Payment Records</div></div>
+              <div class="card-actions">
+                <button class="btn btn-sm btn-ghost" onclick="exportCsv('payments')">📥 Export CSV</button>
+                <button class="btn btn-sm btn-primary" onclick="openRecordPayment()">+ Record Payment</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Ref #</th><th>Tenant</th><th>Unit</th><th>Amount</th><th>Period</th><th>Method</th><th>Date</th><th>Status</th><th></th></tr></thead>
+                <tbody id="payments-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Reports -->
+        <div class="app-page" id="page-admin-reports">
+          <div class="grid-2 mb-24">
+            <div class="card">
+              <div class="card-header"><div><div class="card-title">Collections by Quarter</div><div class="card-subtitle">Approved sample records across all years</div></div></div>
+              <div class="bar-chart" id="reports-quarterly-chart" style="height:180px;"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Occupancy & Payment Stats</div></div>
+              <div style="display:flex;flex-direction:column;gap:16px;padding-top:4px;">
+                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Occupied Units</span><span class="text-sm font-bold text-green" id="report-occupied-stat">41/48 — 85%</span></div><div class="progress progress-lg"><div class="progress-fill" id="report-occupied-bar" style="width:85%;background:var(--green);"></div></div></div>
+                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Rent Collected</span><span class="text-sm font-bold text-accent" id="report-collected-stat">38/41 — 93%</span></div><div class="progress progress-lg"><div class="progress-fill" id="report-collected-bar" style="width:93%;background:var(--accent);"></div></div></div>
+                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Renewals Confirmed</span><span class="text-sm font-bold text-gold">28/41 — 68%</span></div><div class="progress progress-lg"><div class="progress-fill" style="width:68%;background:var(--gold);"></div></div></div>
+                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Overdue Payments</span><span class="text-sm font-bold text-red" id="report-overdue-stat">3/41 — 7%</span></div><div class="progress progress-lg"><div class="progress-fill" id="report-overdue-bar" style="width:7%;background:var(--red);"></div></div></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><div><div class="card-title">Top Revenue Units</div><div class="card-subtitle">Sample comparison of annual rent and all-period collections. Period-specific balances need an invoice ledger.</div></div><button class="btn btn-sm btn-ghost" onclick="exportCsv('report')">📥 Export Shown CSV</button></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>#</th><th>Unit</th><th>Tenant</th><th>Annual Rent</th><th>Collected</th><th>Balance</th><th>Status</th></tr></thead>
+                <tbody id="reports-top-units"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Notifications -->
+        <div class="app-page" id="page-admin-notifications">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <div><div class="card-title">Alerts & Notifications</div></div>
+                <span class="badge badge-red">5 new</span>
+              </div>
+              <div id="admin-notif-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Send Bulk Reminder</div></div>
+              <div class="form-group mb-16"><label class="form-label">Recipients</label>
+                <select class="form-input">
+                  <option>Expiring in 30 days (5 tenants)</option>
+                  <option>Overdue payments (3 tenants)</option>
+                  <option>Expiring in 60 days (9 tenants)</option>
+                  <option>All tenants (41 tenants)</option>
+                </select>
+              </div>
+              <div class="form-group mb-16"><label class="form-label">Subject</label><input class="form-input" value="Rent Renewal Reminder — Sunshine Business Plaza"></div>
+              <div class="form-group mb-16"><label class="form-label">Message</label>
+                <textarea class="form-input" rows="5">Dear Tenant,
+
+This is a reminder that your annual rent is due for renewal soon. Please log in to your PlazaHub tenant portal to make your payment and avoid any disruption.
+
+For assistance, contact plaza management.
+
+— Sunshine Business Plaza Management</textarea>
+              </div>
+              <div class="form-group mb-20"><label class="form-label">Delivery Channel</label>
+                <select class="form-input"><option>Email + SMS</option><option>Email only</option><option>SMS only</option></select>
+              </div>
+              <button class="btn btn-primary w-full" onclick="showToast('Bulk reminder sent to 5 tenants','success')">📤 Send Reminder</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin: Maintenance -->
+        <div class="app-page" id="page-admin-maintenance">
+          <div class="card">
+            <div class="card-header">
+              <div><div class="card-title">Maintenance Requests</div><div class="card-subtitle" id="maintenance-summary"></div></div>
+              <div><label class="form-label" for="maintenance-filter">Filter by status</label>
+                <select class="form-input" id="maintenance-filter" onchange="renderAdminMaintenance()">
+                  <option value="all">All requests</option><option value="pending">Pending</option><option value="in-progress">In progress</option><option value="resolved">Resolved / completed</option>
+                </select>
+              </div>
+            </div>
+            <div id="admin-maintenance-list"></div>
+          </div>
+        </div>
+
+        <!-- Admin: Settings -->
+        <div class="app-page" id="page-admin-settings">
+          <div class="grid-2">
+            <div>
+              <div class="card mb-20">
+                <div class="card-header"><div class="card-title">Plaza Profile</div></div>
+                <div class="form-group mb-14"><label class="form-label">Plaza Name</label><input class="form-input" value="Sunshine Business Plaza"></div>
+                <div class="form-group mb-14"><label class="form-label">Full Address</label><input class="form-input" value="14 Adeola Odeku Street, Victoria Island, Lagos"></div>
+                <div class="form-grid-2 mb-14">
+                  <div class="form-group"><label class="form-label">City</label><input class="form-input" value="Lagos"></div>
+                  <div class="form-group"><label class="form-label">State</label><input class="form-input" value="Lagos State"></div>
+                </div>
+                <div class="form-group mb-20"><label class="form-label">Admin Contact Email</label><input class="form-input" value="admin@sunshineplaza.ng"></div>
+                <button class="btn btn-primary" onclick="showToast('Plaza profile updated','success')">Save Profile</button>
+              </div>
+              <div class="card">
+                <div class="card-header"><div class="card-title">Bank Account Details</div><div class="card-subtitle">For tenant payment transfers</div></div>
+                <div class="form-group mb-14"><label class="form-label">Bank Name</label><input class="form-input" value="Zenith Bank PLC"></div>
+                <div class="form-group mb-14"><label class="form-label">Account Number</label><input class="form-input" value="2103456789"></div>
+                <div class="form-group mb-20"><label class="form-label">Account Name</label><input class="form-input" value="Sunshine Business Plaza Ltd"></div>
+                <button class="btn btn-primary" onclick="showToast('Bank details saved','success')">Save Bank Details</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Notification Settings</div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Rent Expiry Alerts</h4><p>Notify admin 30, 14 and 7 days before lease expires</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Payment Confirmation</h4><p>Email admin when a tenant makes a payment</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Overdue Payment Reminders</h4><p>Weekly auto-reminder to overdue tenants</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>New Tenant Welcome Email</h4><p>Auto-send login credentials to new tenants</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Monthly Revenue Summary</h4><p>Auto-email monthly collection report to admin</p></div><div class="toggle" onclick="toggleThis(this)"></div></div>
+              <div class="toggle-wrap"><div class="toggle-info"><h4>Maintenance Request Alerts</h4><p>Notify admin when a tenant submits a request</p></div><div class="toggle on" onclick="toggleThis(this)"></div></div>
+            </div>
+          </div>
+        </div>
+
+
+        <!-- ====================================================
+             TENANT PAGES
+             ==================================================== -->
+
+        <!-- Tenant: Dashboard -->
+        <div class="app-page" id="page-tenant-dashboard">
+          <div style="background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(245,158,11,0.05));border:1px solid rgba(59,130,246,0.15);border-radius:16px;padding:28px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+            <div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Welcome back</div>
+              <h2 id="tenant-welcome-name" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px;">Funmi Boutique 👋</h2>
+              <p style="font-size:14px;color:var(--text2);">Unit D-09 · Block D, Sunshine Business Plaza, Lagos</p>
+              <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+                <span class="badge badge-green"><span class="dot dot-green"></span> Rent Paid</span>
+                <span class="badge badge-blue">Active Lease</span>
+                <span class="badge badge-gray">Standard Plan</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:var(--gold);line-height:1;">247</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:4px;">days until lease expires</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:2px;">Expires Aug 14, 2026</div>
+            </div>
+          </div>
+
+          <div class="grid-3 mb-24">
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦480,000</div><div class="stat-label">Annual Rent</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">💰</div></div><div class="stat-trend up">✓ Paid in full — Dec 5, 2024</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">D-09</div><div class="stat-label">Your Shop Unit</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏪</div></div><div class="stat-trend neutral">Ground Floor · 45 sqm</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">3 yrs</div><div class="stat-label">Tenancy Duration</div></div><div class="stat-icon" style="background:rgba(245,158,11,0.12);">🌟</div></div><div class="stat-trend up">Since January 2022</div></div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Recent Payments</div><button class="btn btn-sm btn-ghost" onclick="navTo('tenant-receipts')">All Receipts</button></div>
+              <div id="tenant-recent-payments"></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Quick Actions</div></div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <button class="btn btn-primary w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-pay')">💳 Pay Annual Rent</button>
+                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-maintenance')">🔧 Submit Maintenance Request</button>
+                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-lease')">📄 View Lease Agreement</button>
+                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-receipts')">🧾 Download Receipts</button>
+                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-notifications')">🔔 View Notifications</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tenant: Pay Fees -->
+        <div class="app-page" id="page-tenant-pay">
+          <div class="step-indicator" id="pay-step-indicator">
+            <div class="step-item active" id="pstep-1"><div class="step-circle">1</div><div class="step-label">Review Invoice</div></div>
+            <div class="step-item" id="pstep-2"><div class="step-circle">2</div><div class="step-label">Select Payment</div></div>
+            <div class="step-item" id="pstep-3"><div class="step-circle">3</div><div class="step-label">Confirm</div></div>
+          </div>
+          <div id="pay-content"></div>
+        </div>
+
+        <!-- Tenant: Receipts -->
+        <div class="app-page" id="page-tenant-receipts">
+          <div class="card">
+            <div class="card-header"><div class="card-title">Payment History & Receipts</div><button class="btn btn-sm btn-ghost">📥 Download All</button></div>
+            <div id="tenant-receipts-list"></div>
+          </div>
+        </div>
+
+        <!-- Tenant: Maintenance -->
+        <div class="app-page" id="page-tenant-maintenance">
+          <div class="grid-2">
+            <form class="card" id="maintenance-form" onsubmit="event.preventDefault();submitMaintenanceRequest()">
+              <div class="card-header"><div class="card-title">Submit New Request</div></div>
+              <div class="form-group mb-14"><label class="form-label" for="maintenance-category">Issue Category</label>
+                <select class="form-input" id="maintenance-category"><option>Electrical</option><option>Plumbing</option><option>Structural / Walls</option><option>Roof / Ceiling</option><option>Doors / Windows</option><option>Cleaning</option><option>Security</option><option>Other</option></select>
+              </div>
+              <div class="form-group mb-14"><label class="form-label" for="maintenance-priority">Priority Level</label>
+                <select class="form-input" id="maintenance-priority"><option value="Low">Low — Can wait</option><option value="Medium" selected>Medium — Needs attention</option><option value="High">High — Urgent</option><option value="Emergency">Emergency — Immediate</option></select>
+              </div>
+              <div class="form-group mb-14"><label class="form-label" for="maintenance-subject">Subject</label><input class="form-input" id="maintenance-subject" required maxlength="120" placeholder="Brief description of the issue"></div>
+              <div class="form-group mb-20"><label class="form-label" for="maintenance-description">Detailed Description</label><textarea class="form-input" id="maintenance-description" required maxlength="2000" rows="5" placeholder="Please describe the issue in detail — what happened, where exactly, and when it started..."></textarea></div>
+              <button class="btn btn-primary w-full" type="submit">Submit Request</button>
+              <p class="maint-meta">Demo requests and updates are kept until you refresh this page.</p>
+            </form>
+            <div class="card">
+              <div class="card-header"><div class="card-title">My Requests</div></div>
+              <div id="maintenance-list"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tenant: Lease -->
+        <div class="app-page" id="page-tenant-lease">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header"><div class="card-title">Lease Agreement Details</div><button class="btn btn-sm btn-ghost">📄 Download PDF</button></div>
+              <div class="lease-card">
+                <div class="lease-row"><div class="lease-key">Tenant Name</div><div class="lease-val" id="tenant-lease-name">Funmi Boutique</div></div>
+                <div class="lease-row"><div class="lease-key">Plaza Name</div><div class="lease-val">Sunshine Business Plaza</div></div>
+                <div class="lease-row"><div class="lease-key">Shop / Unit Number</div><div class="lease-val">Unit D-09, Block D</div></div>
+                <div class="lease-row"><div class="lease-key">Floor / Level</div><div class="lease-val">Ground Floor</div></div>
+                <div class="lease-row"><div class="lease-key">Unit Size</div><div class="lease-val">45 square meters</div></div>
+                <div class="lease-row"><div class="lease-key">Business Type</div><div class="lease-val">Fashion Boutique / Retail</div></div>
+                <div class="lease-row"><div class="lease-key">Annual Rent</div><div class="lease-val" style="color:var(--gold);font-family:'Syne',sans-serif;font-size:16px;">₦480,000</div></div>
+                <div class="lease-row"><div class="lease-key">Lease Start Date</div><div class="lease-val">January 14, 2022</div></div>
+                <div class="lease-row"><div class="lease-key">Current Lease Period</div><div class="lease-val">Jan 14, 2025 — Aug 14, 2026</div></div>
+                <div class="lease-row"><div class="lease-key">Payment Due Date</div><div class="lease-val">Every January 14th</div></div>
+                <div class="lease-row"><div class="lease-key">Lease Status</div><div class="lease-val"><span class="badge badge-green">✓ Active</span></div></div>
+                <div class="lease-row"><div class="lease-key">Security Deposit</div><div class="lease-val">₦480,000 (paid)</div></div>
+                <div class="lease-row"><div class="lease-key">Management Contact</div><div class="lease-val">admin@sunshineplaza.ng</div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Lease Terms Summary</div></div>
+              <div style="display:flex;flex-direction:column;gap:14px;font-size:13px;color:var(--text2);line-height:1.8;">
+                <p>📋 <strong style="color:var(--text);">Payment Terms:</strong> Annual rent is due in full by January 14th each year. A 10-day grace period applies. Late payments attract a 5% monthly penalty charge.</p>
+                <p>🔧 <strong style="color:var(--text);">Maintenance:</strong> The tenant is responsible for interior maintenance and fixtures. Structural repairs are the responsibility of plaza management.</p>
+                <p>🚫 <strong style="color:var(--text);">Subletting:</strong> Subletting or transferring the tenancy to a third party without written consent from plaza management is strictly prohibited.</p>
+                <p>📢 <strong style="color:var(--text);">Termination:</strong> Either party may terminate this lease with 90 days written notice. Breach of terms may result in immediate termination.</p>
+                <p>🔄 <strong style="color:var(--text);">Renewal:</strong> The tenant must notify management at least 30 days before expiry to confirm renewal. Rent may be reviewed annually.</p>
+              </div>
+              <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
+                <button class="btn btn-primary w-full mb-8" onclick="showToast('Renewal request submitted. Management will contact you shortly.','success')">🔄 Request Lease Renewal</button>
+                <button class="btn btn-ghost w-full" onclick="showToast('A copy has been sent to your email.','info')">📧 Email Me a Copy</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tenant: Notifications -->
+        <div class="app-page" id="page-tenant-notifications">
+          <div class="card" style="max-width:700px;">
+            <div class="card-header"><div class="card-title">Your Notifications</div><span class="badge badge-blue">3 unread</span></div>
+            <div id="tenant-notif-list"></div>
+          </div>
+        </div>
+
+      </div><!-- /page-content -->
+    </div><!-- /main-wrap -->
+  </div><!-- /app-layout -->
+</div><!-- /app-shell -->
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

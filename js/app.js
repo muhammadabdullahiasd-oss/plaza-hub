@@ -1,293 +1,18 @@
+import { DEMO_TENANT_ID, MAINTENANCE_STATUSES, MAINTENANCE_CATEGORIES, MAINTENANCE_PRIORITIES } from './data/demo-data.js';
+import { repository } from './data/repository.js';
+import { session, createNavigation } from './navigation.js';
+import { getMonthlyCollections, getQuarterlyCollections, buildCsv, isValidDateOnly, formatDate, formatNaira, daysUntil, expiryBadge, payStatusBadge, escapeHtml, statusBadge, avatarStyle } from './utils.js';
+import { ui } from './ui.js';
 
-/* ============================================================
-   STATE
-   ============================================================ */
-let currentRole = 'super';  // super | admin | tenant
-let currentPage = '';
 let payStep = 1;
-let loginRole = 'super';
 let selectedPaymentMethod = 'provider';
-const DEMO_TENANT_ID = 6;
+const { showLanding, showLogin, showRegister, hideAll, switchLoginTab, doLogin, doRegister, switchRole, buildSidebar, navTo } = createNavigation({ repository, ui, renderPage:page => renderPage(page) });
 
-/* ============================================================
-   SAMPLE DATA
-   ============================================================ */
-const TENANTS = [
-  { id:1, name:'Adaeze Obi',          shop:'A-01', block:'A', business:'Fashion Retail',       rent:360000, start:'2022-01-10', expires:'2025-01-10', paid:true,  status:'expiring' },
-  { id:2, name:'Biodun Stores',        shop:'A-04', block:'A', business:'Provisions / FMCG',    rent:300000, start:'2022-02-01', expires:'2025-02-01', paid:true,  status:'expiring' },
-  { id:3, name:'Chidi Fabrics',        shop:'A-07', block:'A', business:'Textile & Fabrics',    rent:280000, start:'2023-03-15', expires:'2026-03-15', paid:true,  status:'active' },
-  { id:4, name:'Damilola Electronics', shop:'A-10', block:'A', business:'Electronics & Gadgets',rent:420000, start:'2023-05-20', expires:'2026-05-20', paid:true,  status:'active' },
-  { id:5, name:'Emeka POS Agent',      shop:'A-13', block:'A', business:'Financial Services',   rent:180000, start:'2023-08-01', expires:'2025-08-01', paid:false, status:'overdue' },
-  { id:6, name:'Funmi Boutique',       shop:'D-09', block:'D', business:'Fashion & Accessories',rent:480000, start:'2022-01-14', expires:'2026-08-14', paid:true,  status:'active' },
-  { id:7, name:'Grace Pharmacy',       shop:'B-03', block:'B', business:'Pharmacy & Health',    rent:540000, start:'2023-06-01', expires:'2026-06-01', paid:true,  status:'active' },
-  { id:8, name:'Hassan Auto Parts',    shop:'B-06', block:'B', business:'Auto Parts & Tools',   rent:380000, start:'2022-11-01', expires:'2025-11-01', paid:true,  status:'active' },
-  { id:9, name:'Ifeoma Catering',      shop:'B-09', block:'B', business:'Food & Catering',      rent:240000, start:'2023-04-10', expires:'2025-04-10', paid:false, status:'overdue' },
-  { id:10,name:'Jide Legal Services',  shop:'B-12', block:'B', business:'Professional Services',rent:600000, start:'2023-07-01', expires:'2026-07-01', paid:true,  status:'active' },
-  { id:11,name:'Kemi Baby World',      shop:'A-16', block:'A', business:'Baby Products',        rent:260000, start:'2024-01-01', expires:'2027-01-01', paid:true,  status:'active' },
-  { id:12,name:'Leke Tailoring',       shop:'B-15', block:'B', business:'Tailoring & Alterations',rent:200000,start:'2024-03-01',expires:'2027-03-01', paid:true,  status:'active' },
-];
-
-// Session-only sequence: deleting a tenant must never give their ID to someone else.
-let nextTenantId = Math.max(0, ...TENANTS.map(tenant => tenant.id)) + 1;
-
-const UNITS = [];
-['A', 'B'].forEach(block => {
-  for (let number = 1; number <= 24; number += 1) {
-    UNITS.push({ number:`${block}-${String(number).padStart(2, '0')}`, block, size:block === 'A' ? 30 : 45, suggestedRent:block === 'A' ? 300000 : 400000 });
-  }
-});
-UNITS.push({ number:'D-09', block:'D', size:45, suggestedRent:480000 });
-
-const PAYMENTS = [
-  { ref:'TXN-2025-0841', tenantId:6, tenant:'Funmi Boutique',       unit:'D-09', amount:480000, period:'2025', method:'Paystack',       date:'2025-01-05', status:'paid' },
-  { ref:'TXN-2025-0840', tenantId:10,tenant:'Jide Legal Services',  unit:'B-12', amount:600000, period:'2025', method:'Bank Transfer',  date:'2025-01-04', status:'paid' },
-  { ref:'TXN-2025-0839', tenantId:7, tenant:'Grace Pharmacy',       unit:'B-03', amount:540000, period:'2025', method:'Paystack',       date:'2025-01-03', status:'paid' },
-  { ref:'TXN-2025-0838', tenantId:4, tenant:'Damilola Electronics', unit:'A-10', amount:420000, period:'2025', method:'Paystack',       date:'2025-01-02', status:'paid' },
-  { ref:'TXN-2025-0837', tenantId:8, tenant:'Hassan Auto Parts',    unit:'B-06', amount:380000, period:'2025', method:'Bank Transfer',  date:'2024-12-30', status:'paid' },
-  { ref:'TXN-2024-0819', tenantId:5, tenant:'Emeka POS Agent',      unit:'A-13', amount:180000, period:'2024', method:'Bank Transfer',  date:'2024-11-01', status:'pending' },
-  { ref:'TXN-2024-0805', tenantId:9, tenant:'Ifeoma Catering',      unit:'B-09', amount:240000, period:'2024', method:'—',              date:'2024-09-10', status:'overdue' },
-  { ref:'TXN-2025-0842', tenantId:3, tenant:'Chidi Fabrics',        unit:'A-07', amount:280000, period:'2025', method:'USSD',           date:'2025-01-06', status:'paid' },
-  { ref:'TXN-2025-0843', tenantId:11,tenant:'Kemi Baby World',      unit:'A-16', amount:260000, period:'2025', method:'Paystack',       date:'2025-01-07', status:'paid' },
-  { ref:'TXN-2025-0844', tenantId:12,tenant:'Leke Tailoring',       unit:'B-15', amount:200000, period:'2025', method:'Bank Transfer',  date:'2025-01-08', status:'paid' },
-];
-
-const PLAZAS = [
-  { id:1, name:'Sunshine Business Plaza', owner:'Chief Emeka Obi',      city:'Lagos',    units:48, tenants:41, plan:'Standard', status:'active', joined:'2024-03-15' },
-  { id:2, name:'Adeyemi Shopping Complex',owner:'Alhaja A. Adeyemi',    city:'Ibadan',   units:32, tenants:29, plan:'Basic',    status:'active', joined:'2024-05-20' },
-  { id:3, name:'Nwosu Commercial Plaza',  owner:'Engr. E. Nwosu',       city:'Enugu',    units:96, tenants:88, plan:'Premium',  status:'active', joined:'2024-01-10' },
-  { id:4, name:'Eko Market Suites',       owner:'Mr. Tunde Afolabi',    city:'Lagos',    units:120,tenants:104,plan:'Premium',  status:'active', joined:'2023-11-05' },
-  { id:5, name:'Abuja Grand Plaza',       owner:'Alhaji M. Ibrahim',    city:'Abuja',    units:60, tenants:52, plan:'Standard', status:'active', joined:'2024-07-22' },
-  { id:6, name:'Delta Trade Center',      owner:'Chief A. Oghenekaro',  city:'Warri',    units:24, tenants:18, plan:'Basic',    status:'trial',  joined:'2025-01-01' },
-  { id:7, name:'Kano Commercial Hub',     owner:'Alhaji S. Maigida',    city:'Kano',     units:40, tenants:35, plan:'Standard', status:'active', joined:'2024-09-14' },
-  { id:8, name:'Calabar Suites',          owner:'Dr. E. Effiom',        city:'Calabar',  units:18, tenants:12, plan:'Basic',    status:'suspended',joined:'2024-04-30' },
-];
-
-const SUB_PAYMENTS = [
-  { plaza:'Sunshine Business Plaza', plan:'Standard', amount:35000, period:'Jan 2025', date:'2025-01-01', status:'paid' },
-  { plaza:'Nwosu Commercial Plaza',  plan:'Premium',  amount:75000, period:'Jan 2025', date:'2025-01-01', status:'paid' },
-  { plaza:'Eko Market Suites',       plan:'Premium',  amount:75000, period:'Jan 2025', date:'2025-01-01', status:'paid' },
-  { plaza:'Adeyemi Shopping Complex',plan:'Basic',    amount:15000, period:'Jan 2025', date:'2025-01-01', status:'paid' },
-  { plaza:'Abuja Grand Plaza',       plan:'Standard', amount:35000, period:'Jan 2025', date:'2025-01-01', status:'paid' },
-  { plaza:'Kano Commercial Hub',     plan:'Standard', amount:35000, period:'Jan 2025', date:'2024-12-28', status:'paid' },
-  { plaza:'Calabar Suites',          plan:'Basic',    amount:15000, period:'Dec 2024', date:'2024-12-01', status:'failed' },
-];
-
-const PLANS = {
-  basic:{ name:'Basic', price:15000, maxUnits:20, features:['Tenant management', 'Rent tracking', 'Online payments', 'Email notifications'] },
-  standard:{ name:'Standard', price:35000, maxUnits:100, features:['Everything in Basic', 'Visual floor map', 'Bulk SMS reminders', 'Advanced reports', 'Maintenance requests'] },
-  premium:{ name:'Premium', price:75000, maxUnits:null, features:['Everything in Standard', 'Multiple plazas', 'Custom branding', 'API access', 'Dedicated support'] },
-};
-
-const ADMIN_NOTIFICATIONS = [
-  { type:'red',    text:'<strong>Adaeze Obi (A-01)</strong> lease expires in <strong>8 days</strong>. Immediate renewal action required.', time:'1 hour ago', unread:true },
-  { type:'red',    text:'<strong>Biodun Stores (A-04)</strong> lease expires in <strong>25 days</strong>. Reminder sent.', time:'3 hours ago', unread:true },
-  { type:'orange', text:'<strong>Emeka POS Agent (A-13)</strong> has an overdue payment of <strong>₦180,000</strong> for 2024.', time:'1 day ago', unread:true },
-  { type:'orange', text:'<strong>Ifeoma Catering (B-09)</strong> has an overdue payment of <strong>₦240,000</strong> since September 2024.', time:'2 days ago', unread:true },
-  { type:'green',  text:'<strong>Leke Tailoring (B-15)</strong> successfully paid ₦200,000 annual rent via bank transfer.', time:'3 days ago', unread:false },
-  { type:'green',  text:'<strong>Kemi Baby World (A-16)</strong> successfully paid ₦260,000 via Paystack.', time:'4 days ago', unread:false },
-  { type:'blue',   text:'<strong>Unit B-18</strong> is now vacant. Consider listing it to new prospects.', time:'1 week ago', unread:false },
-];
-
-const TENANT_NOTIFICATIONS = [
-  { type:'gold',   text:'Your lease expires in <strong>247 days</strong> (Aug 14, 2026). You can renew anytime from your portal.', time:'Today', unread:true },
-  { type:'green',  text:'Your payment of <strong>₦480,000</strong> for 2025 annual rent has been confirmed. Receipt #TXN-2025-0841.', time:'Jan 5, 2025', unread:false },
-  { type:'blue',   text:'Maintenance request <strong>#MR-004</strong> (Electrical) has been attended to and marked completed.', time:'Dec 20, 2024', unread:false },
-];
-
-const MAINTENANCE_REQUESTS = [
-  { id:'MR-004', category:'Electrical', subject:'Faulty light socket near entrance', priority:'Medium', date:'Dec 15, 2024', status:'resolved' },
-  { id:'MR-003', category:'Plumbing',   subject:'Water leakage from ceiling corner', priority:'High',   date:'Nov 2, 2024',  status:'completed' },
-  { id:'MR-002', category:'Structural', subject:'Cracked wall behind display shelf',  priority:'Low',    date:'Aug 10, 2024', status:'completed' },
-];
-
-// Seed requests belong to the tenant represented by this demo portal.
-MAINTENANCE_REQUESTS.forEach(request => {
-  request.tenantId = DEMO_TENANT_ID;
-  request.tenant = 'Funmi Boutique';
-  request.unit = 'D-09';
-  request.description = '';
-  request.managerNote = '';
-});
-const MAINTENANCE_STATUSES = { pending:'Pending', 'in-progress':'In progress', resolved:'Resolved', completed:'Completed' };
-const MAINTENANCE_CATEGORIES = ['Electrical', 'Plumbing', 'Structural / Walls', 'Roof / Ceiling', 'Doors / Windows', 'Cleaning', 'Security', 'Other'];
-const MAINTENANCE_PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];
-
-/* ============================================================
-   NAV CONFIG PER ROLE
-   ============================================================ */
-const NAV_CONFIG = {
-  super: [
-    { label:'Main', items:[
-      { icon:'📊', text:'Dashboard',           page:'super-dashboard' },
-      { icon:'🏢', text:'Plazas',              page:'super-plazas' },
-      { icon:'💎', text:'Subscriptions',       page:'super-subscriptions' },
-      { icon:'💵', text:'Platform Revenue',    page:'super-revenue' },
-    ]},
-    { label:'System', items:[
-      { icon:'⚙️', text:'Settings',            page:'super-settings' },
-      { icon:'🚪', text:'Sign Out',             page:'logout' },
-    ]},
-  ],
-  admin: [
-    { label:'Management', items:[
-      { icon:'📊', text:'Dashboard',           page:'admin-dashboard' },
-      { icon:'👥', text:'Tenants',             page:'admin-tenants',      badge:'3' },
-      { icon:'🏪', text:'Units & Shops',       page:'admin-units' },
-      { icon:'💳', text:'Payments',            page:'admin-payments' },
-    ]},
-    { label:'Services', items:[
-      { icon:'🔧', text:'Maintenance', page:'admin-maintenance' },
-    ]},
-    { label:'Analytics', items:[
-      { icon:'📈', text:'Reports',             page:'admin-reports' },
-      { icon:'🔔', text:'Notifications',       page:'admin-notifications', badge:'5' },
-    ]},
-    { label:'Account', items:[
-      { icon:'⚙️', text:'Settings',            page:'admin-settings' },
-      { icon:'🚪', text:'Sign Out',             page:'logout' },
-    ]},
-  ],
-  tenant: [
-    { label:'My Account', items:[
-      { icon:'🏠', text:'Dashboard',           page:'tenant-dashboard' },
-      { icon:'💳', text:'Pay Fees',            page:'tenant-pay' },
-      { icon:'🧾', text:'My Receipts',         page:'tenant-receipts' },
-    ]},
-    { label:'Services', items:[
-      { icon:'🔧', text:'Maintenance',         page:'tenant-maintenance' },
-      { icon:'📄', text:'My Lease',            page:'tenant-lease' },
-      { icon:'🔔', text:'Notifications',       page:'tenant-notifications', badge:'3' },
-    ]},
-    { label:'Account', items:[
-      { icon:'🚪', text:'Sign Out',             page:'logout' },
-    ]},
-  ],
-};
-
-const ROLE_DEFAULTS = { super:'super-dashboard', admin:'admin-dashboard', tenant:'tenant-dashboard' };
-
-const ROLE_USER = {
-  super:  { name:'Super Admin', role:'Platform Owner',  initial:'S', bg:'rgba(139,92,246,0.2)',  color:'var(--purple)' },
-  admin:  { name:'Emeka Obi',   role:'Plaza Admin',     initial:'E', bg:'rgba(59,130,246,0.2)',  color:'var(--accent2)' },
-  tenant: { name:'Funmi Boutique',role:'Shop D-09',     initial:'F', bg:'rgba(245,158,11,0.2)',  color:'var(--gold)' },
-};
-
-/* ============================================================
-   PAGE / ROLE SWITCHING
-   ============================================================ */
-function showLanding() {
-  hideAll(); document.getElementById('page-landing').style.display = 'block';
-}
-function showLogin(role) {
-  hideAll(); document.getElementById('page-login').style.display = 'block';
-  switchLoginTab(role || 'super');
-}
-function showRegister() {
-  hideAll(); document.getElementById('page-register').style.display = 'block';
-}
-function hideAll() {
-  document.getElementById('page-landing').style.display = 'none';
-  document.getElementById('page-login').style.display = 'none';
-  document.getElementById('page-register').style.display = 'none';
-  document.getElementById('app-shell').style.display = 'none';
-}
-
-function switchLoginTab(role) {
-  loginRole = role;
-  ['super','admin','tenant'].forEach(r => {
-    document.getElementById('ltab-'+r).classList.toggle('active', r===role);
-  });
-  const labels = { super:'Sign In as Super Admin', admin:'Sign In as Plaza Admin', tenant:'Sign In as Tenant' };
-  document.getElementById('login-submit-btn').textContent = labels[role];
-}
-
-function doLogin() {
-  switchRole(loginRole);
-  hideAll();
-  document.getElementById('app-shell').style.display = 'block';
-  showToast('Demo dashboard opened. No authentication was performed.', 'info');
-}
-
-function doRegister() {
-  showToast('Opening the admin demo. No account was created.', 'info');
-  setTimeout(() => { switchRole('admin'); hideAll(); document.getElementById('app-shell').style.display = 'block'; }, 1500);
-}
-
-function switchRole(role) {
-  currentRole = role;
-  // Role switcher buttons
-  ['super','admin','tenant'].forEach(r => {
-    document.getElementById('rbtn-'+r)?.classList.toggle('active', r===role);
-  });
-  // Sidebar user info
-  const demoTenant = TENANTS.find(tenant => tenant.id === DEMO_TENANT_ID);
-  const u = role === 'tenant' && demoTenant ? { ...ROLE_USER.tenant, name:demoTenant.name, initial:demoTenant.name[0] } : ROLE_USER[role];
-  document.getElementById('sidebar-avatar').style.background = u.bg;
-  document.getElementById('sidebar-avatar').style.color = u.color;
-  document.getElementById('sidebar-avatar').textContent = u.initial;
-  document.getElementById('sidebar-username').textContent = u.name;
-  document.getElementById('sidebar-userrole').textContent = u.role;
-  document.getElementById('topbar-avatar').style.background = u.bg;
-  document.getElementById('topbar-avatar').style.color = u.color;
-  document.getElementById('topbar-avatar').textContent = u.initial;
-  // Build sidebar
-  buildSidebar(role);
-  // Navigate to default page
-  navTo(ROLE_DEFAULTS[role]);
-}
-
-function buildSidebar(role) {
-  const nav = document.getElementById('sidebar-nav');
-  nav.innerHTML = '';
-  NAV_CONFIG[role].forEach(group => {
-    const grp = document.createElement('div');
-    grp.className = 'nav-group';
-    grp.innerHTML = `<div class="nav-group-label">${group.label}</div>`;
-    group.items.forEach(item => {
-      const el = document.createElement('div');
-      el.className = 'nav-item';
-      el.id = 'nav-'+item.page;
-      el.innerHTML = `<span class="nav-icon">${item.icon}</span>${item.text}${item.badge ? `<span class="nav-badge">${item.badge}</span>` : ''}`;
-      el.onclick = () => { if(item.page === 'logout') { showLanding(); } else { navTo(item.page); } };
-      grp.appendChild(el);
-    });
-    nav.appendChild(grp);
-  });
-}
-
-function navTo(page) {
-  if (page === 'notifications') {
-    page = currentRole === 'tenant' ? 'tenant-notifications' : currentRole === 'admin' ? 'admin-notifications' : 'super-settings';
-  }
-  if (page === 'settings') {
-    page = currentRole === 'tenant' ? 'tenant-lease' : currentRole === 'admin' ? 'admin-settings' : 'super-settings';
-  }
-  currentPage = page;
-  // Hide all app pages
-  document.querySelectorAll('.app-page').forEach(p => p.classList.remove('active'));
-  const target = document.getElementById('page-'+page);
-  if (target) target.classList.add('active');
-  // Update active nav
-  document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-  const navEl = document.getElementById('nav-'+page);
-  if (navEl) navEl.classList.add('active');
-  // Update topbar title
-  const titles = {
-    'super-dashboard':'Dashboard', 'super-plazas':'Plazas Management',
-    'super-subscriptions':'Subscriptions & Plans', 'super-revenue':'Platform Revenue',
-    'super-settings':'Settings',
-    'admin-dashboard':'Dashboard', 'admin-tenants':'Tenants',
-    'admin-units':'Units & Shops', 'admin-payments':'Payments',
-    'admin-reports':'Reports', 'admin-notifications':'Notifications',
-    'admin-settings':'Settings', 'admin-maintenance':'Maintenance Requests',
-    'tenant-dashboard':'My Dashboard', 'tenant-pay':'Pay Fees',
-    'tenant-receipts':'My Receipts', 'tenant-maintenance':'Maintenance Requests',
-    'tenant-lease':'My Lease', 'tenant-notifications':'Notifications',
-  };
-  document.getElementById('topbar-title').textContent = titles[page] || 'PlazaHub';
-  // Render dynamic content
-  renderPage(page);
-}
+// Wrappers preserve existing callers while shared UI lives in its own module.
+function showToast(...args) { return ui.showToast(...args); }
+function openModal(...args) { return ui.openModal(...args); }
+function closeModal(...args) { return ui.closeModal(...args); }
+function closeModalDirect(...args) { return ui.closeModalDirect(...args); }
 
 /* ============================================================
    PAGE RENDERERS
@@ -299,7 +24,7 @@ function renderPage(page) {
     case 'super-subscriptions':renderSubPayments(); renderPlanCards(); break;
     case 'super-revenue':      renderSuperRevenue(); break;
     case 'admin-dashboard':    renderAdminDashboard(); break;
-    case 'admin-tenants':      renderTenants(TENANTS); break;
+    case 'admin-tenants':      renderTenants(repository.listTenants()); break;
     case 'admin-units':        renderUnits(); break;
     case 'admin-payments':     renderPayments(); break;
     case 'admin-reports':      renderReports(); break;
@@ -320,7 +45,7 @@ function renderSuperDashboard() {
   // Recent plazas table
   const tbody = document.getElementById('super-recent-plazas');
   if (!tbody) return;
-  tbody.innerHTML = [...PLAZAS].sort((a, b) => b.joined.localeCompare(a.joined) || b.id - a.id).slice(0,5).map(p => `
+  tbody.innerHTML = [...repository.listPlazas()].sort((a, b) => b.joined.localeCompare(a.joined) || b.id - a.id).slice(0,5).map(p => `
     <tr>
       <td><div class="cell-user"><div class="avatar" style="background:rgba(59,130,246,0.15);color:var(--accent2);">${escapeHtml(p.name[0])}</div><div><div class="cell-name">${escapeHtml(p.name)}</div><div class="cell-sub">${escapeHtml(p.city)}</div></div></div></td>
       <td>${escapeHtml(p.owner)}</td>
@@ -340,7 +65,7 @@ function renderPlazasList() {
   const query = document.getElementById('plaza-search')?.value.trim().toLowerCase() || '';
   const status = document.getElementById('plaza-status-filter')?.value || 'all';
   const plan = document.getElementById('plaza-plan-filter')?.value || 'all';
-  const filtered = PLAZAS.filter(p => [p.name, p.owner, p.city].some(value => value.toLowerCase().includes(query)) && (status === 'all' || p.status === status) && (plan === 'all' || p.plan === plan));
+  const filtered = repository.listPlazas().filter(p => [p.name, p.owner, p.city].some(value => value.toLowerCase().includes(query)) && (status === 'all' || p.status === status) && (plan === 'all' || p.plan === plan));
   container.innerHTML = filtered.map(p => `
     <div class="plaza-row-card">
       <div class="avatar-lg" style="background:rgba(59,130,246,0.15);color:var(--accent2);">${escapeHtml(p.name[0])}</div>
@@ -370,9 +95,9 @@ function filterPlazas(q) {
 
 function renderPlazaSummary() {
   const values = {
-    'super-plaza-count':PLAZAS.length,
-    'super-tenant-count':PLAZAS.reduce((sum, plaza) => sum + plaza.tenants, 0),
-    'plaza-summary':`${PLAZAS.length} plazas · ${PLAZAS.filter(p => p.status === 'active').length} active · ${PLAZAS.filter(p => p.status === 'trial').length} trial · ${PLAZAS.filter(p => p.status === 'suspended').length} suspended`,
+    'super-plaza-count':repository.listPlazas().length,
+    'super-tenant-count':repository.listPlazas().reduce((sum, plaza) => sum + plaza.tenants, 0),
+    'plaza-summary':`${repository.listPlazas().length} plazas · ${repository.listPlazas().filter(p => p.status === 'active').length} active · ${repository.listPlazas().filter(p => p.status === 'trial').length} trial · ${repository.listPlazas().filter(p => p.status === 'suspended').length} suspended`,
   };
   Object.entries(values).forEach(([id, value]) => {
     const element = document.getElementById(id);
@@ -380,18 +105,18 @@ function renderPlazaSummary() {
   });
   const distribution = document.getElementById('super-plan-distribution');
   if (distribution) {
-    const active = PLAZAS.filter(plaza => plaza.status === 'active');
+    const active = repository.listPlazas().filter(plaza => plaza.status === 'active');
     distribution.innerHTML = ['Basic', 'Standard', 'Premium'].map(plan => {
       const count = active.filter(plaza => plaza.plan === plan).length;
       const percent = active.length ? Math.round(count / active.length * 100) : 0;
       return `<div><div class="flex items-center justify-between mb-8"><span class="text-sm">${plan} (${count} plazas)</span><span class="text-sm font-bold">${percent}%</span></div><div class="progress"><div class="progress-fill" style="width:${percent}%;background:var(--accent);"></div></div></div>`;
-    }).join('') + `<p class="maint-meta">${PLAZAS.filter(p => p.status === 'trial').length} trial · ${PLAZAS.filter(p => p.status === 'suspended').length} suspended · ${PLAZAS.filter(p => p.status === 'expired').length} expired</p>`;
+    }).join('') + `<p class="maint-meta">${repository.listPlazas().filter(p => p.status === 'trial').length} trial · ${repository.listPlazas().filter(p => p.status === 'suspended').length} suspended · ${repository.listPlazas().filter(p => p.status === 'expired').length} expired</p>`;
   }
 }
 
 function openPlazaDetail(id) {
-  if (currentRole !== 'super') return;
-  const plaza = PLAZAS.find(item => item.id === id);
+  if (session.role !== 'super') return;
+  const plaza = repository.listPlazas().find(item => item.id === id);
   if (!plaza) return;
   const rows = { Plaza:plaza.name, Owner:plaza.owner, Email:plaza.email || 'Not recorded in sample data', City:plaza.city, Units:plaza.units, Tenants:plaza.tenants, Plan:plaza.plan, Joined:formatDate(plaza.joined) };
   openModal('Plaza Details', `<div class="lease-card">${Object.entries(rows).map(([label, value]) => `<div class="lease-row"><div class="lease-key">${label}</div><div class="lease-val">${escapeHtml(value)}</div></div>`).join('')}<div class="lease-row"><div class="lease-key">Status</div><div class="lease-val">${statusBadge(plaza.status)}</div></div></div>`,
@@ -399,8 +124,8 @@ function openPlazaDetail(id) {
 }
 
 function confirmPlazaStatusChange(id) {
-  if (currentRole !== 'super') return;
-  const plaza = PLAZAS.find(item => item.id === id);
+  if (session.role !== 'super') return;
+  const plaza = repository.listPlazas().find(item => item.id === id);
   if (!plaza) return;
   const suspend = plaza.status !== 'suspended';
   openModal(suspend ? 'Suspend Plaza' : 'Restore Plaza', `<p>${suspend ? 'Suspend' : 'Restore'} <strong>${escapeHtml(plaza.name)}</strong> for this demo session?</p><p class="maint-meta">This updates the sample account status. It does not change access to a live account.</p>`,
@@ -408,16 +133,10 @@ function confirmPlazaStatusChange(id) {
 }
 
 function savePlazaStatus(id, suspend) {
-  if (currentRole !== 'super' || typeof suspend !== 'boolean') return;
-  const plaza = PLAZAS.find(item => item.id === id);
+  if (session.role !== 'super' || typeof suspend !== 'boolean') return;
+  const plaza = repository.listPlazas().find(item => item.id === id);
   if (!plaza || suspend === (plaza.status === 'suspended')) return;
-  if (suspend) {
-    plaza.resumeStatus = plaza.status;
-    plaza.status = 'suspended';
-  } else {
-    plaza.status = ['active', 'trial', 'expired'].includes(plaza.resumeStatus) ? plaza.resumeStatus : 'active';
-    delete plaza.resumeStatus;
-  }
+  repository.setPlazaSuspended(id, suspend);
   closeModalDirect();
   renderPlazasList();
   renderSuperDashboard();
@@ -427,7 +146,7 @@ function savePlazaStatus(id, suspend) {
 function renderSubPayments() {
   const tbody = document.getElementById('sub-payments-body');
   if (!tbody) return;
-  tbody.innerHTML = SUB_PAYMENTS.map(s => `
+  tbody.innerHTML = repository.listSubscriptionPayments().map(s => `
     <tr>
       <td>${s.plaza}</td>
       <td><span class="badge ${s.plan==='Premium'?'badge-gold':s.plan==='Standard'?'badge-blue':'badge-gray'}">${s.plan}</span></td>
@@ -439,47 +158,28 @@ function renderSubPayments() {
 }
 
 function renderSuperRevenue() {
-  buildBarChart('super-monthly-chart', getMonthlyCollections(SUB_PAYMENTS), ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], 'var(--purple)', 200);
-}
-
-function getMonthlyCollections(records) {
-  const monthly = Array(12).fill(0);
-  records.filter(record => record.status === 'paid').forEach(record => {
-    const month = new Date(record.date).getMonth();
-    if (month >= 0 && month < 12) monthly[month] += record.amount;
-  });
-  return monthly;
-}
-
-function getQuarterlyCollections(records) {
-  const quarterly = Array(4).fill(0);
-  records.filter(record => record.status === 'paid').forEach(record => {
-    const month = new Date(record.date).getMonth();
-    if (month >= 0 && month < 12) quarterly[Math.floor(month / 3)] += record.amount;
-  });
-  return quarterly;
+  buildBarChart('super-monthly-chart', getMonthlyCollections(repository.listSubscriptionPayments()), ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], 'var(--purple)', 200);
 }
 
 function getTenantApprovedAmount(tenantId) {
-  return PAYMENTS.filter(payment => payment.tenantId === tenantId && payment.status === 'paid')
-    .reduce((total, payment) => total + payment.amount, 0);
+  return repository.getTenantApprovedAmount(tenantId);
 }
 
 function calculateOperationalSummary() {
-  const tenantMap = Object.fromEntries(TENANTS.map(tenant => [tenant.shop, tenant]));
-  const occupied = UNITS.filter(unit => tenantMap[unit.number]).length;
-  const expiring = TENANTS.filter(tenant => {
+  const tenantMap = Object.fromEntries(repository.listTenants().map(tenant => [tenant.shop, tenant]));
+  const occupied = repository.listUnits().filter(unit => tenantMap[unit.number]).length;
+  const expiring = repository.listTenants().filter(tenant => {
     const days = daysUntil(tenant.expires);
     return days >= 0 && days <= 30;
   }).length;
-  const overdue = TENANTS.filter(tenant => tenant.status === 'overdue' || daysUntil(tenant.expires) < 0).length;
-  const approvedPayments = PAYMENTS.filter(payment => payment.status === 'paid');
-  const pendingPayments = PAYMENTS.filter(payment => payment.status === 'pending');
+  const overdue = repository.listTenants().filter(tenant => tenant.status === 'overdue' || daysUntil(tenant.expires) < 0).length;
+  const approvedPayments = repository.listPayments().filter(payment => payment.status === 'paid');
+  const pendingPayments = repository.listPayments().filter(payment => payment.status === 'pending');
   const collected = approvedPayments.reduce((total, payment) => total + payment.amount, 0);
   const pending = pendingPayments.reduce((total, payment) => total + payment.amount, 0);
-  const outstanding = TENANTS.filter(tenant => !tenant.paid).reduce((total, tenant) => total + tenant.rent, 0);
+  const outstanding = repository.listTenants().filter(tenant => !tenant.paid).reduce((total, tenant) => total + tenant.rent, 0);
   const collectionRate = collected + outstanding > 0 ? Math.round(collected / (collected + outstanding) * 100) : 0;
-  return { occupied, vacant:Math.max(UNITS.length - occupied, 0), expiring, overdue, collected, pending, outstanding, collectionRate, approvedCount:approvedPayments.length, pendingCount:pendingPayments.length };
+  return { occupied, vacant:Math.max(repository.listUnits().length - occupied, 0), expiring, overdue, collected, pending, outstanding, collectionRate, approvedCount:approvedPayments.length, pendingCount:pendingPayments.length };
 }
 
 function renderOperationalSummaries() {
@@ -503,14 +203,14 @@ function renderOperationalSummaries() {
     const element = document.getElementById(id);
     if (element) element.textContent = value;
   });
-  const occupiedPercent = UNITS.length ? Math.round(summary.occupied / UNITS.length * 100) : 0;
-  const approvedIds = new Set(PAYMENTS.filter(payment => payment.status === 'paid').map(payment => payment.tenantId));
-  const approvedTenants = TENANTS.filter(tenant => approvedIds.has(tenant.id)).length;
-  const overduePercent = TENANTS.length ? Math.round(summary.overdue / TENANTS.length * 100) : 0;
+  const occupiedPercent = repository.listUnits().length ? Math.round(summary.occupied / repository.listUnits().length * 100) : 0;
+  const approvedIds = new Set(repository.listPayments().filter(payment => payment.status === 'paid').map(payment => payment.tenantId));
+  const approvedTenants = repository.listTenants().filter(tenant => approvedIds.has(tenant.id)).length;
+  const overduePercent = repository.listTenants().length ? Math.round(summary.overdue / repository.listTenants().length * 100) : 0;
   const reportStats = {
-    'report-occupied-stat': `${summary.occupied}/${UNITS.length} — ${occupiedPercent}%`,
-    'report-collected-stat': `${approvedTenants}/${TENANTS.length} tenants — ${summary.collectionRate}%`,
-    'report-overdue-stat': `${summary.overdue}/${TENANTS.length} — ${overduePercent}%`,
+    'report-occupied-stat': `${summary.occupied}/${repository.listUnits().length} — ${occupiedPercent}%`,
+    'report-collected-stat': `${approvedTenants}/${repository.listTenants().length} tenants — ${summary.collectionRate}%`,
+    'report-overdue-stat': `${summary.overdue}/${repository.listTenants().length} — ${overduePercent}%`,
   };
   Object.entries(reportStats).forEach(([id, value]) => {
     const element = document.getElementById(id);
@@ -529,7 +229,7 @@ function renderAdminDashboard() {
   // Expiring leases
   const expTbody = document.getElementById('admin-expiring-body');
   if (expTbody) {
-    const expiring = TENANTS.filter(t => t.status === 'expiring' || t.status === 'overdue');
+    const expiring = repository.listTenants().filter(t => t.status === 'expiring' || t.status === 'overdue');
     expTbody.innerHTML = expiring.slice(0,5).map(t => {
       const days = daysUntil(t.expires);
       return `<tr>
@@ -543,7 +243,7 @@ function renderAdminDashboard() {
   // Recent payments
   const payTbody = document.getElementById('admin-recent-payments');
   if (payTbody) {
-    payTbody.innerHTML = PAYMENTS.slice(0,5).map(p => `
+    payTbody.innerHTML = repository.listPayments().slice(0,5).map(p => `
       <tr>
         <td><div class="cell-user"><div class="avatar" style="${avatarStyle(p.tenant)}">${p.tenant[0]}</div><span>${p.tenant}</span></div></td>
         <td>${p.unit}</td>
@@ -553,7 +253,7 @@ function renderAdminDashboard() {
         <td>${payStatusBadge(p.status)}</td>
       </tr>`).join('');
   }
-  buildBarChart('admin-revenue-chart', getMonthlyCollections(PAYMENTS), ['J','F','M','A','M','J','J','A','S','O','N','D'], 'var(--accent)');
+  buildBarChart('admin-revenue-chart', getMonthlyCollections(repository.listPayments()), ['J','F','M','A','M','J','J','A','S','O','N','D'], 'var(--accent)');
 }
 
 function renderTenants(list) {
@@ -581,7 +281,7 @@ function renderTenants(list) {
 
 function filterTenants(q) {
   const filter = (document.getElementById('tenant-status-filter')?.value || '').toLowerCase();
-  const filtered = TENANTS.filter(t => {
+  const filtered = repository.listTenants().filter(t => {
     const matchQ = !q || t.name.toLowerCase().includes(q.toLowerCase()) || t.shop.toLowerCase().includes(q.toLowerCase()) || t.business.toLowerCase().includes(q.toLowerCase());
     const matchF = !filter || t.status === filter;
     return matchQ && matchF;
@@ -591,12 +291,12 @@ function filterTenants(q) {
 
 function renderUnits() {
   renderOperationalSummaries();
-  const tenantMap = Object.fromEntries(TENANTS.map(tenant => [tenant.shop, tenant]));
-  const blocks = [...new Set(UNITS.map(unit => unit.block))];
+  const tenantMap = Object.fromEntries(repository.listTenants().map(tenant => [tenant.shop, tenant]));
+  const blocks = [...new Set(repository.listUnits().map(unit => unit.block))];
   const map = document.getElementById('unit-map-blocks');
   if (map) {
     map.innerHTML = blocks.map((block, index) => `<div style="margin-bottom:12px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1px;">Block ${block}</div><div class="unit-grid ${index < blocks.length - 1 ? 'mb-20' : ''}" id="unit-grid-${block}"></div>`).join('');
-    UNITS.forEach(unit => {
+    repository.listUnits().forEach(unit => {
       const tenant = tenantMap[unit.number];
       const status = tenant?.status || 'vacant';
       const className = { active:'unit-occupied', expiring:'unit-expiring', overdue:'unit-overdue', vacant:'unit-vacant' }[status] || 'unit-vacant';
@@ -610,7 +310,7 @@ function renderUnits() {
   }
   const tbody = document.getElementById('units-tbody');
   if (!tbody) return;
-  tbody.innerHTML = UNITS.map(unit => {
+  tbody.innerHTML = repository.listUnits().map(unit => {
     const tenant = tenantMap[unit.number];
     return `<tr>
       <td><span class="badge badge-gray">${unit.number}</span></td>
@@ -625,7 +325,7 @@ function renderUnits() {
 }
 
 function showUnitDetail(no, status) {
-  const tenantMap = {}; TENANTS.forEach(t => { tenantMap[t.shop] = t; });
+  const tenantMap = {}; repository.listTenants().forEach(t => { tenantMap[t.shop] = t; });
   const t = tenantMap[no];
   openModal(`Unit ${no} Details`, t ? `
     <div class="lease-card">
@@ -644,7 +344,7 @@ function renderPayments() {
   renderOperationalSummaries();
   const tbody = document.getElementById('payments-tbody');
   if (!tbody) return;
-  tbody.innerHTML = PAYMENTS.map(p => `
+  tbody.innerHTML = repository.listPayments().map(p => `
     <tr>
       <td><span style="font-size:11px;font-family:monospace;color:var(--text2);">${p.ref}</span></td>
       <td><div class="cell-user"><div class="avatar" style="${avatarStyle(p.tenant)}">${p.tenant[0]}</div><span>${p.tenant}</span></div></td>
@@ -661,7 +361,7 @@ function renderPayments() {
 function renderReports() {
   renderOperationalSummaries();
   buildBarChart('reports-quarterly-chart',
-    getQuarterlyCollections(PAYMENTS), ['Q1','Q2','Q3','Q4'],
+    getQuarterlyCollections(repository.listPayments()), ['Q1','Q2','Q3','Q4'],
     ['var(--accent)','var(--accent)','var(--gold)','rgba(59,130,246,0.3)'], 180);
   // Top units
   const tbody = document.getElementById('reports-top-units');
@@ -681,33 +381,24 @@ function renderReports() {
 }
 
 function getUnitReportRows() {
-  return [...TENANTS].sort((a, b) => b.rent - a.rent).slice(0, 8).map(tenant => {
+  return [...repository.listTenants()].sort((a, b) => b.rent - a.rent).slice(0, 8).map(tenant => {
     const collected = getTenantApprovedAmount(tenant.id);
     const balance = Math.max(tenant.rent - collected, 0);
     return { tenant, collected, balance, status:balance === 0 ? 'Paid' : tenant.status === 'overdue' ? 'Overdue' : 'Partial' };
   });
 }
 
-function buildCsv(rows) {
-  return '\uFEFF' + rows.map(row => row.map(value => {
-    // Keep numbers numeric, but prevent user text from becoming spreadsheet formulas.
-    let cell = String(value ?? '');
-    if (typeof value === 'string' && (/^[\s\uFEFF]*[=+@-]/.test(cell) || /^[\t\r\n]/.test(cell))) cell = "'" + cell;
-    return '"' + cell.replace(/"/g, '""') + '"';
-  }).join(',')).join('\r\n');
-}
-
 function getExportData(kind) {
-  if (currentRole === 'admin' && kind === 'tenants') {
-    return { name:'all-tenants', rows:[['Tenant ID', 'Tenant', 'Email', 'Phone', 'Unit', 'Business', 'Annual rent (NGN)', 'Lease start', 'Lease end', 'Lease status'], ...TENANTS.map(t => [t.id, t.name, t.email || '', t.phone || '', t.shop, t.business, t.rent, t.start, t.expires, t.status])] };
+  if (session.role === 'admin' && kind === 'tenants') {
+    return { name:'all-tenants', rows:[['Tenant ID', 'Tenant', 'Email', 'Phone', 'Unit', 'Business', 'Annual rent (NGN)', 'Lease start', 'Lease end', 'Lease status'], ...repository.listTenants().map(t => [t.id, t.name, t.email || '', t.phone || '', t.shop, t.business, t.rent, t.start, t.expires, t.status])] };
   }
-  if (currentRole === 'admin' && kind === 'payments') {
-    return { name:'all-payment-records', rows:[['Reference', 'Tenant', 'Unit', 'Amount (NGN)', 'Period', 'Method', 'Date', 'Status'], ...PAYMENTS.map(p => [p.ref, p.tenant, p.unit, p.amount, p.period, p.method, p.date, p.status])] };
+  if (session.role === 'admin' && kind === 'payments') {
+    return { name:'all-payment-records', rows:[['Reference', 'Tenant', 'Unit', 'Amount (NGN)', 'Period', 'Method', 'Date', 'Status'], ...repository.listPayments().map(p => [p.ref, p.tenant, p.unit, p.amount, p.period, p.method, p.date, p.status])] };
   }
-  if (currentRole === 'super' && kind === 'subscriptions') {
-    return { name:'subscription-payments', rows:[['Plaza', 'Plan', 'Amount (NGN)', 'Period', 'Date', 'Status'], ...SUB_PAYMENTS.map(p => [p.plaza, p.plan, p.amount, p.period, p.date, p.status])] };
+  if (session.role === 'super' && kind === 'subscriptions') {
+    return { name:'subscription-payments', rows:[['Plaza', 'Plan', 'Amount (NGN)', 'Period', 'Date', 'Status'], ...repository.listSubscriptionPayments().map(p => [p.plaza, p.plan, p.amount, p.period, p.date, p.status])] };
   }
-  if (currentRole === 'admin' && kind === 'report') {
+  if (session.role === 'admin' && kind === 'report') {
     return { name:'shown-unit-report', rows:[['Rank', 'Unit', 'Tenant', 'Annual rent (NGN)', 'Approved collections, all periods (NGN)', 'Sample balance (NGN)', 'Status'], ...getUnitReportRows().map((row, index) => [index + 1, row.tenant.shop, row.tenant.name, row.tenant.rent, row.collected, row.balance, row.status])] };
   }
   return null;
@@ -731,7 +422,7 @@ function exportCsv(kind) {
 function renderAdminNotifs() {
   const list = document.getElementById('admin-notif-list');
   if (!list) return;
-  list.innerHTML = ADMIN_NOTIFICATIONS.map(n => `
+  list.innerHTML = repository.listAdminNotifications().map(n => `
     <div class="notif-item ${n.unread?'notif-unread':''}">
       <div class="notif-dot" style="background:${n.type==='red'?'var(--red)':n.type==='orange'?'var(--orange)':n.type==='green'?'var(--green)':'var(--accent)'};"></div>
       <div class="notif-body"><div class="notif-text">${n.text}</div><div class="notif-time">${n.time}</div></div>
@@ -740,7 +431,7 @@ function renderAdminNotifs() {
 
 /* ---- Tenant ---- */
 function renderTenantIdentity() {
-  const tenant = TENANTS.find(item => item.id === DEMO_TENANT_ID);
+  const tenant = repository.listTenants().find(item => item.id === DEMO_TENANT_ID);
   const name = tenant?.name || 'Tenant no longer assigned';
   const values = { 'tenant-welcome-name':`${name} 👋`, 'tenant-lease-name':name };
   Object.entries(values).forEach(([id, value]) => {
@@ -753,7 +444,7 @@ function renderTenantDashboard() {
   renderTenantIdentity();
   const list = document.getElementById('tenant-recent-payments');
   if (!list) return;
-  list.innerHTML = PAYMENTS.filter(p => p.tenantId === DEMO_TENANT_ID).slice(0,3).map(p => `
+  list.innerHTML = repository.listPayments().filter(p => p.tenantId === DEMO_TENANT_ID).slice(0,3).map(p => `
     <div class="receipt-item">
       <div class="receipt-icon">✅</div>
       <div class="receipt-info"><div class="receipt-name">${p.period} Annual Rent</div><div class="receipt-date">${formatDate(p.date)} · ${p.method} · ${payStatusBadge(p.status)}</div></div>
@@ -764,7 +455,7 @@ function renderTenantDashboard() {
 function renderReceipts() {
   const list = document.getElementById('tenant-receipts-list');
   if (!list) return;
-  list.innerHTML = PAYMENTS.filter(p => p.tenantId === DEMO_TENANT_ID && p.status === 'paid').map(p => `
+  list.innerHTML = repository.listPayments().filter(p => p.tenantId === DEMO_TENANT_ID && p.status === 'paid').map(p => `
     <div class="receipt-item">
       <div class="receipt-icon">🧾</div>
       <div class="receipt-info"><div class="receipt-name">${p.period} Annual Rent — Unit ${p.unit}</div><div class="receipt-date">${formatDate(p.date)} · via ${p.method} · Ref: ${p.ref}</div></div>
@@ -775,7 +466,7 @@ function renderReceipts() {
 function renderMaintenance() {
   const list = document.getElementById('maintenance-list');
   if (!list) return;
-  const requests = MAINTENANCE_REQUESTS.filter(request => request.tenantId === DEMO_TENANT_ID);
+  const requests = repository.listMaintenanceRequests().filter(request => request.tenantId === DEMO_TENANT_ID);
   list.innerHTML = requests.map(request => renderMaintenanceCard(request)).join('') || '<p class="maint-desc">No maintenance requests yet.</p>';
 }
 
@@ -799,15 +490,15 @@ function renderAdminMaintenance() {
   const list = document.getElementById('admin-maintenance-list');
   if (!list) return;
   const status = document.getElementById('maintenance-filter')?.value || 'all';
-  const requests = MAINTENANCE_REQUESTS.filter(request => status === 'all' || request.status === status || (status === 'resolved' && request.status === 'completed'));
+  const requests = repository.listMaintenanceRequests().filter(request => status === 'all' || request.status === status || (status === 'resolved' && request.status === 'completed'));
   list.innerHTML = requests.map(request => renderMaintenanceCard(request, true)).join('') || '<p class="maint-desc">No requests match this status.</p>';
-  const open = MAINTENANCE_REQUESTS.filter(request => ['pending', 'in-progress'].includes(request.status)).length;
-  document.getElementById('maintenance-summary').textContent = `${open} open · ${MAINTENANCE_REQUESTS.length} total requests`;
+  const open = repository.listMaintenanceRequests().filter(request => ['pending', 'in-progress'].includes(request.status)).length;
+  document.getElementById('maintenance-summary').textContent = `${open} open · ${repository.listMaintenanceRequests().length} total requests`;
 }
 
 function openMaintenanceReview(id) {
-  if (currentRole !== 'admin') return;
-  const request = MAINTENANCE_REQUESTS.find(item => item.id === id);
+  if (session.role !== 'admin') return;
+  const request = repository.listMaintenanceRequests().find(item => item.id === id);
   if (!request) return;
   const status = request.status === 'completed' ? 'resolved' : request.status;
   openModal('Review Maintenance Request', `${renderMaintenanceCard(request)}
@@ -819,8 +510,8 @@ function openMaintenanceReview(id) {
 }
 
 function saveMaintenanceReview(id) {
-  if (currentRole !== 'admin') return;
-  const request = MAINTENANCE_REQUESTS.find(item => item.id === id);
+  if (session.role !== 'admin') return;
+  const request = repository.listMaintenanceRequests().find(item => item.id === id);
   const status = document.getElementById('maintenance-status')?.value;
   const note = document.getElementById('maintenance-note')?.value.trim() || '';
   if (!request || !['pending', 'in-progress', 'resolved'].includes(status) || note.length > 1000) {
@@ -831,7 +522,7 @@ function saveMaintenanceReview(id) {
     showToast('Add resolution details before marking the request resolved.', 'error');
     return;
   }
-  Object.assign(request, { status, managerNote:note });
+  repository.updateMaintenanceRequest(id, { status, managerNote:note });
   closeModalDirect();
   renderAdminMaintenance();
   renderMaintenance();
@@ -841,7 +532,7 @@ function saveMaintenanceReview(id) {
 function renderTenantNotifs() {
   const list = document.getElementById('tenant-notif-list');
   if (!list) return;
-  list.innerHTML = TENANT_NOTIFICATIONS.map(n => `
+  list.innerHTML = repository.listTenantNotifications().map(n => `
     <div class="notif-item ${n.unread?'notif-unread':''}">
       <div class="notif-dot" style="background:${n.type==='gold'?'var(--gold)':n.type==='green'?'var(--green)':'var(--accent)'};"></div>
       <div class="notif-body"><div class="notif-text">${n.text}</div><div class="notif-time">${n.time}</div></div>
@@ -987,7 +678,7 @@ function processPayment() {
 }
 
 function submitTransferEvidence() {
-  const tenant = TENANTS.find(item => item.id === DEMO_TENANT_ID);
+  const tenant = repository.listTenants().find(item => item.id === DEMO_TENANT_ID);
   if (!tenant) {
     showToast('This demo tenant no longer has a tenancy. Restore the sample data by refreshing.', 'error');
     return;
@@ -998,9 +689,9 @@ function submitTransferEvidence() {
     showToast('Add both a transfer reference and a receipt file name.','error');
     return;
   }
-  const ref = `EVD-2026-${String(PAYMENTS.filter(p => p.ref.startsWith('EVD-2026-')).length + 1).padStart(3, '0')}`;
+  const ref = `EVD-2026-${String(repository.listPayments().filter(p => p.ref.startsWith('EVD-2026-')).length + 1).padStart(3, '0')}`;
   const payment = { ref, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, amount:510000, period:'2026', method:'Bank Transfer', date:new Date().toISOString().slice(0,10), status:'pending', transferReference:reference, evidenceFile:evidence.name };
-  PAYMENTS.unshift(payment);
+  repository.addPayment(payment);
   renderEvidenceSubmitted(payment);
   showToast('Evidence submitted for manager review. It is not approved yet.','success');
 }
@@ -1012,7 +703,7 @@ function renderEvidenceSubmitted(payment) {
 }
 
 function submitMaintenanceRequest() {
-  if (currentRole !== 'tenant') return;
+  if (session.role !== 'tenant') return;
   const category = document.getElementById('maintenance-category').value;
   const priority = document.getElementById('maintenance-priority').value;
   const subject = document.getElementById('maintenance-subject').value.trim();
@@ -1021,14 +712,14 @@ function submitMaintenanceRequest() {
     showToast('Choose a category and priority, and enter a subject (up to 120 characters) and description (up to 2,000).', 'error');
     return;
   }
-  const tenant = TENANTS.find(item => item.id === DEMO_TENANT_ID);
+  const tenant = repository.listTenants().find(item => item.id === DEMO_TENANT_ID);
   if (!tenant) {
     showToast('This demo tenant no longer has a tenancy. Restore the sample data by refreshing.', 'error');
     return;
   }
-  const nextId = Math.max(0, ...MAINTENANCE_REQUESTS.map(request => Number(request.id.replace('MR-', '')))) + 1;
+  const nextId = Math.max(0, ...repository.listMaintenanceRequests().map(request => Number(request.id.replace('MR-', '')))) + 1;
   const id = `MR-${String(nextId).padStart(3, '0')}`;
-  MAINTENANCE_REQUESTS.unshift({ id, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, category, priority, subject, description, date:formatDate(new Date()), status:'pending', managerNote:'' });
+  repository.addMaintenanceRequest({ id, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, category, priority, subject, description, date:formatDate(new Date()), status:'pending', managerNote:'' });
   document.getElementById('maintenance-form').reset();
   renderMaintenance();
   showToast(`Request ${id} submitted for this demo session.`, 'success');
@@ -1051,18 +742,6 @@ function buildBarChart(containerId, values, labels, colors, height) {
     </div>`;
   }).join('');
 }
-
-/* ============================================================
-   MODALS
-   ============================================================ */
-function openModal(title, body, footer) {
-  document.getElementById('modal-title').textContent = title;
-  document.getElementById('modal-body').innerHTML = body;
-  document.getElementById('modal-footer').innerHTML = footer || `<button class="btn btn-ghost" onclick="closeModalDirect()">Close</button>`;
-  document.getElementById('modal-overlay').classList.add('open');
-}
-function closeModal(e) { if (e.target === document.getElementById('modal-overlay')) closeModalDirect(); }
-function closeModalDirect() { document.getElementById('modal-overlay').classList.remove('open'); }
 
 /* TENANT MODALS */
 function openAddTenant(preferredUnit = '') {
@@ -1100,19 +779,20 @@ function openAddTenant(preferredUnit = '') {
 function saveTenant() {
   const details = readTenantForm('nt');
   if (!details) return;
-  if (TENANTS.some(tenant => tenant.shop === details.shop)) {
+  if (repository.listTenants().some(tenant => tenant.shop === details.shop)) {
     showToast('That unit is already occupied. Choose a vacant unit.','error');
     return;
   }
-  TENANTS.push({ id:nextTenantId++, ...details, paid:false });
+  try { repository.addTenant(details); }
+  catch (error) { showToast(error.message, 'error'); return; }
   closeModalDirect();
-  renderTenants(TENANTS);
+  renderTenants(repository.listTenants());
   renderUnits();
   showToast(`Tenant "${details.name}" added for this demo session.`,'success');
 }
 
 function openEditTenant(id) {
-  const t = TENANTS.find(x => x.id === id);
+  const t = repository.listTenants().find(x => x.id === id);
   if (!t) return;
   openModal(`Edit Tenant — ${t.name}`, `
     <div class="form-grid-2 mb-14">
@@ -1135,43 +815,44 @@ function openEditTenant(id) {
 }
 
 function deleteTenant(id) {
-  const t = TENANTS.find(x => x.id === id);
+  const t = repository.listTenants().find(x => x.id === id);
   openModal('Confirm Delete', `<p style="font-size:14px;line-height:1.7;">Are you sure you want to remove <strong>${t?.name}</strong> from the system? This action cannot be undone.</p>`,
   `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-red" onclick="removeTenant(${id})">Delete Tenant</button>`);
 }
 
 function saveTenantChanges(id) {
-  const tenant = TENANTS.find(item => item.id === id);
+  const tenant = repository.listTenants().find(item => item.id === id);
   const details = readTenantForm('et');
   if (!tenant || !details) return;
   if (details.shop !== tenant.shop) {
     showToast('Shop reassignment is not supported by this edit form. Keep the existing unit.', 'error');
     return;
   }
-  if (TENANTS.some(item => item.id !== id && item.shop === details.shop)) {
+  if (repository.listTenants().some(item => item.id !== id && item.shop === details.shop)) {
     showToast('That unit is already occupied by another tenant.', 'error');
     return;
   }
-  Object.assign(tenant, details);
+  try { repository.updateTenant(id, details); }
+  catch (error) { showToast(error.message, 'error'); return; }
   closeModalDirect();
-  renderTenants(TENANTS);
+  renderTenants(repository.listTenants());
   renderUnits();
   renderTenantIdentity();
   showToast(`Tenant "${details.name}" updated for this demo session.`,'success');
 }
 
 function removeTenant(id) {
-  const index = TENANTS.findIndex(tenant => tenant.id === id);
+  const index = repository.listTenants().findIndex(tenant => tenant.id === id);
   if (index < 0) return;
-  const [removed] = TENANTS.splice(index, 1);
+  const removed = repository.removeTenant(id);
   closeModalDirect();
-  renderTenants(TENANTS);
+  renderTenants(repository.listTenants());
   renderUnits();
   showToast(`Tenant "${removed.name}" removed. This change resets on refresh.`,'info');
 }
 
 function getAvailableUnits() {
-  return UNITS.filter(unit => !TENANTS.some(tenant => tenant.shop === unit.number)).map(unit => unit.number);
+  return repository.listUnits().filter(unit => !repository.listTenants().some(tenant => tenant.shop === unit.number)).map(unit => unit.number);
 }
 
 function readTenantForm(prefix) {
@@ -1188,7 +869,7 @@ function readTenantForm(prefix) {
     showToast('Enter a name, business type, unit, positive rent, and both lease dates.','error');
     return null;
   }
-  if (!UNITS.some(unit => unit.number === shop)) {
+  if (!repository.listUnits().some(unit => unit.number === shop)) {
     showToast('Choose an existing shop unit.', 'error');
     return null;
   }
@@ -1213,12 +894,6 @@ function readTenantForm(prefix) {
   return { name, email, phone, shop, block:shop[0], business, rent, start, expires, status:days < 0 ? 'overdue' : days <= 60 ? 'expiring' : 'active' };
 }
 
-function isValidDateOnly(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const date = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
-}
-
 function openAddUnit() {
   openModal('Add New Unit', `
     <div class="form-grid-2 mb-14">
@@ -1241,11 +916,11 @@ function saveUnit() {
     showToast('Use a unit number like C-01, matching one-letter block, positive size, and positive rent.','error');
     return;
   }
-  if (UNITS.some(unit => unit.number === number)) {
+  if (repository.listUnits().some(unit => unit.number === number)) {
     showToast('That unit number already exists.','error');
     return;
   }
-  UNITS.push({ number, block, size, suggestedRent });
+  repository.addUnit({ number, block, size, suggestedRent });
   closeModalDirect();
   renderUnits();
   showToast(`Unit ${number} added for this demo session.`,'success');
@@ -1255,7 +930,7 @@ function openRecordPayment() {
   openModal('Record Manual Payment', `
     <div class="form-grid-2 mb-14">
       <div class="form-group"><label class="form-label">Tenant</label>
-        <select class="form-input" id="manual-payment-tenant">${TENANTS.map(t=>`<option value="${t.id}">${escapeHtml(t.name)} (${t.shop})</option>`).join('')}</select>
+        <select class="form-input" id="manual-payment-tenant">${repository.listTenants().map(t=>`<option value="${t.id}">${escapeHtml(t.name)} (${t.shop})</option>`).join('')}</select>
       </div>
       <div class="form-group"><label class="form-label">Amount (₦)</label><input class="form-input" id="manual-payment-amount" type="number" min="1" placeholder="480000"></div>
     </div>
@@ -1277,7 +952,7 @@ function saveManualPayment() {
   const method = document.getElementById('manual-payment-method')?.value;
   const date = document.getElementById('manual-payment-date')?.value;
   const period = document.getElementById('manual-payment-period')?.value;
-  const tenant = TENANTS.find(item => item.id === tenantId);
+  const tenant = repository.listTenants().find(item => item.id === tenantId);
   if (!tenant || !method || !period || !date || !Number.isFinite(amount) || amount <= 0) {
     showToast('Select a tenant and enter a positive amount, method, date, and period.','error');
     return;
@@ -1287,8 +962,8 @@ function saveManualPayment() {
     return;
   }
   const year = date.slice(0, 4);
-  const ref = `MAN-${year}-${String(PAYMENTS.filter(payment => payment.ref.startsWith(`MAN-${year}-`)).length + 1).padStart(3, '0')}`;
-  PAYMENTS.unshift({ ref, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, amount, period, method, date, status:'paid', source:'manual' });
+  const ref = `MAN-${year}-${String(repository.listPayments().filter(payment => payment.ref.startsWith(`MAN-${year}-`)).length + 1).padStart(3, '0')}`;
+  repository.addPayment({ ref, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, amount, period, method, date, status:'paid', source:'manual' });
   closeModalDirect();
   renderPayments();
   renderAdminDashboard();
@@ -1298,7 +973,7 @@ function saveManualPayment() {
 }
 
 function openPaymentReview(ref) {
-  const payment = PAYMENTS.find(p => p.ref === ref);
+  const payment = repository.listPayments().find(p => p.ref === ref);
   if (!payment || payment.status !== 'pending') return;
   openModal('Review Transfer Evidence', `
     <div class="lease-card">
@@ -1313,10 +988,9 @@ function openPaymentReview(ref) {
 }
 
 function approvePaymentEvidence(ref) {
-  const payment = PAYMENTS.find(p => p.ref === ref);
+  const payment = repository.listPayments().find(p => p.ref === ref);
   if (!payment || payment.status !== 'pending') return;
-  payment.status = 'paid';
-  payment.reviewReason = document.getElementById('payment-review-reason')?.value.trim() || 'Approved in demo';
+  repository.updatePayment(ref, { status:'paid', reviewReason:document.getElementById('payment-review-reason')?.value.trim() || 'Approved in demo' });
   closeModalDirect();
   renderPayments();
   showToast('Evidence approved in this demo. No bank verification occurred.','success');
@@ -1328,17 +1002,16 @@ function rejectPaymentEvidence(ref) {
     showToast('Enter a reason before rejecting payment evidence.','error');
     return;
   }
-  const payment = PAYMENTS.find(p => p.ref === ref);
+  const payment = repository.listPayments().find(p => p.ref === ref);
   if (!payment || payment.status !== 'pending') return;
-  payment.status = 'rejected';
-  payment.reviewReason = reason;
+  repository.updatePayment(ref, { status:'rejected', reviewReason:reason });
   closeModalDirect();
   renderPayments();
   showToast('Evidence rejected and the reason was recorded for this demo session.','info');
 }
 
 function openAddPlaza() {
-  if (currentRole !== 'super') return;
+  if (session.role !== 'super') return;
   openModal('Onboard New Plaza Manually', `
     <div class="form-grid-2 mb-14">
       <div class="form-group"><label class="form-label" for="plaza-name">Plaza Name</label><input class="form-input" id="plaza-name" maxlength="120" placeholder="e.g. Emeka Business Plaza"></div>
@@ -1358,7 +1031,7 @@ function openAddPlaza() {
 }
 
 function savePlaza() {
-  if (currentRole !== 'super') return;
+  if (session.role !== 'super') return;
   const name = document.getElementById('plaza-name')?.value.trim() || '';
   const owner = document.getElementById('plaza-owner')?.value.trim() || '';
   const email = document.getElementById('plaza-email')?.value.trim() || '';
@@ -1370,11 +1043,11 @@ function savePlaza() {
     return;
   }
   const normalize = value => value.trim().toLowerCase().replace(/\s+/g, ' ');
-  if (PLAZAS.some(plaza => normalize(plaza.name) === normalize(name) && normalize(plaza.city) === normalize(city))) {
+  if (repository.listPlazas().some(plaza => normalize(plaza.name) === normalize(name) && normalize(plaza.city) === normalize(city))) {
     showToast('A plaza with that name already exists in this city.', 'error');
     return;
   }
-  PLAZAS.unshift({ id:Math.max(0, ...PLAZAS.map(plaza => plaza.id)) + 1, name, owner, email, city, units, tenants:0, plan:plan === 'trial' ? 'Standard' : plan, status:plan === 'trial' ? 'trial' : 'active', joined:new Date().toISOString().slice(0, 10) });
+  repository.addPlaza({ name, owner, email, city, units, tenants:0, plan:plan === 'trial' ? 'Standard' : plan, status:plan === 'trial' ? 'trial' : 'active', joined:new Date().toISOString().slice(0, 10) });
   // Reveal the new record even when the previous list was filtered.
   document.getElementById('plaza-search').value = '';
   document.getElementById('plaza-status-filter').value = 'all';
@@ -1386,8 +1059,8 @@ function savePlaza() {
 }
 
 function openEditPlan(plan) {
-  if (currentRole !== 'super' || !Object.hasOwn(PLANS, plan)) return;
-  const details = PLANS[plan];
+  if (session.role !== 'super' || !Object.hasOwn(repository.getPlans(), plan)) return;
+  const details = repository.getPlans()[plan];
   openModal(`Edit ${details.name} Plan`, `
     <div class="form-group mb-14"><label class="form-label" for="plan-price">Monthly Price (₦)</label><input class="form-input" id="plan-price" type="number" min="1" step="1" value="${details.price}"></div>
     <div class="form-group mb-14"><label class="form-label" for="plan-units">Max Units (leave blank for unlimited)</label><input class="form-input" id="plan-units" type="number" min="1" step="1" value="${details.maxUnits ?? ''}"></div>
@@ -1397,7 +1070,7 @@ function openEditPlan(plan) {
 }
 
 function savePlan(plan) {
-  if (currentRole !== 'super' || !Object.hasOwn(PLANS, plan)) return;
+  if (session.role !== 'super' || !Object.hasOwn(repository.getPlans(), plan)) return;
   const price = Number(document.getElementById('plan-price').value);
   const unitValue = document.getElementById('plan-units').value.trim();
   const maxUnits = unitValue === '' ? null : Number(unitValue);
@@ -1406,7 +1079,7 @@ function savePlan(plan) {
     showToast('Use a positive whole price, a positive whole unit limit or blank for unlimited, and 1–20 features of up to 200 characters each.', 'error');
     return;
   }
-  Object.assign(PLANS[plan], { price, maxUnits, features });
+  repository.updatePlan(plan, { price, maxUnits, features });
   closeModalDirect();
   renderPlanCards();
   showToast('Plan updated for this demo session.', 'success');
@@ -1415,8 +1088,8 @@ function savePlan(plan) {
 function renderPlanCards() {
   const container = document.getElementById('subscription-plan-cards');
   if (!container) return;
-  container.innerHTML = Object.entries(PLANS).map(([key, plan]) => {
-    const active = PLAZAS.filter(plaza => plaza.plan === plan.name && plaza.status === 'active').length;
+  container.innerHTML = Object.entries(repository.getPlans()).map(([key, plan]) => {
+    const active = repository.listPlazas().filter(plaza => plaza.plan === plan.name && plaza.status === 'active').length;
     return `<article class="plan-card ${key === 'standard' ? 'active-plan' : ''}">
       <div class="flex items-center justify-between mb-16"><div><div class="font-bold">${plan.name}</div><div style="font-size:28px;font-weight:800;margin-top:4px;">${formatNaira(plan.price)}</div><div class="text-sm text-muted">per month</div></div><span class="badge badge-blue">${active} active</span></div>
       <div class="flex items-center justify-between text-sm mb-16"><span class="text-muted">Max Units</span><span>${plan.maxUnits ?? 'Unlimited'}</span></div>
@@ -1424,19 +1097,6 @@ function renderPlanCards() {
       <button class="btn btn-ghost w-full" onclick="openEditPlan('${key}')">Edit Plan</button>
     </article>`;
   }).join('');
-}
-
-/* ============================================================
-   TOAST NOTIFICATIONS
-   ============================================================ */
-function showToast(msg, type = 'info') {
-  const container = document.getElementById('toast-container');
-  const icons = { success:'✅', error:'❌', info:'ℹ️' };
-  const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = `<span>${icons[type]}</span> ${msg}`;
-  container.appendChild(toast);
-  setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateY(10px)'; toast.style.transition='all 0.3s'; setTimeout(()=>toast.remove(),300); }, 3000);
 }
 
 /* ============================================================
@@ -1449,62 +1109,6 @@ function toggleThis(el) { el.classList.toggle('on'); }
    ============================================================ */
 function toggleMobileSidebar() {
   document.getElementById('sidebar').classList.toggle('mobile-open');
-}
-
-/* ============================================================
-   HELPER FUNCTIONS
-   ============================================================ */
-function formatDate(d) {
-  if (!d) return '—';
-  const date = new Date(d);
-  return date.toLocaleDateString('en-NG', { day:'numeric', month:'short', year:'numeric' });
-}
-
-function formatNaira(amount) {
-  return `₦${Number(amount).toLocaleString('en-NG')}`;
-}
-
-function daysUntil(dateStr) {
-  const today = new Date(); today.setHours(0,0,0,0);
-  const target = new Date(dateStr);
-  return Math.ceil((target - today) / (1000*60*60*24));
-}
-
-function expiryBadge(days) {
-  if (days < 0)  return `<span class="badge badge-red">🔴 Overdue</span>`;
-  if (days <= 30) return `<span class="badge badge-red">🔴 ${days}d left</span>`;
-  if (days <= 60) return `<span class="badge badge-orange">🟠 ${days}d left</span>`;
-  return `<span class="badge badge-green">🟢 Active</span>`;
-}
-
-function payStatusBadge(s) {
-  if (s==='rejected') return '<span class="badge badge-red">Rejected</span>';
-  if (s==='paid')    return '<span class="badge badge-green">✓ Paid</span>';
-  if (s==='pending') return '<span class="badge badge-orange">⏳ Pending</span>';
-  if (s==='overdue') return '<span class="badge badge-red">✗ Overdue</span>';
-  return '<span class="badge badge-gray">—</span>';
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]);
-}
-
-function statusBadge(s) {
-  const map = { active:'<span class="badge badge-green">Active</span>', trial:'<span class="badge badge-blue">Trial</span>', suspended:'<span class="badge badge-red">Suspended</span>', expired:'<span class="badge badge-gray">Expired</span>' };
-  return map[s] || '<span class="badge badge-gray">—</span>';
-}
-
-const AVATAR_COLORS = [
-  'rgba(59,130,246,0.2);color:var(--accent2)',
-  'rgba(16,185,129,0.2);color:var(--green)',
-  'rgba(245,158,11,0.2);color:var(--gold)',
-  'rgba(239,68,68,0.2);color:var(--red)',
-  'rgba(139,92,246,0.2);color:var(--purple)',
-  'rgba(249,115,22,0.2);color:var(--orange)',
-];
-function avatarStyle(name) {
-  const idx = name.charCodeAt(0) % AVATAR_COLORS.length;
-  return `background:${AVATAR_COLORS[idx]};`;
 }
 
 /* ============================================================
@@ -1527,4 +1131,39 @@ function scrollToFeatures() {
 /* ============================================================
    INIT
    ============================================================ */
+// Temporary bridge for existing inline HTML handlers. New modules remain scoped.
+export { session, repository, ui };
+export const actions = {
+  showLanding, showLogin, showRegister, hideAll, switchLoginTab,
+  doLogin, doRegister, switchRole, buildSidebar, navTo,
+  renderPage, renderSuperDashboard, renderPlazasList, filterPlazas, renderPlazaSummary,
+  openPlazaDetail, confirmPlazaStatusChange, savePlazaStatus, renderSubPayments, renderSuperRevenue,
+  getMonthlyCollections, getQuarterlyCollections, getTenantApprovedAmount, calculateOperationalSummary, renderOperationalSummaries,
+  renderAdminDashboard, renderTenants, filterTenants, renderUnits, showUnitDetail,
+  renderPayments, renderReports, getUnitReportRows, buildCsv, getExportData,
+  exportCsv, renderAdminNotifs, renderTenantIdentity, renderTenantDashboard, renderReceipts,
+  renderMaintenance, renderMaintenanceCard, renderAdminMaintenance, openMaintenanceReview, saveMaintenanceReview,
+  renderTenantNotifs, renderPayStep, selectPayMethod, processPayment, submitTransferEvidence,
+  renderEvidenceSubmitted, submitMaintenanceRequest, buildBarChart, openModal, closeModal,
+  closeModalDirect, openAddTenant, saveTenant, openEditTenant, deleteTenant,
+  saveTenantChanges, removeTenant, getAvailableUnits, readTenantForm, isValidDateOnly,
+  openAddUnit, saveUnit, openRecordPayment, saveManualPayment, openPaymentReview,
+  approvePaymentEvidence, rejectPaymentEvidence, openAddPlaza, savePlaza, openEditPlan,
+  savePlan, renderPlanCards, showToast, toggleThis, toggleMobileSidebar,
+  formatDate, formatNaira, daysUntil, expiryBadge, payStatusBadge,
+  escapeHtml, statusBadge, avatarStyle, checkMobile, scrollToFeatures
+};
+const inlineHandlers = {
+  approvePaymentEvidence, closeModal, closeModalDirect, confirmPlazaStatusChange, deleteTenant,
+  doLogin, doRegister, exportCsv, filterPlazas, filterTenants,
+  navTo, openAddPlaza, openAddTenant, openAddUnit, openEditPlan,
+  openEditTenant, openMaintenanceReview, openPaymentReview, openPlazaDetail, openRecordPayment,
+  processPayment, rejectPaymentEvidence, removeTenant, renderAdminMaintenance, renderPayStep,
+  renderPlazasList, saveMaintenanceReview, saveManualPayment, savePlan, savePlaza,
+  savePlazaStatus, saveTenant, saveTenantChanges, saveUnit, selectPayMethod,
+  showLanding, showLogin, showRegister, showToast, showUnitDetail,
+  submitMaintenanceRequest, switchLoginTab, switchRole, toggleMobileSidebar, toggleThis
+};
+Object.assign(window, inlineHandlers);
+
 showLanding();

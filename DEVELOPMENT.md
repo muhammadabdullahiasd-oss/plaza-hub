@@ -1,8 +1,8 @@
 # Running PlazaHub
 
-Open `plazahub.html` in a browser. This is a buildless HTML/CSS/JavaScript demo; no installation is required. Data changes last until the page is refreshed.
+This is a buildless HTML/CSS/JavaScript demo; there are no third-party packages to install. It now uses native JavaScript modules, so open it through the local server rather than double-clicking an HTML file. Data changes last until the page is refreshed.
 
-For a local server, run `node scripts/preview.cjs`, then visit http://127.0.0.1:4173. Stop the server with Ctrl+C. The preview serves only the page and its CSS/JavaScript assets and refreshes from current files without caching.
+Run `node scripts/preview.cjs` (or `npm.cmd start` on Windows), then visit http://127.0.0.1:4173. `index.html` is the main entry. The previous `plazahub.html` address redirects there. Stop the server with Ctrl+C. The preview serves only the explicitly listed application files without caching; repository metadata and tests are not served.
 
 ## Maintenance workflow
 
@@ -12,7 +12,7 @@ For a local server, run `node scripts/preview.cjs`, then visit http://127.0.0.1:
 
 ## Checks
 
-Run `node --check js/app.js` and `node --test --test-isolation=none tests/*.test.cjs`. The second command uses Node's built-in test runner without starting child test processes, which also works in restricted development environments.
+Run `node --check js/app.js` and `npm.cmd test` on Windows (`npm test` on other shells). No package installation is needed. The test script enables Node's VM module support to load the actual ES module graph into a fresh simulated browser context for each workflow test. Node prints an ExperimentalWarning for this test API; browser ES modules do not require an experimental flag. Tests use Node's built-in test runner without child test processes.
 
 ## Plaza management workflow
 
@@ -45,7 +45,7 @@ The runnable demo before these fixes is preserved in local commit `9cf4dec`. Use
 - Payments and maintenance records now have a stable `tenantId`; the existing `tenant` name is a historical snapshot. Renaming a tenant changes neither ownership nor previously recorded names/amounts.
 - New tenant IDs use a session counter initialized above the seed IDs. Deleting the last tenant does not produce an invalid ID or reuse an old identity.
 - Phone and email are optional for the demo. When supplied, they are validated, retained, shown in the tenant table/edit dialog, and included in tenant CSV exports. Phone formatting spaces, parentheses, and hyphens are removed.
-- Profile edits update only fields returned by `readTenantForm`; that function no longer returns `paid`, so `Object.assign(tenant, details)` cannot accidentally reset it.
+- Profile edits update only fields returned by `readTenantForm`; that function no longer returns `paid`. The repository additionally limits updates to editable profile fields, protecting identity and payment flags.
 - Adding requires a real vacant unit. Editing cannot move a tenant through the disabled unit input. Shop reassignment and tenancy history need their own later workflow.
 - Lease dates must be real calendar dates, with the end after the start.
 
@@ -60,3 +60,29 @@ Data flow: HTML inputs provide values to `readTenantForm`, validation returns an
 5. Add that tenant with valid lease dates. Their unit should become occupied. Attempting to reuse the same unit must fail.
 
 Remaining limitations: edits still reset on refresh; balances still need the invoice ledger; deleting a tenant is not yet a formal tenancy closure; role checks are not authentication; fixed invoice and lease details remain demo content. No backend migration is part of this stage.
+
+## Stage 2: JavaScript modules and data access
+
+Stage 1 is preserved in commit `e7b09b2`. The existing screens and working workflows are retained. The main HTML moved to `index.html`; `plazahub.html` is a compatibility redirect, not a second copy of the interface.
+
+| File | Responsibility |
+| --- | --- |
+| `js/app.js` | Starts the app, connects modules, and temporarily retains feature rendering/validation. |
+| `js/data/demo-data.js` | Creates independent sample datasets and exports demo constants. |
+| `js/data/repository.js` | Reads and updates in-memory records; owns tenant ID generation and assignment invariants. |
+| `js/navigation.js` | Demo session state, login/registration presentation, sidebar menus, and page switching. |
+| `js/ui.js` | Shared modal and toast behavior. |
+| `js/utils.js` | Reusable date, currency, escaping, status, chart-aggregation, and CSV helpers. |
+| `tests/helpers/load-app.cjs` | Loads real modules in isolated test contexts; legacy data aliases exist only in tests. |
+
+`export` makes a value available to another module; `import` names the values a file needs. For example, `app.js` imports `formatNaira` from `utils.js` rather than relying on a global function. Modules run once per page load and share their imported repository instance. `createRepository()` can also create independent data for tests.
+
+The normal data flow is `input → validation → repository operation → render`. For example, `saveTenantChanges` validates the edit, calls `repository.updateTenant(id, details)`, and refreshes the view. Application writes now go through repository methods. Lists currently return live in-memory records by convention for rendering; this is not a production access-control boundary. A future API adapter will require asynchronous loading/error handling.
+
+Navigation receives a rendering callback from `app.js`. This lets it request a page render without importing `app.js` back and creating a circular dependency. Demo role and page state are grouped in the `session` object.
+
+HTML still has inline handlers during this migration. `app.js` exposes only the named handlers needed by HTML through an explicit compatibility bridge; repository data and session state are not assigned to `window`. Future feature stages can replace inline attributes with event listeners. Views remain in `index.html`; a `pages/` split will be considered after feature boundaries are extracted so we avoid duplicating shared layouts.
+
+Checks cover all prior workflows, independent repository instances, all role page routes and handler names, module URLs/content types, the legacy entry, and preview file restrictions. These simulated DOM/HTTP checks do not replace visual browser testing.
+
+To try the extraction, refresh the preview, navigate all three roles, edit a tenant, review maintenance, and export a CSV. The interface should behave as before. Your learning exercise: trace `saveTenantChanges` in `app.js` into `updateTenant` in `repository.js`, then identify which fields the repository allows it to change.

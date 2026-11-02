@@ -3,8 +3,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { loadApp } = require('./helpers/load-app.cjs');
 
-function createDemo() {
+async function createDemo() {
   const nodes = new Map();
   const element = id => {
     if (!nodes.has(id)) nodes.set(id, { value:'', innerHTML:'', textContent:'', style:{}, classList:{ add() {}, remove() {}, toggle() {} } });
@@ -12,8 +13,8 @@ function createDemo() {
   };
   const context = vm.createContext({ document:{ getElementById:element, querySelectorAll:() => [] }, window:{ innerWidth:1024, addEventListener() {} }, setTimeout() {} });
   const run = code => vm.runInContext(code, context);
-  run(fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8'));
-  run("currentRole = 'super'; showToast = (message, type) => {globalThis.toast = {message, type};}; closeModalDirect = () => {}; openModal = (title, body, footer) => {globalThis.modal = {title, body, footer};};");
+  await loadApp(context);
+  run("session.role = 'super'; showToast = (message, type) => {globalThis.toast = {message, type};}; closeModalDirect = () => {}; openModal = (title, body, footer) => {globalThis.modal = {title, body, footer};};");
   element('plaza-status-filter').value = 'all';
   element('plaza-plan-filter').value = 'all';
   function fill(overrides = {}) {
@@ -23,8 +24,8 @@ function createDemo() {
   return { run, element, fill };
 }
 
-test('onboarding adds distinct records, resets filters, and updates dashboard', () => {
-  const { run, element, fill } = createDemo();
+test('onboarding adds distinct records, resets filters, and updates dashboard', async () => {
+  const { run, element, fill } = await createDemo();
   element('plaza-search').value = 'no match';
   element('plaza-status-filter').value = 'suspended';
   fill();
@@ -44,8 +45,8 @@ test('onboarding adds distinct records, resets filters, and updates dashboard', 
   assert.equal(run('PLAZAS[0].plan'), 'Standard');
 });
 
-test('invalid fields and duplicate plazas are rejected without mutation', () => {
-  const { run, fill } = createDemo();
+test('invalid fields and duplicate plazas are rejected without mutation', async () => {
+  const { run, fill } = await createDemo();
   for (const invalid of [{name:' '}, {owner:''}, {city:''}, {email:'not-email'}, {units:'0'}, {units:'2.5'}, {units:'Infinity'}, {plan:'Unknown'}, {name:'x'.repeat(121)}]) {
     fill(invalid);
     run('savePlaza();');
@@ -58,8 +59,8 @@ test('invalid fields and duplicate plazas are rejected without mutation', () => 
   assert.match(run('toast.message'), /already exists/);
 });
 
-test('combined filters preserve functioning View and Suspend actions', () => {
-  const { run, element } = createDemo();
+test('combined filters preserve functioning View and Suspend actions', async () => {
+  const { run, element } = await createDemo();
   element('plaza-plan-filter').value = 'Premium';
   element('plaza-status-filter').value = 'active';
   run("filterPlazas(' nwosu ');");
@@ -73,8 +74,8 @@ test('combined filters preserve functioning View and Suspend actions', () => {
   assert.match(element('plazas-list').innerHTML, /No plazas found/);
 });
 
-test('confirmation is non-mutating and restore preserves trial status', () => {
-  const { run, element } = createDemo();
+test('confirmation is non-mutating and restore preserves trial status', async () => {
+  const { run, element } = await createDemo();
   run('confirmPlazaStatusChange(6);');
   assert.equal(run('PLAZAS.find(p => p.id === 6).status'), 'trial');
   assert.match(run('modal.footer'), /savePlazaStatus\(6, true\)/);
@@ -88,23 +89,23 @@ test('confirmation is non-mutating and restore preserves trial status', () => {
   assert.equal(run('PLAZAS.find(p => p.id === 8).status'), 'active');
 });
 
-test('details, list, and dashboard escape user text and guard role mutations', () => {
-  const { run, element, fill } = createDemo();
+test('details, list, and dashboard escape user text and guard role mutations', async () => {
+  const { run, element, fill } = await createDemo();
   fill({ name:'<img src=x onerror=alert(1)>', owner:"O'Neil <script>", city:'<b>Lagos</b>' });
   run('savePlaza(); openPlazaDetail(9);');
   for (const html of [element('plazas-list').innerHTML, element('super-recent-plazas').innerHTML, run('modal.body')]) {
     assert.match(html, /&lt;img/);
     assert.doesNotMatch(html, /<img|<script>/);
   }
-  run("currentRole = 'tenant'; savePlazaStatus(9, true);");
+  run("session.role = 'tenant'; savePlazaStatus(9, true);");
   assert.equal(run('PLAZAS[0].status'), 'active');
   fill({ name:'Unauthorized Plaza' });
   run('savePlaza();');
   assert.equal(run('PLAZAS.length'), 9);
 });
 
-test('dashboard distribution handles no active plazas without NaN', () => {
-  const { run, element } = createDemo();
+test('dashboard distribution handles no active plazas without NaN', async () => {
+  const { run, element } = await createDemo();
   run("PLAZAS.forEach(p => {p.status = 'suspended';}); renderPlazaSummary();");
   assert.match(element('super-plan-distribution').innerHTML, /0%/);
   assert.doesNotMatch(element('super-plan-distribution').innerHTML, /NaN|Infinity/);

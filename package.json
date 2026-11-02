@@ -1,0 +1,9 @@
+{
+  "name": "plazahub",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node scripts/preview.cjs",
+    "test": "node --experimental-vm-modules --test --test-isolation=none tests/*.test.cjs"
+  }
+}
