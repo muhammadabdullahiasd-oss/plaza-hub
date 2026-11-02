@@ -78,6 +78,8 @@ Stage 1 is preserved in commit `e7b09b2`. The existing screens and working workf
 | `js/features/invoices.js` | Admin invoice forms/list and role-scoped demo invoice details. |
 | `js/features/payments.js` | Tenant evidence, admin manual records/review, and approved demo payment records. |
 | `js/features/receipts.js` | Shared receipt details, tenant receipt list, and isolated browser print layout. |
+| `js/data/announcements.js` | Demo publications, recipient snapshots, scoped queries, and read state. |
+| `js/features/announcements.js` | Announcement form, admin history, tenant notices and unread indicator. |
 | `tests/helpers/load-app.cjs` | Loads real modules in isolated test contexts; legacy data aliases exist only in tests. |
 
 `export` makes a value available to another module; `import` names the values a file needs. For example, `app.js` imports `formatNaira` from `utils.js` rather than relying on a global function. Modules run once per page load and share their imported repository instance. `createRepository()` can also create independent data for tests.
@@ -194,4 +196,35 @@ All documents are marked DEMO / NOT OFFICIAL on screen and in print. Real bank v
 
 Learning exercise: trace `reviewPayment` → `issueReceipt` in `ledger.js`, then `openPaymentRecord` → `printReceipt` in `receipts.js`. The ledger creates the historical record once; the view only reads it. That separation prevents reprints from changing financial history.
 
-Recommended next stage: announcements with audience selection and tenant visibility, then effective-dated rent-adjustment notices that preserve already-issued invoices. Actual email/SMS delivery remains backend work.
+Stage 6 below adds announcements with audience selection and tenant visibility. Actual email/SMS delivery remains backend work.
+
+## Stage 6: management announcements and demo read state
+
+Stage 5 is preserved in commit `552d80b`. The previous Bulk Reminder panel was a visual form: its button only displayed a fixed success toast and did not save the subject, body, audience or delivery channel. This stage replaces it with a working in-memory announcement workflow in Admin → Notifications. The original operational alerts and tenant activity examples remain in clearly labelled static sample sections; they do not count toward unread announcements.
+
+An admin can publish plain-text subjects (1–120 characters) and messages (1–3,000) to all current tenants or selected tenants. A current tenant means a nonarchived profile with an assignment whose lifecycle is `active` in this plaza. Expired lease dates alone do not end occupancy, consistent with Stage 3; a future-starting assignment also remains assigned until explicitly cancelled. One person occupying several shops receives one notice, with all their assigned shop labels in the publication's recipient snapshot. Archived or unassigned profiles do not receive new announcements; contacting former tenants about old debt needs a later audience policy.
+
+Publication resolves and saves recipient IDs, names and shop labels at that moment. Later renaming, archiving, closure, reassignment or registering a new occupant cannot rewrite the original audience. Old recipients can still see their historical notices in this demo. New tenants do not inherit earlier broadcasts. Published text and audience cannot be edited or deleted through this UI; an important correction should be a new notice. Scheduling, withdrawal, drafts, attachments, search and automatic overdue/expiry audiences are deferred.
+
+The admin history shows the saved text, publication time, original recipients and how many have clicked Mark as Read. Tenant → Notifications shows only announcements addressed to demo tenant 6. Its query returns notice text and that tenant's read state, without other recipients' names, IDs or read data. Repeated Mark as Read clicks retain the first timestamp. The header bell's dot reflects unread management announcements for the current demo tenant; the old hard-coded notification counts are removed. Reading one notice does not acknowledge another.
+
+### Try announcements
+
+1. Refresh the preview and open Admin → Notifications. The published list starts empty. Write a subject such as “Planned water supply maintenance” and explain the time, affected shops and contact person. Choose All Current Tenants and check the recipient count before publishing.
+2. Publish the demo announcement. The form clears only after success, and the history retains your actual text. Expand Recipient List at Publication to check names and shops. No email or SMS is sent.
+3. Switch to Tenant. The bell should show an unread dot. Open Notifications to see the notice, then choose Mark as Read. Its unread count and bell dot should update. Switch back to Admin to see the read count change.
+4. Publish another notice with Selected Tenants. Choose Grace Pharmacy without choosing Funmi Boutique. It should appear in admin history but not in the Funmi tenant portal. A selected audience with no checked tenants must fail and retain the draft text.
+5. Publish a notice to Funmi, then rename the profile or end its shop assignment. The original publication recipient label and historical notice should remain. A newly registered replacement tenant must not inherit it.
+6. Submit blank/whitespace or oversized content and confirm no record is added. Try ordinary text containing `<script>` or `<img>`; it must display literally rather than execute. Republishing after a successful form reset must fail until a new subject/body is entered.
+
+Data flow: `announcement-form` invokes the feature's `publishAnnouncement`; it reads input and selection values, then calls the repository. `createAnnouncementStore` validates all details and resolves eligible recipients before adding a record, so one invalid recipient cannot produce a partial publication. The feature renders the resulting history with escaped text, preserving line breaks with CSS. Repository queries return copies to protect stored snapshots. Read updates change only the recipient's separate read state.
+
+The announcement store is a small module composed into `repository.js`, following the same pattern as the ledger. The feature module owns presentation and role guards; it does not modify tenancy terms or invoice data. Ordinary announcements are not effective-dated rent adjustments and have no effect on rent, due dates, invoices, payments or receipts.
+
+Run `npm.cmd test`. New tests cover both audiences, duplicate recipients across shops, empty/archived/unassigned audiences, invalid text/IDs, plazas with identical shop numbers, private tenant views, idempotent reads, immutable snapshots, replacement occupants, unchanged financial records, form reset/errors, role presentation, escaping, navigation/indicators, native form labels and module HTTP routes. These DOM/HTTP simulations do not verify Chrome/mobile layout or real security. Browser QA remains paused.
+
+Publication and read status are local browser demonstrations and reset on refresh. Marked Read records an explicit click; it does not prove delivery, understanding, consent or legal acknowledgement. No email/SMS connector is called. A production implementation needs authenticated plaza membership, server-enforced recipient isolation, durable publications and audit history, authorized access to old notices, delivery jobs/status and appropriate retention rules.
+
+Learning exercise: follow `publishAnnouncement` from `js/features/announcements.js` into `js/data/announcements.js`. Compare the admin query with `listTenantAnnouncements`: the latter deliberately omits other recipients. Then identify why resolving the audience only when reading would let a replacement occupant see an old notice.
+
+Recommended next stage: effective-dated rent-adjustment notices, with explicit agreement/amount/date selection and historical invoice preservation. Notice timing and application rules must be defined before any automatic rent change.

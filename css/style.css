@@ -765,6 +765,18 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .receipt-footnote { color: var(--text2); margin: 16px 0; }
 .receipt-disclaimer { border: 1px solid var(--border2); border-radius: 8px; padding: 12px; font-size: 12px; }
 #receipt-print-root { display: none; }
+.announcement-card { border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin-bottom: 14px; overflow-wrap: anywhere; }
+.announcement-card h3 { margin: 0 0 8px; font-size: 16px; }
+.announcement-unread { border-left: 3px solid var(--accent); }
+.announcement-date { color: var(--text3); font-size: 12px; margin-bottom: 12px; }
+.announcement-message { white-space: pre-wrap; margin-bottom: 16px; line-height: 1.7; }
+.announcement-card details { margin-top: 12px; }
+.announcement-card summary { cursor: pointer; }
+.announcement-card ul { padding-left: 20px; margin-top: 8px; }
+.announcement-picker { border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+#announcement-recipient-options { max-height: 230px; overflow-y: auto; }
+.announcement-recipient { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; overflow-wrap: anywhere; }
+.announcement-recipient input { flex-shrink: 0; }
 
 @media (max-width: 480px) {
   .receipt-item { flex-wrap: wrap; gap: 10px; }

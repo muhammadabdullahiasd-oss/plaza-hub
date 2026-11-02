@@ -7,6 +7,7 @@ import { createTenancyActions } from './features/tenancies.js';
 import { createInvoiceActions } from './features/invoices.js';
 import { createPaymentActions } from './features/payments.js';
 import { createReceiptActions } from './features/receipts.js';
+import { createAnnouncementActions } from './features/announcements.js';
 
 const { showLanding, showLogin, showRegister, hideAll, switchLoginTab, doLogin, doRegister, switchRole, buildSidebar, navTo } = createNavigation({ repository, ui, renderPage:page => renderPage(page) });
 const { openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms, openEndTenancy, endTenancy } = createTenancyActions({ repository, ui, getRole:() => session.role, refresh:() => refreshTenantViews() });
@@ -21,6 +22,8 @@ function refreshTenantViews() {
 const { renderInvoiceList, openCreateInvoice, saveInvoice, openInvoiceDetails } = createInvoiceActions({ repository, ui, getRole:() => session.role, refresh:() => refreshFinancialViews() });
 const { getSelectedTenantTenancy, selectTenantTenancy, renderPayStep, selectPayMethod, processPayment, submitTransferEvidence, renderEvidenceSubmitted, openRecordPayment, saveManualPayment, openPaymentReview, approvePaymentEvidence, rejectPaymentEvidence, selectTenantInvoice } = createPaymentActions({ repository, ui, getRole:() => session.role, refresh:() => refreshFinancialViews() });
 const { renderReceipts, openPaymentRecord, printReceipt } = createReceiptActions({ repository, ui, getRole:() => session.role });
+const { renderAdminAnnouncements, renderTenantAnnouncements, updateAnnouncementAudience,
+  updateAnnouncementIndicators, publishAnnouncement, markAnnouncementRead } = createAnnouncementActions({ repository, ui, getRole:() => session.role });
 
 function refreshFinancialViews() {
   renderPayments();
@@ -58,6 +61,7 @@ function renderPage(page) {
     case 'tenant-maintenance': renderMaintenance(); break;
     case 'tenant-notifications':renderTenantNotifs(); break;
   }
+  updateAnnouncementIndicators();
 }
 
 /* ---- Super Admin ---- */
@@ -451,6 +455,7 @@ function exportCsv(kind) {
 }
 
 function renderAdminNotifs() {
+  renderAdminAnnouncements();
   const list = document.getElementById('admin-notif-list');
   if (!list) return;
   list.innerHTML = repository.listAdminNotifications().map(n => `
@@ -576,6 +581,7 @@ function saveMaintenanceReview(id) {
 }
 
 function renderTenantNotifs() {
+  renderTenantAnnouncements();
   const list = document.getElementById('tenant-notif-list');
   if (!list) return;
   list.innerHTML = repository.listTenantNotifications().map(n => `
@@ -958,7 +964,9 @@ export const actions = {
   openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms,
   openEndTenancy, endTenancy, getSelectedTenantTenancy, selectTenantTenancy, readTenantProfile,
   refreshTenantViews, renderInvoiceList, openCreateInvoice, saveInvoice, openInvoiceDetails,
-  selectTenantInvoice, openPaymentRecord, printReceipt
+  selectTenantInvoice, openPaymentRecord, printReceipt, renderAdminAnnouncements,
+  renderTenantAnnouncements, updateAnnouncementAudience, updateAnnouncementIndicators,
+  publishAnnouncement, markAnnouncementRead
 };
 const inlineHandlers = {
   approvePaymentEvidence, closeModal, closeModalDirect, confirmPlazaStatusChange, deleteTenant,
@@ -972,7 +980,8 @@ const inlineHandlers = {
   submitMaintenanceRequest, switchLoginTab, switchRole, toggleMobileSidebar, toggleThis,
   openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms,
   openEndTenancy, endTenancy, selectTenantTenancy, renderInvoiceList, openCreateInvoice,
-  saveInvoice, openInvoiceDetails, selectTenantInvoice, openPaymentRecord, printReceipt
+  saveInvoice, openInvoiceDetails, selectTenantInvoice, openPaymentRecord, printReceipt,
+  updateAnnouncementAudience, publishAnnouncement, markAnnouncementRead
 };
 Object.assign(window, inlineHandlers);
 

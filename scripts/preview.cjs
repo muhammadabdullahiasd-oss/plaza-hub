@@ -14,10 +14,12 @@ const routes = new Map([
   ['/js/data/demo-data.js', ['js/data/demo-data.js', 'text/javascript; charset=utf-8']],
   ['/js/data/repository.js', ['js/data/repository.js', 'text/javascript; charset=utf-8']],
   ['/js/data/ledger.js', ['js/data/ledger.js', 'text/javascript; charset=utf-8']],
+  ['/js/data/announcements.js', ['js/data/announcements.js', 'text/javascript; charset=utf-8']],
   ['/js/features/tenancies.js', ['js/features/tenancies.js', 'text/javascript; charset=utf-8']],
   ['/js/features/invoices.js', ['js/features/invoices.js', 'text/javascript; charset=utf-8']],
   ['/js/features/payments.js', ['js/features/payments.js', 'text/javascript; charset=utf-8']],
   ['/js/features/receipts.js', ['js/features/receipts.js', 'text/javascript; charset=utf-8']],
+  ['/js/features/announcements.js', ['js/features/announcements.js', 'text/javascript; charset=utf-8']],
   ['/css/style.css', ['css/style.css', 'text/css; charset=utf-8']],
 ]);
 function createPreviewServer() {

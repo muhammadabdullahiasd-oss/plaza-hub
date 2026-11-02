@@ -29,7 +29,7 @@ export function createNavigation({ repository, renderPage, ui }) {
       ]},
       { label:'Analytics', items:[
         { icon:'📈', text:'Reports',             page:'admin-reports' },
-        { icon:'🔔', text:'Notifications',       page:'admin-notifications', badge:'5' },
+        { icon:'🔔', text:'Notifications',       page:'admin-notifications' },
       ]},
       { label:'Account', items:[
         { icon:'⚙️', text:'Settings',            page:'admin-settings' },
@@ -45,7 +45,7 @@ export function createNavigation({ repository, renderPage, ui }) {
       { label:'Services', items:[
         { icon:'🔧', text:'Maintenance',         page:'tenant-maintenance' },
         { icon:'📄', text:'My Lease',            page:'tenant-lease' },
-        { icon:'🔔', text:'Notifications',       page:'tenant-notifications', badge:'3' },
+        { icon:'🔔', text:'Notifications',       page:'tenant-notifications' },
       ]},
       { label:'Account', items:[
         { icon:'🚪', text:'Sign Out',             page:'logout' },

@@ -1,11 +1,13 @@
 import { createDemoData, DEMO_PLAZA_ID } from './demo-data.js';
 import { daysUntil, isValidDateOnly } from '../utils.js';
 import { createLedger } from './ledger.js';
+import { createAnnouncementStore } from './announcements.js';
 
 // In-memory data access. Financial queries return copies; older profile/unit
 // queries return live records by convention. Use operations below for writes.
 export function createRepository(data = createDemoData()) {
   const ledger = createLedger(data);
+  const announcementStore = createAnnouncementStore(data);
   const historicalIds = [...data.tenants.map(t => t.id), ...data.payments.map(p => p.tenantId), ...data.maintenanceRequests.map(r => r.tenantId)];
   let nextTenantId = Math.max(0, ...historicalIds.filter(Number.isSafeInteger)) + 1;
   let nextTenancyId = Math.max(0, ...data.tenancies.map(t => t.id)) + 1;
@@ -56,6 +58,7 @@ export function createRepository(data = createDemoData()) {
 
   return {
     ...ledger,
+    ...announcementStore,
     listTenants:(plazaId = DEMO_PLAZA_ID) => data.tenants.filter(t => t.plazaId === plazaId),
     listUnits:(plazaId = DEMO_PLAZA_ID) => data.units.filter(unit => unit.plazaId === plazaId),
     listPayments:(plazaId = DEMO_PLAZA_ID) => data.payments.filter(payment => payment.plazaId === plazaId).map(payment => ({ ...payment })),

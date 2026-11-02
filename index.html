@@ -374,9 +374,9 @@
             <button class="role-btn"        id="rbtn-admin"  onclick="switchRole('admin')">Admin</button>
             <button class="role-btn"        id="rbtn-tenant" onclick="switchRole('tenant')">Tenant</button>
           </div>
-          <div class="topbar-icon-btn" onclick="navTo('notifications')">
-            🔔<div class="topbar-notif-dot"></div>
-          </div>
+          <button type="button" class="topbar-icon-btn" onclick="navTo('notifications')" aria-label="Open notifications">
+            🔔<span class="topbar-notif-dot" id="topbar-announcement-dot" style="display:none;"></span>
+          </button>
           <div class="avatar" id="topbar-avatar" style="background:rgba(59,130,246,0.2);color:var(--accent2);cursor:pointer;" onclick="navTo('settings')">A</div>
         </div>
       </div>
@@ -748,37 +748,32 @@
           <div class="grid-2">
             <div class="card">
               <div class="card-header">
-                <div><div class="card-title">Alerts & Notifications</div></div>
-                <span class="badge badge-red">5 new</span>
+                <div><div class="card-title">Published Announcements</div><div class="card-subtitle" id="admin-announcement-summary"></div></div>
               </div>
-              <div id="admin-notif-list"></div>
+              <p class="maint-meta mb-16">Demo in-app notices only. Read counts reflect clicks in this browser, not delivery confirmation. Published notices retain their original text and recipients.</p>
+              <div id="admin-announcement-list"></div>
             </div>
             <div class="card">
-              <div class="card-header"><div class="card-title">Send Bulk Reminder</div></div>
-              <div class="form-group mb-16"><label class="form-label">Recipients</label>
-                <select class="form-input">
-                  <option>Expiring in 30 days (5 tenants)</option>
-                  <option>Overdue payments (3 tenants)</option>
-                  <option>Expiring in 60 days (9 tenants)</option>
-                  <option>All tenants (41 tenants)</option>
+              <div class="card-header"><div class="card-title">Publish Demo Announcement</div></div>
+              <form id="announcement-form" onsubmit="publishAnnouncement(event); return false;">
+              <div class="form-group mb-16"><label class="form-label" for="announcement-audience">Audience</label>
+                <select class="form-input" id="announcement-audience" onchange="updateAnnouncementAudience()">
+                  <option value="all">All current tenants</option>
+                  <option value="selected">Selected tenants</option>
                 </select>
               </div>
-              <div class="form-group mb-16"><label class="form-label">Subject</label><input class="form-input" value="Rent Renewal Reminder — Sunshine Business Plaza"></div>
-              <div class="form-group mb-16"><label class="form-label">Message</label>
-                <textarea class="form-input" rows="5">Dear Tenant,
-
-This is a reminder that your annual rent is due for renewal soon. Please log in to your PlazaHub tenant portal to make your payment and avoid any disruption.
-
-For assistance, contact plaza management.
-
-— Sunshine Business Plaza Management</textarea>
+              <fieldset class="announcement-picker mb-16" id="announcement-recipients" hidden disabled><legend>Select current tenants</legend><div id="announcement-recipient-options"></div></fieldset>
+              <p class="maint-meta mb-16" id="announcement-audience-summary" aria-live="polite"></p>
+              <div class="form-group mb-16"><label class="form-label" for="announcement-title">Subject</label><input class="form-input" id="announcement-title" required maxlength="120" placeholder="e.g. Planned water supply maintenance"></div>
+              <div class="form-group mb-16"><label class="form-label" for="announcement-body">Message</label>
+                <textarea class="form-input" id="announcement-body" rows="7" required maxlength="3000" placeholder="Include the date, affected shops, and who tenants should contact."></textarea>
               </div>
-              <div class="form-group mb-20"><label class="form-label">Delivery Channel</label>
-                <select class="form-input"><option>Email + SMS</option><option>Email only</option><option>SMS only</option></select>
-              </div>
-              <button class="btn btn-primary w-full" onclick="showToast('Bulk reminder sent to 5 tenants','success')">📤 Send Reminder</button>
+              <p class="maint-meta mb-16">Publishing makes a notice available to the selected demo tenants. No email or SMS is sent. This does not change rents or issue a rent-adjustment notice. Changes reset on refresh.</p>
+              <button type="submit" class="btn btn-primary w-full">Publish demo announcement</button>
+              </form>
             </div>
           </div>
+          <div class="card" style="margin-top:24px;"><div class="card-header"><div><div class="card-title">Sample Operational Alerts</div><div class="card-subtitle">Static examples from the original prototype; not live reminders or announcement history.</div></div></div><div id="admin-notif-list"></div></div>
         </div>
 
         <!-- Admin: Maintenance -->
@@ -960,8 +955,13 @@ For assistance, contact plaza management.
 
         <!-- Tenant: Notifications -->
         <div class="app-page" id="page-tenant-notifications">
+          <div class="card mb-24">
+            <div class="card-header"><div><div class="card-title">Management Announcements</div><div class="card-subtitle" id="tenant-announcement-summary" aria-live="polite"></div></div></div>
+            <p class="maint-meta mb-16">Notices addressed to your demo tenant profile. Marking read records a click in this browser only.</p>
+            <div id="tenant-announcement-list"></div>
+          </div>
           <div class="card" style="max-width:700px;">
-            <div class="card-header"><div class="card-title">Your Notifications</div><span class="badge badge-blue">3 unread</span></div>
+            <div class="card-header"><div><div class="card-title">Sample Activity History</div><div class="card-subtitle">Static prototype examples, separate from management announcements above.</div></div></div>
             <div id="tenant-notif-list"></div>
           </div>
         </div>
