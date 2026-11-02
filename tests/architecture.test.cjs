@@ -39,7 +39,7 @@ test('all page routes and inline handler names remain connected after module ext
   const { actions, session } = await loadApp(context);
   assert.deepEqual(events, ['resize']);
   assert.equal(context.window.repository, undefined);
-  const sources = [html, ...['app.js', 'ui.js', 'features/tenancies.js', 'features/invoices.js', 'features/payments.js', 'features/receipts.js', 'features/announcements.js'].map(file => fs.readFileSync(path.join(__dirname, '../js', file), 'utf8'))];
+  const sources = [html, ...['app.js', 'ui.js', 'features/tenancies.js', 'features/invoices.js', 'features/payments.js', 'features/receipts.js', 'features/announcements.js', 'features/rent-adjustments.js'].map(file => fs.readFileSync(path.join(__dirname, '../js', file), 'utf8'))];
   for (const source of sources) for (const handler of source.matchAll(/\bon(?:click|input|change|submit)="([^"]+)"/g)) {
     for (const call of handler[1].matchAll(/(?<![.\w])([A-Za-z_]\w*)\(/g)) {
       assert.equal(typeof actions[call[1]], 'function', `Missing handler: ${call[1]}`);
@@ -61,7 +61,7 @@ test('preview serves the complete module graph and keeps private files unavailab
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
-    const routes = ['/', '/index.html', '/plazahub.html', '/css/style.css', '/js/app.js', '/js/navigation.js', '/js/utils.js', '/js/ui.js', '/js/data/repository.js', '/js/data/demo-data.js', '/js/data/ledger.js', '/js/data/announcements.js', '/js/features/tenancies.js', '/js/features/invoices.js', '/js/features/payments.js', '/js/features/receipts.js', '/js/features/announcements.js'];
+    const routes = ['/', '/index.html', '/plazahub.html', '/css/style.css', '/js/app.js', '/js/navigation.js', '/js/utils.js', '/js/ui.js', '/js/data/repository.js', '/js/data/demo-data.js', '/js/data/ledger.js', '/js/data/announcements.js', '/js/data/rent-adjustments.js', '/js/features/tenancies.js', '/js/features/invoices.js', '/js/features/payments.js', '/js/features/receipts.js', '/js/features/announcements.js', '/js/features/rent-adjustments.js'];
     for (const route of routes) {
       const response = await fetch(base + route);
       assert.equal(response.status, 200, route);

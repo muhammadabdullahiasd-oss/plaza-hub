@@ -745,6 +745,11 @@
 
         <!-- Admin: Notifications -->
         <div class="app-page" id="page-admin-notifications">
+          <div class="card mb-24">
+            <div class="card-header wrap gap-8"><div><div class="card-title">Rent Adjustment Notices</div><div class="card-subtitle">Future annual rent changes for a specific shop agreement. Demo records only.</div></div><div class="flex gap-8 wrap"><button class="btn btn-ghost" onclick="renderAdminRentAdjustments()">Refresh statuses</button><button class="btn btn-primary" onclick="openPublishRentAdjustment()">+ Issue rent notice</button></div></div>
+            <p class="maint-meta mb-16">Publishing preserves current rent. Apply explicitly once the effective date arrives; existing invoices and receipts are never rewritten. Each notice requires an entered advance-notice policy.</p>
+            <div id="admin-rent-notice-list"></div>
+          </div>
           <div class="grid-2">
             <div class="card">
               <div class="card-header">
@@ -955,6 +960,11 @@
 
         <!-- Tenant: Notifications -->
         <div class="app-page" id="page-tenant-notifications">
+          <div class="card mb-24">
+            <div class="card-header"><div><div class="card-title">Your Rent Adjustment Notices</div><div class="card-subtitle">Old and new annual rents, effective dates and management explanations.</div></div></div>
+            <p class="maint-meta mb-16">Scheduled notices do not change your current rent. Applying or cancelling a notice makes its updated status unread again. Marking read is not acceptance.</p>
+            <div id="tenant-rent-notice-list"></div>
+          </div>
           <div class="card mb-24">
             <div class="card-header"><div><div class="card-title">Management Announcements</div><div class="card-subtitle" id="tenant-announcement-summary" aria-live="polite"></div></div></div>
             <p class="maint-meta mb-16">Notices addressed to your demo tenant profile. Marking read records a click in this browser only.</p>

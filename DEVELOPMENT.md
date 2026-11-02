@@ -80,6 +80,8 @@ Stage 1 is preserved in commit `e7b09b2`. The existing screens and working workf
 | `js/features/receipts.js` | Shared receipt details, tenant receipt list, and isolated browser print layout. |
 | `js/data/announcements.js` | Demo publications, recipient snapshots, scoped queries, and read state. |
 | `js/features/announcements.js` | Announcement form, admin history, tenant notices and unread indicator. |
+| `js/data/rent-adjustments.js` | Rent-notice snapshots, advance-date validation, application/cancellation and read state. |
+| `js/features/rent-adjustments.js` | Notice forms, details, admin/tenant history and explicit application controls. |
 | `tests/helpers/load-app.cjs` | Loads real modules in isolated test contexts; legacy data aliases exist only in tests. |
 
 `export` makes a value available to another module; `import` names the values a file needs. For example, `app.js` imports `formatNaira` from `utils.js` rather than relying on a global function. Modules run once per page load and share their imported repository instance. `createRepository()` can also create independent data for tests.
@@ -227,4 +229,39 @@ Publication and read status are local browser demonstrations and reset on refres
 
 Learning exercise: follow `publishAnnouncement` from `js/features/announcements.js` into `js/data/announcements.js`. Compare the admin query with `listTenantAnnouncements`: the latter deliberately omits other recipients. Then identify why resolving the audience only when reading would let a replacement occupant see an old notice.
 
-Recommended next stage: effective-dated rent-adjustment notices, with explicit agreement/amount/date selection and historical invoice preservation. Notice timing and application rules must be defined before any automatic rent change.
+Stage 7 below adds effective-dated rent-adjustment notices and explicit application rules. Automatic rent changes remain deferred.
+
+## Stage 7: effective-dated rent adjustment notices
+
+Stage 6 is preserved in commit `b3e9398`. Management can now record a future increase or decrease in annual rent for one shop agreement. The notice captures the tenant/shop labels, original agreement dates, old rent, new rent, explanation, publication date, effective date, actual calendar advance days and an explicitly entered minimum advance requirement. It does not automatically create an invoice, alter fees or renew a lease.
+
+This is a demo policy workflow, not an implementation of any Nigerian legal notice period. The form has no default minimum: the admin must enter 1–3,650 whole calendar days. The effective date must be later than the local publication date, on/after the agreement start, and meet the entered minimum. The reason is required (up to 1,000 characters). New rent must be positive, differ from current rent, and have at most two decimal places. Both increases and decreases are supported. Whether a real adjustment is permitted and sufficiently notified needs the actual agreement and production business rules before real use.
+
+Only an active assignment for a nonarchived tenant in the operational plaza can receive a new notice. Lifecycle `active` still means assigned until explicitly ended, even if its recorded lease-end date has passed. A notice after that date does not itself extend or validate the lease. There can be only one open notice per agreement. To correct an open notice, cancel it with a reason and publish a replacement; both records remain visible to the original tenant.
+
+Publication leaves `tenancy.rent` unchanged. Once the effective date arrives, the notice becomes Ready for Management Application. Admin must explicitly apply it. Application rechecks that the original assignment remains active and its rent/start/end dates still match the published snapshot; stale notices are blocked. Direct term corrections therefore require cancelling and republishing the open notice. Renaming a profile does not block application or change its historical label. Closing/reassigning a shop cannot transfer the old tenant's rent notice to a replacement occupant.
+
+Applying updates that agreement's current annual rent exactly once and records the action time. Repeated application returns the existing result; replaying an earlier notice cannot undo a later change. Already-applied changes cannot be cancelled through this UI; a later adjustment needs a new future notice. There is no automatic scheduler, retroactive allocation, proration, penalty, refund or invoice-correction policy. Applying late updates the current agreement when management acts; the notice's effective date and actual application timestamp are retained separately.
+
+Already-issued invoices, payment allocations and receipt snapshots are unchanged by publication, application or cancellation. New invoices still require explicit amounts and periods in the existing Issue Invoice workflow; the app does not infer how to split a period around a rent change. If an issued future bill overlaps the effective date, it remains intact and requires a separately designed correction/credit workflow before production use.
+
+### Try rent notices
+
+1. Open Admin → Notifications → Issue Rent Notice, or Admin → Tenants → Funmi Boutique → Manage Shops → Issue Rent Notice for D-09.
+2. Enter a new annual rent such as ₦500,000, a future date at least 30 calendar days away, minimum advance days `30`, and a sample explanation. Publish. These example days are only a demo input, not a recommended real notice period.
+3. Open the notice. It should retain the old ₦480,000 and show Scheduled, with Apply New Rent Now disabled before its date. Current agreement rent and the ₦510,000 sample invoice should remain unchanged.
+4. Switch to Tenant → Notifications. Only notices for demo tenant 6 should appear. View the explanation, old/new amounts, dates and status, then mark it read. Marking read is not tenant acceptance or proof of valid delivery.
+5. Back in Admin, cancel the notice with a reason. The cancelled history should remain in the tenant portal and its changed status should be unread again. Rent remains unchanged. You can now issue a corrected replacement.
+6. For a retained open notice, correct its agreement's rent or dates, or end the assignment. Use Refresh Statuses in the notice section: application should be Blocked. The original snapshot should remain unchanged.
+
+To exercise due-date application manually, keep the same page session until the effective date and use the in-app Refresh Statuses button or navigate away/back. Reloading the browser erases demo records. Automated tests inject a controlled date so the day before, the effective day and later changes are tested immediately without altering your computer clock. Production scheduling and durable state need a backend.
+
+The shared notification dot now includes unread announcements and rent notices. Each rent notice retains its publication-read timestamp. Applying or cancelling records a separate status update, which starts unread; marking that status read does not erase the earlier read timestamp. Notice views and actions enforce the demo role/plaza/recipient presentation rules, while the data store validates assignment consistency. These frontend checks cannot secure production tenancy data or enforce contractual authorization.
+
+Run `npm.cmd test`. New tests cover early/due application, repeated and later changes, increases/decreases and kobo amounts, invalid/insufficient advance dates, leap-day counting, conflicting notices, cancellation, stale terms, closure/replacement occupants, future assignment starts, scoped read state, immutable snapshots, unchanged invoices/payments/receipts, UI forms/validation/escaping, refreshed annual rent displays and module delivery. Browser layout testing remains paused; these are domain, simulated-DOM and HTTP checks.
+
+Learning exercise: trace `publishRentAdjustment` and `applyRentAdjustment` in the data store. The former captures a proposed future change; the latter revalidates the current agreement before changing it. Then compare the notice's `oldRent` snapshot with today's `tenancy.rent` and the independent invoice amounts. This separation keeps historical bills stable while the agreement evolves.
+
+Still incomplete: durable notices and read/application history, real login and server-enforced authorization, delivery channels, contract-specific adjustment policies, correction/credit workflows, automatic billing, backups and audit logs. All notices remain explicitly demo records and reset on refresh. No backend or dependency was introduced.
+
+Recommended next stage: a document directory with explicit demo access rules, followed by a backend design review before persistent accounts, payments or sensitive document storage.

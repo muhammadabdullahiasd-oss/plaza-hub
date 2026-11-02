@@ -8,6 +8,7 @@ import { createInvoiceActions } from './features/invoices.js';
 import { createPaymentActions } from './features/payments.js';
 import { createReceiptActions } from './features/receipts.js';
 import { createAnnouncementActions } from './features/announcements.js';
+import { createRentAdjustmentActions } from './features/rent-adjustments.js';
 
 const { showLanding, showLogin, showRegister, hideAll, switchLoginTab, doLogin, doRegister, switchRole, buildSidebar, navTo } = createNavigation({ repository, ui, renderPage:page => renderPage(page) });
 const { openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms, openEndTenancy, endTenancy } = createTenancyActions({ repository, ui, getRole:() => session.role, refresh:() => refreshTenantViews() });
@@ -24,6 +25,10 @@ const { getSelectedTenantTenancy, selectTenantTenancy, renderPayStep, selectPayM
 const { renderReceipts, openPaymentRecord, printReceipt } = createReceiptActions({ repository, ui, getRole:() => session.role });
 const { renderAdminAnnouncements, renderTenantAnnouncements, updateAnnouncementAudience,
   updateAnnouncementIndicators, publishAnnouncement, markAnnouncementRead } = createAnnouncementActions({ repository, ui, getRole:() => session.role });
+const { openPublishRentAdjustment, updateRentAdjustmentPreview, publishRentAdjustment, openRentAdjustmentNotice,
+  applyRentAdjustment, openCancelRentAdjustment, cancelRentAdjustment, renderAdminRentAdjustments,
+  renderTenantRentAdjustments, markRentAdjustmentRead } = createRentAdjustmentActions({ repository, ui, getRole:() => session.role,
+  updateIndicators:updateAnnouncementIndicators, refresh:() => { refreshTenantViews(); renderAdminNotifs(); renderTenantNotifs(); } });
 
 function refreshFinancialViews() {
   renderPayments();
@@ -456,6 +461,7 @@ function exportCsv(kind) {
 
 function renderAdminNotifs() {
   renderAdminAnnouncements();
+  renderAdminRentAdjustments();
   const list = document.getElementById('admin-notif-list');
   if (!list) return;
   list.innerHTML = repository.listAdminNotifications().map(n => `
@@ -582,6 +588,7 @@ function saveMaintenanceReview(id) {
 
 function renderTenantNotifs() {
   renderTenantAnnouncements();
+  renderTenantRentAdjustments();
   const list = document.getElementById('tenant-notif-list');
   if (!list) return;
   list.innerHTML = repository.listTenantNotifications().map(n => `
@@ -966,7 +973,9 @@ export const actions = {
   refreshTenantViews, renderInvoiceList, openCreateInvoice, saveInvoice, openInvoiceDetails,
   selectTenantInvoice, openPaymentRecord, printReceipt, renderAdminAnnouncements,
   renderTenantAnnouncements, updateAnnouncementAudience, updateAnnouncementIndicators,
-  publishAnnouncement, markAnnouncementRead
+  publishAnnouncement, markAnnouncementRead, openPublishRentAdjustment, updateRentAdjustmentPreview,
+  publishRentAdjustment, openRentAdjustmentNotice, applyRentAdjustment, openCancelRentAdjustment,
+  cancelRentAdjustment, renderAdminRentAdjustments, renderTenantRentAdjustments, markRentAdjustmentRead
 };
 const inlineHandlers = {
   approvePaymentEvidence, closeModal, closeModalDirect, confirmPlazaStatusChange, deleteTenant,
@@ -981,7 +990,9 @@ const inlineHandlers = {
   openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms,
   openEndTenancy, endTenancy, selectTenantTenancy, renderInvoiceList, openCreateInvoice,
   saveInvoice, openInvoiceDetails, selectTenantInvoice, openPaymentRecord, printReceipt,
-  updateAnnouncementAudience, publishAnnouncement, markAnnouncementRead
+  updateAnnouncementAudience, publishAnnouncement, markAnnouncementRead, openPublishRentAdjustment,
+  updateRentAdjustmentPreview, publishRentAdjustment, openRentAdjustmentNotice, applyRentAdjustment,
+  openCancelRentAdjustment, cancelRentAdjustment, renderAdminRentAdjustments, markRentAdjustmentRead
 };
 Object.assign(window, inlineHandlers);
 

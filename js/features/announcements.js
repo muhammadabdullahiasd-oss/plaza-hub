@@ -7,7 +7,7 @@ export function createAnnouncementActions({ repository, ui, getRole }) {
   const content = notice => `<h3>${escapeHtml(notice.title)}</h3><p class="announcement-date">Published ${escapeHtml(publishedDate(notice.publishedAt))} · Demo in-app notice</p><p class="announcement-message">${escapeHtml(notice.body)}</p>`;
   function updateAnnouncementIndicators() {
     const dot = document.getElementById('topbar-announcement-dot');
-    if (dot) dot.style.display = getRole() === 'tenant' && repository.listTenantAnnouncements(DEMO_TENANT_ID).some(notice => !notice.readAt) ? 'block' : 'none';
+    if (dot) dot.style.display = getRole() === 'tenant' && (repository.listTenantAnnouncements(DEMO_TENANT_ID).some(notice => !notice.readAt) || repository.listTenantRentAdjustments(DEMO_TENANT_ID).some(notice => !notice.readAt)) ? 'block' : 'none';
   }
   function updateAnnouncementAudience() {
     if (getRole() !== 'admin') return;
