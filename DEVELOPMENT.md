@@ -312,4 +312,18 @@ Learning exercise: compare `getDocument` with `getTenantDocument` in `js/data/do
 
 Production still needs real authentication, server-side authorization for every metadata/content request, private object storage, validated uploads with file-type/size/content checks, authorized downloads, durable visibility/audit history, versioning, retention rules and backups. Browser memory is not secure storage. All demo metadata resets on refresh; no backend or dependency was introduced.
 
-Recommended next stage: document the backend design and migration plan—data model, authenticated sessions, plaza isolation, transaction-safe payment approval, private document storage and deployment—before adding real persistence or accounts. Implement that migration only after the design and trade-offs are reviewed.
+Stage 9 below documents the backend design and migration plan. Implement that migration only after the design and trade-offs are reviewed.
+
+## Stage 9: backend design and migration proposal
+
+Stage 8 is preserved in commit `bed22bc`. [docs/BACKEND_PLAN.md](docs/BACKEND_PLAN.md) maps the actual repository to a proposed Node.js/Express API, PostgreSQL, managed authentication and private storage. Supabase is the provisional managed provider, subject to project requirements, budget and review; no provider account or resource has been created.
+
+The proposal compares alternatives and defines identity versus tenant profiles, server-side permissions, plaza isolation, a logical relational schema, transaction-safe approval/receipt creation, private uploads/downloads, audit/outbox records, deployment and recovery. It also describes the frontend changes needed for asynchronous data. Replacing a synchronous repository with `fetch` without updating renderers would break the current screens.
+
+Official Node.js, Express, PostgreSQL, Supabase, node-postgres, Django and OWASP documentation was consulted; supporting links are included beside the relevant decisions. The current fresh demo inventory was queried from the real repository. Product/hosting choices and business policies are labelled as proposals or open gates, not asserted as implemented security guarantees.
+
+README now links the plan and gives accurate run/test instructions. No runtime source, dependencies, database schema or browser workflows changed during this stage. Documentation links and source references were checked; no new application test run, API execution, database migration or browser QA is claimed for this documentation-only change.
+
+Learning exercise: explain why two simultaneous payment approvals need a shared database transaction/lock, then identify which current UI functions assume data is available synchronously. Those are different problems and require different migration steps.
+
+The first proposed implementation is B1 in the plan: a separate local-only API/database foundation using synthetic data, with protected routes denied until authentication is configured. Review the design and confirm any required stack/provider/budget constraints before introducing that backend. Production accounts, uploads, message delivery and deployment remain later, separately scoped work.
