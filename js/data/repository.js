@@ -1,9 +1,11 @@
 import { createDemoData, DEMO_PLAZA_ID } from './demo-data.js';
 import { daysUntil, isValidDateOnly } from '../utils.js';
+import { createLedger } from './ledger.js';
 
-// In-memory data access. List results are live records for rendering; callers
-// should use the operations below for writes. An API adapter can replace this later.
+// In-memory data access. Financial queries return copies; older profile/unit
+// queries return live records by convention. Use operations below for writes.
 export function createRepository(data = createDemoData()) {
+  const ledger = createLedger(data);
   const historicalIds = [...data.tenants.map(t => t.id), ...data.payments.map(p => p.tenantId), ...data.maintenanceRequests.map(r => r.tenantId)];
   let nextTenantId = Math.max(0, ...historicalIds.filter(Number.isSafeInteger)) + 1;
   let nextTenancyId = Math.max(0, ...data.tenancies.map(t => t.id)) + 1;
@@ -45,7 +47,7 @@ export function createRepository(data = createDemoData()) {
     requireVacancy(details.unitId, details.plazaId);
     validateTerms(details);
     const tenancy = { id:nextTenancyId++, tenantId:tenant.id, unitId:details.unitId, plazaId:details.plazaId,
-      rent:details.rent, start:details.start, expires:details.expires, paid:false, fees:[], status:'active', endedAt:null, endReason:'' };
+      rent:details.rent, start:details.start, expires:details.expires, fees:[], status:'active', endedAt:null, endReason:'' };
     data.tenancies.push(tenancy);
     syncPlazaStats(details.plazaId);
     return tenancy;
@@ -53,9 +55,10 @@ export function createRepository(data = createDemoData()) {
   syncPlazaStats(DEMO_PLAZA_ID);
 
   return {
+    ...ledger,
     listTenants:(plazaId = DEMO_PLAZA_ID) => data.tenants.filter(t => t.plazaId === plazaId),
     listUnits:(plazaId = DEMO_PLAZA_ID) => data.units.filter(unit => unit.plazaId === plazaId),
-    listPayments:(plazaId = DEMO_PLAZA_ID) => data.payments.filter(payment => payment.plazaId === plazaId),
+    listPayments:(plazaId = DEMO_PLAZA_ID) => data.payments.filter(payment => payment.plazaId === plazaId).map(payment => ({ ...payment })),
     listPlazas:() => data.plazas,
     listSubscriptionPayments:() => data.subscriptionPayments,
     getPlans:() => data.plans,
@@ -128,19 +131,9 @@ export function createRepository(data = createDemoData()) {
       syncPlazaStats(plazaId);
       return record;
     },
-    addPayment(payment) {
-      const tenancy = requireAssignment(payment.tenancyId);
-      if (payment.tenantId !== undefined && payment.tenantId !== tenancy.tenantId) throw new Error('Payment tenant does not match the assignment.');
-      if (!Number.isFinite(payment.amount) || payment.amount <= 0) throw new Error('Enter a positive payment amount.');
-      const record = { ...payment, tenantId:tenancy.tenantId, plazaId:tenancy.plazaId, unitId:tenancy.unitId, unit:findUnit(tenancy.unitId).number, tenant:findTenant(tenancy.tenantId).name };
-      data.payments.unshift(record);
-      return record;
-    },
     updatePayment(ref, details) {
-      const payment = data.payments.find(item => item.ref === ref);
-      if (!payment) return null;
-      Object.assign(payment, details);
-      return payment;
+      if (Object.keys(details).some(key => !['status', 'reviewReason'].includes(key))) throw new Error('Payment identities and amounts are immutable.');
+      return ledger.reviewPayment(ref, details.status, details.reviewReason || '');
     },
     addMaintenanceRequest(request) {
       const tenancy = requireAssignment(request.tenancyId);

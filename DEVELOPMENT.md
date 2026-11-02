@@ -36,7 +36,7 @@ Plaza Admin can export all tenants, all payment records, and the eight displayed
 
 The supplied master prompt defines a Nigerian plaza SaaS built incrementally with HTML, CSS, and vanilla JavaScript. Core MVP priorities are plaza/shop management, tenant assignment, rent schedules, manual payment evidence and review, receipt records, announcements/rent-adjustment notices, basic reports, and role-specific views. Keep useful existing work and audit before major changes. This remains a browser-only prototype, with no real accounts or payment processing. Automated payments and subscription billing come after the core MVP.
 
-Recommended production work: durable database and backend; per-plaza access controls and real login; stable tenant/lease IDs and a period-based invoice ledger; verified payment-provider webhooks; scheduled reminders and message delivery; audit history and backups. Annual rent versus all-time collections is only a sample comparison until payments are allocated to invoices. Choose the backend/deployment stack before starting that phase.
+Stages 1–4 below implement stable identities, tenancy history, and a demo period-based invoice ledger. Recommended production work: durable database and backend; per-plaza access controls and real login; secure evidence storage and audit history; backups; scheduled reminders and message delivery. Payment-provider integrations remain optional future work. Choose the backend/deployment stack before starting that phase.
 
 ## Stage 1: tenant data stability
 
@@ -74,6 +74,9 @@ Stage 1 is preserved in commit `e7b09b2`. The existing screens and working workf
 | `js/ui.js` | Shared modal and toast behavior. |
 | `js/utils.js` | Reusable date, currency, escaping, status, chart-aggregation, and CSV helpers. |
 | `js/features/tenancies.js` | Shop assignment, history, ending/cancellation, and tenancy-term dialogs. |
+| `js/data/ledger.js` | Invoice issuance, allocation validation, payment review, balances and overdue calculations. |
+| `js/features/invoices.js` | Admin invoice forms/list and role-scoped demo invoice details. |
+| `js/features/payments.js` | Tenant evidence, admin manual records/review, and approved demo payment records. |
 | `tests/helpers/load-app.cjs` | Loads real modules in isolated test contexts; legacy data aliases exist only in tests. |
 
 `export` makes a value available to another module; `import` names the values a file needs. For example, `app.js` imports `formatNaira` from `utils.js` rather than relying on a global function. Modules run once per page load and share their imported repository instance. `createRepository()` can also create independent data for tests.
@@ -108,7 +111,7 @@ Archiving replaces deletion: it is allowed only after all active assignments hav
 
 Occupancy, floor-map details, tenant shop lists and total annual rents use joined views of profile + tenancy + unit. A joined view assembles related fields for display without storing rent or a shop number back on the person. For example, tenant 6 can own tenancy 6 for D-09 and another tenancy for B-24. Ending the B-24 agreement does not remove D-09 or either agreement's records.
 
-Payment and maintenance forms now select a shop agreement. New records require an active matching assignment. Reports sum approved records per tenancy, preventing one tenant's collections from being repeated for each of their shops. Transfer evidence remains pending and unallocated; a lease end year is not assumed to be a billing period. Existing D-09 sample fees are preserved as agreement metadata; charge references are not invoices or outstanding-balance calculations.
+At the end of Stage 3, payment and maintenance forms selected an active matching shop agreement. Reports summed approved records per tenancy, preventing repeated collections across shops. Transfer evidence was pending and unallocated. Stage 4 below replaces that interim payment model with invoice allocations; maintenance still requires an active assignment.
 
 The operational demo is scoped to Sunshine plaza (ID 1). Unit numbers can repeat in other plazas because IDs and plaza membership distinguish them. Repository scope and matching-ID checks are consistency checks only; a server must enforce actual authorization and tenant isolation. Other platform plaza listings remain sample account summaries rather than fully seeded operating plazas.
 
@@ -122,6 +125,42 @@ The operational demo is scoped to Sunshine plaza (ID 1). Unit numbers can repeat
 
 Run `npm.cmd test` for the complete regression suite. Tests cover duplicate occupancy, mismatched plazas, several shops for one tenant, closure/archiving, immutable ended terms, stale evidence forms, per-shop collection totals, and prior workflows. DOM/HTTP simulation is not visual browser QA.
 
-Still incomplete: persistent storage and real authorization; a period-based invoice ledger for due dates, partial payments and arrears; receipt documents; announcements and effective-dated notices. Profile archiving is not a production retention/restore policy. All demo changes still reset on refresh.
+At the end of Stage 3, persistent storage, real authorization, invoice balances, receipt documents, announcements and effective-dated notices remained incomplete. Stage 4 below implements the demo ledger. Profile archiving is not a production retention/restore policy. All demo changes still reset on refresh.
 
 Learning exercise: compare `repository.getTenant(6)` with `repository.getTenancyRow(6)`. The first is the stored person; the second joins the person, agreement, and shop for display. Then trace `assignTenancy` to see why vacancy is checked before adding a new agreement.
+
+## Stage 4: invoice periods, partial payments, and arrears
+
+Stage 3 is preserved in commit `47451fb`. This stage changes the source of financial balances from a tenancy's `paid` flag to issued invoices and their approved allocations. It preserves existing sample payment references and amounts. The ten original sample obligations receive explicitly seeded calendar-year invoices; January 14 is a fixture due date, not a billing rule for new agreements. The old Ifeoma “overdue payment” row is retained internally as `legacy-obligation`, excluded from transaction displays/exports, and represented as an unpaid invoice. Funmi has an additional open 2026 sample invoice of ₦510,000 (₦480,000 rent + ₦24,000 service charge + ₦6,000 waste levy).
+
+The relationship is `tenant → tenancy → invoice → payment allocation`. A tenancy describes the agreement; an invoice is one specific bill. Paying the 2025 invoice does not settle 2026. Issuing a new tenancy does not silently create a bill or assume an anniversary/calendar billing policy. Admin must explicitly enter an inclusive billing period, due date and charges. One invoice holds all charges for that period; overlapping periods on the same tenancy are rejected in this MVP.
+
+Invoice amounts, dates, tenant name and shop label are snapshots. Profile edits, term corrections, occupancy closure, and archiving do not rewrite issued invoices or confirmed payments. Financial getters return copies, including invoice line items, so rendering cannot accidentally change stored amounts. Older nonfinancial repository lists still return live objects by convention.
+
+`ledger.js` validates and computes money in integer kobo. For example, ₦0.10 + ₦0.20 becomes 10 + 20 kobo, avoiding floating-point remainders. Outstanding is invoiced amount minus approved allocations. Pending and rejected evidence contribute nothing to collected totals. An unpaid remainder becomes overdue the day after its due date; lease expiry remains a separate occupancy concept. Admin summaries, tenant balance, reports and CSV now use invoice allocations. The report shows the eight largest billed agreements, including ended agreements; charts combine approved payments across recorded years, as labelled.
+
+### Try the workflow
+
+1. Open the preview, switch to Tenant → Pay Fees, and select `INV-0011` for D-09. Its initial balance is ₦510,000. The older 2025 invoice is already settled.
+2. Submit ₦100,000 using a made-up unique bank reference and a harmless sample file. Only its filename is retained; nothing uploads. The submission is pending and the balance remains ₦510,000. No receipt appears for it.
+3. Switch to Plaza Admin → Payments. Review that submission and approve it. `INV-0011` should show approved ₦100,000 and outstanding ₦410,000. Repeating approval cannot count it twice. The tenant's approved demo records now include it.
+4. Submit another sample with a different bank reference and reject it with a reason. The balance stays ₦410,000. Tenant → Pay Fees shows the rejection and reason in that invoice's history.
+5. Use Record Payment to allocate an already-confirmed sample cash/transfer/cheque amount to a specific unpaid invoice. A partial amount reduces just that invoice. Anything above its remaining balance is rejected.
+6. Use Issue Invoice to bill a new shop agreement, or a nonoverlapping period such as 2027 for D-09. Enter dates and rent; optionally add a service charge. The new bill appears in the admin list and tenant selector. Reissuing that period must fail without adding a duplicate.
+
+Duplicate bank references are rejected case-insensitively within a plaza, even after rejection. A correction or allocation to the wrong invoice needs a future review/reallocation workflow; changing the reference is not a way to verify a duplicate transfer. Different pending submissions may together exceed a bill, but each approval rechecks the current remaining balance. If another approval/manual record consumed that balance, the later approval fails and remains pending for review.
+
+### Decisions and remaining work
+
+- One payment allocates to one invoice. Transfers covering multiple invoices, overpayments, credits, refunds and reallocations need explicit business rules and later workflows. The current UI rejects over-allocation rather than discarding excess money.
+- No automatic invoice schedule, late penalties, grace periods, proration or rent increases are assumed. Effective-dated rent notices are still a later stage. An admin enters historical/catch-up periods explicitly, including for ended tenancies.
+- Issued invoices and confirmed records cannot be edited through this UI. Void/correction/credit-note procedures need design before real use; this demo is not an accounting or tax document system.
+- An ended or archived tenancy's existing debt can still be paid. Closing occupancy does not forgive arrears. New maintenance requests continue to require an active assignment.
+- Provider/card/USSD mock choices are deferred; the current tenant workflow is manual bank-transfer evidence. Existing historical method labels remain sample records. Official receipt downloads/email are not implemented; View Record shows an honest demo record.
+- All role/scope checks are presentation and consistency checks. Real authorization, tenant isolation, evidence validation/storage, durable data, atomic concurrent allocations and audit logs require a backend. Changes still reset on refresh.
+
+Run `npm.cmd test`. The suite covers partial settlement, period separation, pending/rejected balances, duplicate references, repeated/competing approvals, kobo arithmetic, invalid dates and amounts, invoice overlap, immutable financial snapshots, old debt after closure, empty/unbilled agreements, scoped presentation, forms, CSV and module HTTP routes. These simulated DOM/HTTP checks do not establish browser layout quality or production security. Browser QA was paused at the user's request during this stage.
+
+Learning exercise: follow `submitTransferEvidence` in `payments.js` into `ledger.addPayment`, then `reviewPayment`. Identify why recording pending evidence leaves `approvedKobo` unchanged, and why approval must check capacity again even after submission passed validation.
+
+Recommended next stage: receipt record numbering and printable demo views for approved allocations, followed by announcements and effective-dated rent notices. Secure document storage, official receipt issuance and notification delivery remain backend work.

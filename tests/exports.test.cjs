@@ -41,7 +41,9 @@ test('spreadsheet formulas are neutralized in text but numbers stay numeric', as
 
 test('exports enforce the demo role and preserve payment statuses', async () => {
   const { run } = await createDemo();
-  assert.equal(run("getExportData('payments').rows.length"), run('PAYMENTS.length + 1'));
+  assert.equal(run("getExportData('payments').rows.length"), run("PAYMENTS.filter(p => p.source !== 'legacy-obligation').length + 1"));
+  assert.doesNotMatch(run("buildCsv(getExportData('payments').rows)"), /TXN-2024-0805/);
+  assert.match(run("buildCsv(getExportData('payments').rows)"), /INV-0001/);
   assert.equal(run("getExportData('tenants').rows.length"), run('TENANTS.length + 1'));
   assert.match(run("buildCsv(getExportData('payments').rows)"), /"pending"/);
   assert.equal(run("getExportData('subscriptions')"), null);
@@ -56,13 +58,14 @@ test('exports enforce the demo role and preserve payment statuses', async () => 
 
 test('report export matches the displayed rows and excludes unapproved amounts', async () => {
   const { run, element } = await createDemo();
+  run("globalThis.testInvoice = repository.createInvoice({tenancyId:10, periodStart:'2026-01-01', periodEnd:'2026-12-31', dueDate:'2026-01-14', items:[{description:'Test rent', amount:100000000}]});");
   run('renderReports();');
   const rows = JSON.parse(run("JSON.stringify(getExportData('report').rows)"));
   assert.equal(rows.length, 9);
   assert.equal((element('reports-top-units').innerHTML.match(/<tr>/g) || []).length, 8);
   assert.match(element('reports-top-units').innerHTML, new RegExp(rows[1][1]));
   const before = run("JSON.stringify(getExportData('report').rows)");
-  run("repository.addPayment({ref:'PENDING-TEST', tenancyId:10, amount:99999999, status:'pending'});");
+  run("repository.addPayment({ref:'PENDING-TEST', invoiceId:testInvoice.id, amount:99999999, status:'pending', date:'2026-11-02', transferReference:'TEST-BANK-REF', evidenceFile:'proof.pdf'});");
   assert.equal(run("JSON.stringify(getExportData('report').rows)"), before);
 });
 

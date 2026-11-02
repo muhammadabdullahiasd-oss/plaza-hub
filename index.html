@@ -90,8 +90,8 @@
       </div>
       <div class="feature-card">
         <div class="feat-icon green">💳</div>
-        <h3>Online Payments</h3>
-        <p>Tenants pay annual fees directly through the portal via Paystack or bank transfer. Auto-confirmation and instant receipts.</p>
+        <h3>Rent &amp; Payment Tracking</h3>
+        <p>Track invoices, partial payments, and bank-transfer evidence. Management reviews submissions before they reduce a balance.</p>
       </div>
       <div class="feature-card">
         <div class="feat-icon red">📊</div>
@@ -119,7 +119,7 @@
     <div class="hiw-grid">
       <div class="hiw-step"><div class="hiw-num">1</div><h3>Create Your Plaza Account</h3><p>Sign up and set up your plaza profile — add your plaza name, address, blocks, and total units in a few clicks.</p></div>
       <div class="hiw-step"><div class="hiw-num">2</div><h3>Register Your Tenants</h3><p>Add each tenant to the system, assign them a shop, set the rent amount and payment period, and send them their login details.</p></div>
-      <div class="hiw-step"><div class="hiw-num">3</div><h3>Tenants Pay Online</h3><p>Tenants log in to their personal portal to check their status, pay annual fees via Paystack, and download receipts.</p></div>
+      <div class="hiw-step"><div class="hiw-num">3</div><h3>Tenants Track Payments</h3><p>Tenants view invoices, submit transfer evidence, and see approved demo payment records. Real payment processing comes later.</p></div>
       <div class="hiw-step"><div class="hiw-num">4</div><h3>You Monitor Everything</h3><p>The admin dashboard gives you full visibility — payments, expiring leases, occupancy, and revenue — all in one place.</p></div>
     </div>
   </section>
@@ -599,7 +599,7 @@
           <div class="grid-2 mb-24">
             <div class="card">
               <div class="card-header">
-                <div><div class="card-title">Monthly Revenue 2025</div><div class="card-subtitle">Rent collected per month</div></div>
+                <div><div class="card-title">Collections by Month</div><div class="card-subtitle">Approved demo payments, combined across recorded years</div></div>
               </div>
               <div class="bar-chart" id="admin-revenue-chart"></div>
             </div>
@@ -689,11 +689,15 @@
 
         <!-- Admin: Payments -->
         <div class="app-page" id="page-admin-payments">
+          <div class="card mb-24">
+            <div class="card-header"><div><div class="card-title">Rent Invoices</div><div class="card-subtitle">Explicit periods, due dates, and approved allocations. All records are demo data.</div></div><button class="btn btn-primary" onclick="openCreateInvoice()">+ Issue Invoice</button></div>
+            <div class="table-wrap"><table class="data-table"><thead><tr><th>Invoice</th><th>Tenant / Shop</th><th>Period</th><th>Due</th><th>Invoiced</th><th>Approved</th><th>Outstanding</th><th>Status</th><th></th></tr></thead><tbody id="invoices-tbody"></tbody></table></div>
+          </div>
           <div class="grid-4 mb-24">
             <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="payments-total-collected">₦12.6M</div><div class="stat-label">Total Collected</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">✅</div></div><div class="stat-trend up" id="payments-paid-count">38 approved records</div></div>
             <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="payments-outstanding">₦2.2M</div><div class="stat-label">Outstanding</div></div><div class="stat-icon" style="background:rgba(239,68,68,0.12);">⏳</div></div><div class="stat-trend down" id="payments-overdue-count">3 tenant obligations</div></div>
             <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="payments-pending">₦480K</div><div class="stat-label">Pending Clearance</div></div><div class="stat-icon" style="background:rgba(249,158,11,0.12);">🔄</div></div><div class="stat-trend neutral" id="payments-pending-count">2 pending transfers</div></div>
-            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="payments-collection-rate">93%</div><div class="stat-label">Collection Rate</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">📊</div></div><div class="stat-trend up">Based on approved records and obligations</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="payments-collection-rate">93%</div><div class="stat-label">Collection Rate</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">📊</div></div><div class="stat-trend up">Approved allocations divided by invoiced amounts</div></div>
           </div>
           <div class="card">
             <div class="card-header">
@@ -705,7 +709,7 @@
             </div>
             <div class="table-wrap">
               <table class="data-table">
-                <thead><tr><th>Ref #</th><th>Tenant</th><th>Unit</th><th>Amount</th><th>Period</th><th>Method</th><th>Date</th><th>Status</th><th></th></tr></thead>
+                <thead><tr><th>Ref #</th><th>Tenant</th><th>Unit</th><th>Amount</th><th>Invoice / Period</th><th>Method</th><th>Date</th><th>Status</th><th></th></tr></thead>
                 <tbody id="payments-tbody"></tbody>
               </table>
             </div>
@@ -724,16 +728,15 @@
               <div style="display:flex;flex-direction:column;gap:16px;padding-top:4px;">
                 <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Occupied Units</span><span class="text-sm font-bold text-green" id="report-occupied-stat">41/48 — 85%</span></div><div class="progress progress-lg"><div class="progress-fill" id="report-occupied-bar" style="width:85%;background:var(--green);"></div></div></div>
                 <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Rent Collected</span><span class="text-sm font-bold text-accent" id="report-collected-stat">38/41 — 93%</span></div><div class="progress progress-lg"><div class="progress-fill" id="report-collected-bar" style="width:93%;background:var(--accent);"></div></div></div>
-                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Renewals Confirmed</span><span class="text-sm font-bold text-gold">28/41 — 68%</span></div><div class="progress progress-lg"><div class="progress-fill" style="width:68%;background:var(--gold);"></div></div></div>
-                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Overdue Payments</span><span class="text-sm font-bold text-red" id="report-overdue-stat">3/41 — 7%</span></div><div class="progress progress-lg"><div class="progress-fill" id="report-overdue-bar" style="width:7%;background:var(--red);"></div></div></div>
+                <div><div class="flex items-center justify-between mb-8"><span class="text-sm">Overdue Invoices</span><span class="text-sm font-bold text-red" id="report-overdue-stat">3/41 — 7%</span></div><div class="progress progress-lg"><div class="progress-fill" id="report-overdue-bar" style="width:7%;background:var(--red);"></div></div></div>
               </div>
             </div>
           </div>
           <div class="card">
-            <div class="card-header"><div><div class="card-title">Top Revenue Units</div><div class="card-subtitle">Sample comparison of annual rent and all-period collections. Period-specific balances need an invoice ledger.</div></div><button class="btn btn-sm btn-ghost" onclick="exportCsv('report')">📥 Export Shown CSV</button></div>
+            <div class="card-header"><div><div class="card-title">Largest Invoiced Agreements</div><div class="card-subtitle">Eight largest billed totals across recorded periods, grouped by shop agreement; includes ended tenancies.</div></div><button class="btn btn-sm btn-ghost" onclick="exportCsv('report')">📥 Export Shown CSV</button></div>
             <div class="table-wrap">
               <table class="data-table">
-                <thead><tr><th>#</th><th>Unit</th><th>Tenant</th><th>Annual Rent</th><th>Collected</th><th>Balance</th><th>Status</th></tr></thead>
+                <thead><tr><th>#</th><th>Unit</th><th>Tenant</th><th>Invoiced</th><th>Approved</th><th>Outstanding</th><th>Status</th></tr></thead>
                 <tbody id="reports-top-units"></tbody>
               </table>
             </div>
@@ -852,7 +855,7 @@ For assistance, contact plaza management.
           </div>
 
           <div class="grid-3 mb-24">
-            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="tenant-rent-total">—</div><div class="stat-label">Combined Annual Rent</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">💰</div></div><div class="stat-trend neutral">Agreement amounts, not outstanding balances</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="tenant-rent-total">—</div><div class="stat-label">Combined Annual Rent</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">💰</div></div><div class="stat-trend neutral"><span id="tenant-invoice-balance"></span></div></div>
             <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="tenant-shop-numbers">—</div><div class="stat-label">Your Shops</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏪</div></div></div>
             <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="tenant-shop-count">—</div><div class="stat-label">Active Assignments</div></div><div class="stat-icon" style="background:rgba(245,158,11,0.12);">🏪</div></div><div class="stat-trend neutral">History remains in My Lease</div></div>
           </div>
@@ -865,10 +868,10 @@ For assistance, contact plaza management.
             <div class="card">
               <div class="card-header"><div class="card-title">Quick Actions</div></div>
               <div style="display:flex;flex-direction:column;gap:10px;">
-                <button class="btn btn-primary w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-pay')">💳 Pay Annual Rent</button>
+                <button class="btn btn-primary w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-pay')">💳 View Invoices &amp; Submit Evidence</button>
                 <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-maintenance')">🔧 Submit Maintenance Request</button>
                 <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-lease')">📄 View Lease Agreement</button>
-                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-receipts')">🧾 Download Receipts</button>
+                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-receipts')">🧾 View Approved Payment Records</button>
                 <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-notifications')">🔔 View Notifications</button>
               </div>
             </div>
@@ -878,9 +881,9 @@ For assistance, contact plaza management.
         <!-- Tenant: Pay Fees -->
         <div class="app-page" id="page-tenant-pay">
           <div class="step-indicator" id="pay-step-indicator">
-            <div class="step-item active" id="pstep-1"><div class="step-circle">1</div><div class="step-label">Review Invoice</div></div>
-            <div class="step-item" id="pstep-2"><div class="step-circle">2</div><div class="step-label">Select Payment</div></div>
-            <div class="step-item" id="pstep-3"><div class="step-circle">3</div><div class="step-label">Confirm</div></div>
+            <div class="step-item active" id="pstep-1"><div class="step-circle">1</div><div class="step-label">Choose Invoice</div></div>
+            <div class="step-item" id="pstep-2"><div class="step-circle">2</div><div class="step-label">Transfer Evidence</div></div>
+            <div class="step-item" id="pstep-3"><div class="step-circle">3</div><div class="step-label">Pending Review</div></div>
           </div>
           <div id="pay-content"></div>
         </div>
@@ -888,7 +891,7 @@ For assistance, contact plaza management.
         <!-- Tenant: Receipts -->
         <div class="app-page" id="page-tenant-receipts">
           <div class="card">
-            <div class="card-header"><div class="card-title">Payment History & Receipts</div><button class="btn btn-sm btn-ghost">📥 Download All</button></div>
+            <div class="card-header"><div class="card-title">Approved Demo Payment Records</div></div>
             <div id="tenant-receipts-list"></div>
           </div>
         </div>
@@ -941,7 +944,7 @@ For assistance, contact plaza management.
             <div class="card">
               <div class="card-header"><div class="card-title">Lease Terms Summary</div></div>
               <div style="display:flex;flex-direction:column;gap:14px;font-size:13px;color:var(--text2);line-height:1.8;">
-                <p>📋 <strong style="color:var(--text);">Payment Terms:</strong> Annual rent is due in full by January 14th each year. A 10-day grace period applies. Late payments attract a 5% monthly penalty charge.</p>
+                <p>📋 <strong style="color:var(--text);">Demo Billing:</strong> Each invoice shows its own billing period and due date. Partial approved payments reduce that invoice only. Grace periods and late penalties are not implemented.</p>
                 <p>🔧 <strong style="color:var(--text);">Maintenance:</strong> The tenant is responsible for interior maintenance and fixtures. Structural repairs are the responsibility of plaza management.</p>
                 <p>🚫 <strong style="color:var(--text);">Subletting:</strong> Subletting or transferring the tenancy to a third party without written consent from plaza management is strictly prohibited.</p>
                 <p>📢 <strong style="color:var(--text);">Termination:</strong> Either party may terminate this lease with 90 days written notice. Breach of terms may result in immediate termination.</p>

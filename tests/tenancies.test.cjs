@@ -107,24 +107,25 @@ test('profile edits and corrections of active terms preserve payment snapshots',
   repo.updateTenant(6, { name:'Renamed', rent:1, paid:false });
   assert.equal(repo.getTenancy(6).rent, 480000);
   repo.updateTenancy(6, { rent:500000 });
-  assert.equal(repo.getTenancy(6).paid, true);
+  assert.equal(repo.getInvoiceSummary(1).balance, 0);
   assert.equal(JSON.stringify(repo.listPayments()), payments);
   assert.throws(() => repo.updateTenancy(6, { unitId:2 }), /End the existing/);
 });
 
-test('new payment and maintenance records bind to an active tenancy', async () => {
+test('payments bind to invoices while new maintenance requires an active tenancy', async () => {
   const repo = await fresh();
   const extra = repo.assignTenancy({ tenantId:6, unitId:2, plazaId:1, ...terms });
-  const payment = repo.addPayment({ ref:'NEW', tenancyId:extra.id, amount:100000, status:'paid' });
+  const invoice = repo.createInvoice({ tenancyId:extra.id, periodStart:'2026-01-01', periodEnd:'2026-12-31', dueDate:'2026-01-14', items:[{ description:'Rent', amount:800000 }] });
+  const payment = repo.addPayment({ ref:'NEW', invoiceId:invoice.id, tenancyId:extra.id, amount:100000, date:'2026-11-02', status:'paid' });
   const request = repo.addMaintenanceRequest({ id:'MR-NEW', tenancyId:extra.id, subject:'Repair' });
   assert.equal(payment.unit, 'A-02');
   assert.equal(payment.tenantId, 6);
   assert.equal(request.unitId, 2);
   assert.equal(repo.getTenancyApprovedAmount(extra.id), 100000);
   assert.equal(repo.getTenancyApprovedAmount(6), 480000);
-  assert.throws(() => repo.addPayment({ ref:'SPOOF', tenancyId:extra.id, tenantId:7, amount:1 }), /does not match/);
+  assert.throws(() => repo.addPayment({ ref:'SPOOF', invoiceId:invoice.id, tenancyId:extra.id, tenantId:7, amount:1 }), /does not match/);
   repo.endTenancy(extra.id, 'Closed');
-  assert.throws(() => repo.addPayment({ ref:'ENDED', tenancyId:extra.id, amount:1 }), /active shop/);
+  assert.equal(repo.addPayment({ ref:'ENDED', invoiceId:invoice.id, amount:1, date:'2026-11-02', status:'paid' }).invoiceId, invoice.id);
   assert.throws(() => repo.addMaintenanceRequest({ id:'ENDED', tenancyId:extra.id }), /active shop/);
 });
 
@@ -194,13 +195,15 @@ test('stale evidence never silently moves to another shop after closure', async 
   actions.submitTransferEvidence();
   assert.equal(repository.listPayments()[0].tenancyId, 6);
   assert.equal(repository.listPayments()[0].status, 'pending');
-  assert.equal(repository.listPayments()[0].period, 'Unallocated');
+  assert.equal(repository.listPayments()[0].invoiceId, 11);
+  assert.equal(repository.listPayments()[0].period, '2026-01-01 – 2026-12-31');
 });
 
 test('per-shop reports do not repeat a tenant total across multiple shops', async () => {
   const { repository, actions } = await browserDemo();
   const extra = repository.assignTenancy({ tenantId:6, unitId:2, plazaId:1, ...terms });
-  repository.addPayment({ ref:'SHOP-TWO', tenancyId:extra.id, amount:100000, status:'paid' });
+  const invoice = repository.createInvoice({ tenancyId:extra.id, periodStart:'2026-01-01', periodEnd:'2026-12-31', dueDate:'2026-01-14', items:[{ description:'Rent', amount:800000 }] });
+  repository.addPayment({ ref:'SHOP-TWO', invoiceId:invoice.id, tenancyId:extra.id, amount:100000, date:'2026-11-02', status:'paid' });
   const rows = actions.getUnitReportRows();
   assert.equal(rows.find(row => row.tenant.tenancyId === 6).collected, 480000);
   assert.equal(rows.find(row => row.tenant.tenancyId === extra.id).collected, 100000);

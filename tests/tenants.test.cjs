@@ -40,11 +40,11 @@ test('tenant creation saves contacts and exposes them in table and edit form', a
   assert.match(run('modal'), /\+2348012345678/);
 });
 
-test('profile edits preserve paid flag, identity, and optional unrelated fields', async () => {
+test('profile edits preserve invoice balances, identity, and optional unrelated fields', async () => {
   const { run, editDemo } = await createDemo();
   run("TENANTS.find(t => t.id === 6).customNote = 'Preserve me';");
   editDemo({ name:'Renamed Boutique' });
-  assert.equal(run('repository.getTenancy(6).paid'), true);
+  assert.equal(run('repository.getInvoiceSummary(1).balance'), 0);
   assert.equal(run('TENANTS.find(t => t.id === 6).customNote'), 'Preserve me');
   assert.equal(run('TENANTS.find(t => t.id === 6).email'), 'shop@example.com');
 });
@@ -65,7 +65,7 @@ test('renaming keeps payment totals, receipt ownership, and record snapshots', a
 
 test('matching names never grant another tenant payment or maintenance ownership', async () => {
   const { run, element } = await createDemo();
-  run("TENANTS.find(t => t.id === 7).name = 'Funmi Boutique'; repository.addPayment({tenancyId:7, ref:'OTHER-TENANT', amount:999, status:'paid'}); repository.addMaintenanceRequest({id:'MR-099', tenancyId:7, subject:'Private', category:'Other', priority:'Low', date:'Today', status:'pending'}); renderReceipts(); renderMaintenance();");
+  run("TENANTS.find(t => t.id === 7).name = 'Funmi Boutique'; const otherInvoice = repository.createInvoice({tenancyId:7,periodStart:'2026-01-01',periodEnd:'2026-12-31',dueDate:'2026-01-14',items:[{description:'Rent',amount:999}]}); repository.addPayment({invoiceId:otherInvoice.id, ref:'OTHER-TENANT', amount:999, date:'2026-11-02', status:'paid'}); repository.addMaintenanceRequest({id:'MR-099', tenancyId:7, subject:'Private', category:'Other', priority:'Low', date:'Today', status:'pending'}); renderReceipts(); renderMaintenance();");
   assert.equal(run('getTenantApprovedAmount(6)'), 480000);
   assert.doesNotMatch(element('tenant-receipts-list').innerHTML, /OTHER-TENANT/);
   assert.doesNotMatch(element('maintenance-list').innerHTML, /MR-099/);
@@ -119,16 +119,16 @@ test('vacant-unit assignment preselects the unit the user clicked', async () => 
 test('new manual payments and transfer evidence use stable tenant IDs', async () => {
   const { run, element, editDemo } = await createDemo();
   editDemo({ name:'Renamed Boutique' });
-  for (const [key, value] of Object.entries({ tenant:'6', amount:'10000', method:'Cash', date:'2026-11-01', period:'2026' })) element(`manual-payment-${key}`).value = value;
+  for (const [key, value] of Object.entries({ invoice:'11', amount:'10000', method:'Cash', date:'2026-11-01' })) element(`manual-payment-${key}`).value = value;
   run('saveManualPayment();');
   assert.equal(run('PAYMENTS[0].tenantId'), 6);
   assert.equal(run('getTenantApprovedAmount(6)'), 490000);
   element('transfer-reference').value = 'BANK-001';
-  element('transfer-amount').value = '510000';
+  element('transfer-amount').value = '100000';
   element('transfer-evidence').files = [{ name:'proof.pdf' }];
   run("session.role = 'tenant'; submitTransferEvidence();");
   assert.equal(run('PAYMENTS[0].tenantId'), 6);
-  assert.equal(run('PAYMENTS[0].tenant'), 'Renamed Boutique');
+  assert.equal(run('PAYMENTS[0].tenant'), 'Funmi Boutique'); // Issued invoice name snapshot.
   assert.equal(run('PAYMENTS[0].status'), 'pending');
   assert.equal(run('getTenantApprovedAmount(6)'), 490000);
 });

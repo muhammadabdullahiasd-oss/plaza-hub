@@ -107,7 +107,7 @@ export function createDemoData() {
   const tenancies = TENANT_SEEDS.map(seed => ({
     id:seed.id, plazaId:DEMO_PLAZA_ID, tenantId:seed.id,
     unitId:units.find(unit => unit.number === seed.shop).id,
-    rent:seed.rent, start:seed.start, expires:seed.expires, paid:seed.paid,
+    rent:seed.rent, start:seed.start, expires:seed.expires,
     status:'active', endedAt:null, endReason:'',
     fees:seed.id === DEMO_TENANT_ID ? [{ description:'Service Charge', amount:24000 }, { description:'Waste Management Levy', amount:6000 }] : [],
   }));
@@ -118,7 +118,21 @@ export function createDemoData() {
   const demoTenancy = tenancies.find(tenancy => tenancy.tenantId === DEMO_TENANT_ID);
   MAINTENANCE_REQUESTS.forEach(request => Object.assign(request, { plazaId:DEMO_PLAZA_ID, tenancyId:demoTenancy.id, unitId:demoTenancy.unitId }));
 
-  return { tenants, units, tenancies, payments:PAYMENTS, plazas:PLAZAS,
+  // Explicit calendar-year sample invoices preserve the original year labels.
+  // This is fixture setup, not an automatic billing policy for new tenancies.
+  const invoices = PAYMENTS.map((payment, index) => {
+    payment.invoiceId = index + 1;
+    if (payment.status === 'overdue') payment.source = 'legacy-obligation';
+    return { id:index + 1, number:`INV-${String(index + 1).padStart(4, '0')}`, tenancyId:payment.tenancyId,
+      tenantId:payment.tenantId, plazaId:payment.plazaId, unitId:payment.unitId, tenant:payment.tenant, unit:payment.unit,
+      periodStart:`${payment.period}-01-01`, periodEnd:`${payment.period}-12-31`, dueDate:`${payment.period}-01-14`,
+      items:[{ description:'Annual rent', amount:payment.amount }], issuedAt:`${payment.period}-01-01` };
+  });
+  invoices.push({ id:11, number:'INV-0011', tenancyId:demoTenancy.id, tenantId:DEMO_TENANT_ID, plazaId:DEMO_PLAZA_ID,
+    unitId:demoTenancy.unitId, tenant:'Funmi Boutique', unit:'D-09', periodStart:'2026-01-01', periodEnd:'2026-12-31', dueDate:'2026-01-14',
+    items:[{ description:'Annual rent', amount:480000 }, ...demoTenancy.fees.map(fee => ({ ...fee }))], issuedAt:'2026-01-01' });
+
+  return { tenants, units, tenancies, invoices, payments:PAYMENTS, plazas:PLAZAS,
     subscriptionPayments:SUB_PAYMENTS, plans:PLANS, adminNotifications:ADMIN_NOTIFICATIONS,
     tenantNotifications:TENANT_NOTIFICATIONS, maintenanceRequests:MAINTENANCE_REQUESTS };
 }

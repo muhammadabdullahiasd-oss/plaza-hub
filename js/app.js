@@ -4,10 +4,9 @@ import { session, createNavigation } from './navigation.js';
 import { getMonthlyCollections, getQuarterlyCollections, buildCsv, isValidDateOnly, formatDate, formatNaira, daysUntil, expiryBadge, payStatusBadge, escapeHtml, statusBadge, avatarStyle } from './utils.js';
 import { ui } from './ui.js';
 import { createTenancyActions } from './features/tenancies.js';
+import { createInvoiceActions } from './features/invoices.js';
+import { createPaymentActions } from './features/payments.js';
 
-let payStep = 1;
-let selectedPaymentMethod = 'provider';
-let selectedTenancyId = 6;
 const { showLanding, showLogin, showRegister, hideAll, switchLoginTab, doLogin, doRegister, switchRole, buildSidebar, navTo } = createNavigation({ repository, ui, renderPage:page => renderPage(page) });
 const { openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms, openEndTenancy, endTenancy } = createTenancyActions({ repository, ui, getRole:() => session.role, refresh:() => refreshTenantViews() });
 
@@ -16,6 +15,16 @@ function refreshTenantViews() {
   renderUnits();
   renderOperationalSummaries();
   renderTenantIdentity();
+}
+
+const { renderInvoiceList, openCreateInvoice, saveInvoice, openInvoiceDetails } = createInvoiceActions({ repository, ui, getRole:() => session.role, refresh:() => refreshFinancialViews() });
+const { getSelectedTenantTenancy, selectTenantTenancy, renderPayStep, selectPayMethod, processPayment, submitTransferEvidence, renderEvidenceSubmitted, openRecordPayment, saveManualPayment, openPaymentReview, approvePaymentEvidence, rejectPaymentEvidence, renderReceipts, selectTenantInvoice, openPaymentRecord } = createPaymentActions({ repository, ui, getRole:() => session.role, refresh:() => refreshFinancialViews() });
+
+function refreshFinancialViews() {
+  renderPayments();
+  renderAdminDashboard();
+  renderTenantDashboard();
+  renderReceipts();
 }
 
 // Wrappers preserve existing callers while shared UI lives in its own module.
@@ -185,11 +194,10 @@ function calculateOperationalSummary() {
   const overdue = repository.listOccupancies().filter(tenant => daysUntil(tenant.expires) < 0).length;
   const approvedPayments = repository.listPayments().filter(payment => payment.status === 'paid');
   const pendingPayments = repository.listPayments().filter(payment => payment.status === 'pending');
-  const collected = approvedPayments.reduce((total, payment) => total + payment.amount, 0);
-  const pending = pendingPayments.reduce((total, payment) => total + payment.amount, 0);
-  const outstanding = repository.listOccupancies().filter(tenant => !tenant.paid).reduce((total, tenant) => total + tenant.rent, 0);
-  const collectionRate = collected + outstanding > 0 ? Math.round(collected / (collected + outstanding) * 100) : 0;
-  return { occupied, vacant:Math.max(repository.listUnits().length - occupied, 0), expiring, overdue, collected, pending, outstanding, collectionRate, approvedCount:approvedPayments.length, pendingCount:pendingPayments.length };
+  const ledger = repository.getLedgerSummary();
+  return { ...ledger, occupied, vacant:Math.max(repository.listUnits().length - occupied, 0), expiring, overdue,
+    invoiceOverdue:ledger.overdueCount, overdueBalance:ledger.overdue,
+    approvedCount:approvedPayments.length, pendingCount:pendingPayments.length };
 }
 
 function renderOperationalSummaries() {
@@ -209,21 +217,18 @@ function renderOperationalSummaries() {
     'payments-collection-rate': `${summary.collectionRate}%`,
     'payments-paid-count': `${summary.approvedCount} approved records`,
     'payments-pending-count': `${summary.pendingCount} pending transfers`,
-    'payments-overdue-count': `${summary.overdue} expired assignments`,
+    'payments-overdue-count': `${summary.invoiceOverdue} overdue invoices · ${formatNaira(summary.overdueBalance)}`,
   };
   Object.entries(values).forEach(([id, value]) => {
     const element = document.getElementById(id);
     if (element) element.textContent = value;
   });
   const occupiedPercent = repository.listUnits().length ? Math.round(summary.occupied / repository.listUnits().length * 100) : 0;
-  const approvedIds = new Set(repository.listPayments().filter(payment => payment.status === 'paid').map(payment => payment.tenantId));
-  const approvedTenants = repository.listTenants().filter(tenant => approvedIds.has(tenant.id)).length;
-  const assignmentCount = repository.listActiveTenancies().length;
-  const overduePercent = assignmentCount ? Math.round(summary.overdue / assignmentCount * 100) : 0;
+  const overduePercent = summary.invoiceCount ? Math.round(summary.invoiceOverdue / summary.invoiceCount * 100) : 0;
   const reportStats = {
     'report-occupied-stat': `${summary.occupied}/${repository.listUnits().length} — ${occupiedPercent}%`,
-    'report-collected-stat': `${approvedTenants}/${repository.listTenants().length} tenants — ${summary.collectionRate}%`,
-    'report-overdue-stat': `${summary.overdue}/${assignmentCount} assignments — ${overduePercent}%`,
+    'report-collected-stat': `${formatNaira(summary.collected)} / ${formatNaira(summary.billed)} — ${summary.collectionRate}%`,
+    'report-overdue-stat': `${summary.invoiceOverdue}/${summary.invoiceCount} invoices — ${overduePercent}%`,
   };
   Object.entries(reportStats).forEach(([id, value]) => {
     const element = document.getElementById(id);
@@ -256,9 +261,9 @@ function renderAdminDashboard() {
   // Recent payments
   const payTbody = document.getElementById('admin-recent-payments');
   if (payTbody) {
-    payTbody.innerHTML = repository.listPayments().slice(0,5).map(p => `
+    payTbody.innerHTML = repository.listPayments().filter(p => p.source !== 'legacy-obligation').slice(0,5).map(p => `
       <tr>
-        <td><div class="cell-user"><div class="avatar" style="${avatarStyle(p.tenant)}">${p.tenant[0]}</div><span>${p.tenant}</span></div></td>
+        <td><div class="cell-user"><div class="avatar" style="${avatarStyle(p.tenant)}">${escapeHtml(p.tenant[0])}</div><span>${escapeHtml(p.tenant)}</span></div></td>
         <td>${p.unit}</td>
         <td style="font-weight:700;">₦${p.amount.toLocaleString()}</td>
         <td><span class="badge badge-gray">${p.method}</span></td>
@@ -360,19 +365,20 @@ function showUnitDetail(no, status) {
 
 function renderPayments() {
   renderOperationalSummaries();
+  renderInvoiceList();
   const tbody = document.getElementById('payments-tbody');
   if (!tbody) return;
-  tbody.innerHTML = repository.listPayments().map(p => `
+  tbody.innerHTML = repository.listPayments().filter(p => p.source !== 'legacy-obligation').map(p => `
     <tr>
       <td><span style="font-size:11px;font-family:monospace;color:var(--text2);">${p.ref}</span></td>
-      <td><div class="cell-user"><div class="avatar" style="${avatarStyle(p.tenant)}">${p.tenant[0]}</div><span>${p.tenant}</span></div></td>
+      <td><div class="cell-user"><div class="avatar" style="${avatarStyle(p.tenant)}">${escapeHtml(p.tenant[0])}</div><span>${escapeHtml(p.tenant)}</span></div></td>
       <td>${p.unit}</td>
       <td style="font-weight:700;">₦${p.amount.toLocaleString()}</td>
-      <td>${p.period}</td>
+      <td>${escapeHtml(repository.getInvoice(p.invoiceId)?.number || 'Legacy')}<div class="cell-sub">${escapeHtml(p.period)}</div></td>
       <td><span class="badge badge-gray">${p.method}</span></td>
       <td>${formatDate(p.date)}</td>
       <td>${payStatusBadge(p.status)}</td>
-      <td>${p.status==='pending' ? `<button class="btn btn-sm btn-primary" onclick="openPaymentReview('${p.ref}')">Review</button>` : `<button class="btn btn-sm btn-ghost" onclick="showToast('Payment details are shown in this demo table.','info')">View</button>`}</td>
+      <td>${p.status==='pending' ? `<button class="btn btn-sm btn-primary" onclick="openPaymentReview('${p.ref}')">Review</button>` : `<button class="btn btn-sm btn-ghost" onclick="openInvoiceDetails(${p.invoiceId})">Invoice</button>`}</td>
     </tr>`).join('');
 }
 
@@ -385,12 +391,12 @@ function renderReports() {
   const tbody = document.getElementById('reports-top-units');
   if (!tbody) return;
   tbody.innerHTML = getUnitReportRows().map((row,i) => {
-    const { tenant:t, collected, balance, status } = row;
+    const { tenant:t, billed, collected, balance, status } = row;
     return `<tr>
       <td style="color:var(--text3);font-weight:700;">${i+1}</td>
       <td><span class="badge badge-gray">${t.shop}</span></td>
       <td>${escapeHtml(t.name)}</td>
-      <td>₦${t.rent.toLocaleString()}</td>
+      <td>${formatNaira(billed)}</td>
       <td style="color:var(--green);">₦${collected.toLocaleString()}</td>
       <td style="color:${balance>0?'var(--red)':'var(--green)'};">₦${balance.toLocaleString()}</td>
       <td><span class="badge ${status === 'Paid' ? 'badge-green' : status === 'Overdue' ? 'badge-red' : 'badge-orange'}">${status}</span></td>
@@ -399,11 +405,16 @@ function renderReports() {
 }
 
 function getUnitReportRows() {
-  return [...repository.listOccupancies()].sort((a, b) => b.rent - a.rent).slice(0, 8).map(tenant => {
-    const collected = repository.getTenancyApprovedAmount(tenant.tenancyId);
-    const balance = Math.max(tenant.rent - collected, 0);
-    return { tenant, collected, balance, status:balance === 0 ? 'Paid' : tenant.status === 'overdue' ? 'Overdue' : 'Partial' };
+  const rows = new Map();
+  repository.listInvoiceSummaries().forEach(invoice => {
+    if (!rows.has(invoice.tenancyId)) rows.set(invoice.tenancyId, { tenant:repository.getTenancyRow(invoice.tenancyId), billed:0, collected:0, balance:0, overdue:false });
+    const row = rows.get(invoice.tenancyId);
+    row.billed = Math.round((row.billed + invoice.amount) * 100) / 100;
+    row.collected = Math.round((row.collected + invoice.approved) * 100) / 100;
+    row.balance = Math.round((row.balance + invoice.balance) * 100) / 100;
+    row.overdue ||= invoice.overdue;
   });
+  return [...rows.values()].sort((a, b) => b.billed - a.billed).slice(0, 8).map(row => ({ ...row, status:row.balance === 0 ? 'Paid' : row.overdue ? 'Overdue' : row.collected > 0 ? 'Partial' : 'Unpaid' }));
 }
 
 function getExportData(kind) {
@@ -411,13 +422,13 @@ function getExportData(kind) {
     return { name:'all-tenants', rows:[['Tenant ID', 'Tenant', 'Email', 'Phone', 'Business', 'Active shops', 'Annual rent total (NGN)', 'Archived'], ...repository.listTenants().map(t => { const rows = repository.listOccupancies().filter(row => row.tenantId === t.id); return [t.id, t.name, t.email, t.phone, t.business, rows.map(row => row.shop).join('; '), rows.reduce((sum, row) => sum + row.rent, 0), t.archived ? 'Yes' : 'No']; })] };
   }
   if (session.role === 'admin' && kind === 'payments') {
-    return { name:'all-payment-records', rows:[['Reference', 'Tenant', 'Unit', 'Amount (NGN)', 'Period', 'Method', 'Date', 'Status'], ...repository.listPayments().map(p => [p.ref, p.tenant, p.unit, p.amount, p.period, p.method, p.date, p.status])] };
+    return { name:'all-payment-records', rows:[['Reference', 'Tenant', 'Unit', 'Amount (NGN)', 'Invoice', 'Period', 'Method', 'Date', 'Status'], ...repository.listPayments().filter(p => p.source !== 'legacy-obligation').map(p => [p.ref, p.tenant, p.unit, p.amount, repository.getInvoice(p.invoiceId)?.number || 'Legacy', p.period, p.method, p.date, p.status])] };
   }
   if (session.role === 'super' && kind === 'subscriptions') {
     return { name:'subscription-payments', rows:[['Plaza', 'Plan', 'Amount (NGN)', 'Period', 'Date', 'Status'], ...repository.listSubscriptionPayments().map(p => [p.plaza, p.plan, p.amount, p.period, p.date, p.status])] };
   }
   if (session.role === 'admin' && kind === 'report') {
-    return { name:'shown-unit-report', rows:[['Rank', 'Unit', 'Tenant', 'Annual rent (NGN)', 'Approved collections, all periods (NGN)', 'Sample balance (NGN)', 'Status'], ...getUnitReportRows().map((row, index) => [index + 1, row.tenant.shop, row.tenant.name, row.tenant.rent, row.collected, row.balance, row.status])] };
+    return { name:'shown-unit-report', rows:[['Rank', 'Unit', 'Tenant', 'Invoiced (NGN)', 'Approved allocations (NGN)', 'Outstanding (NGN)', 'Status'], ...getUnitReportRows().map((row, index) => [index + 1, row.tenant.shop, row.tenant.name, row.billed, row.collected, row.balance, row.status])] };
   }
   return null;
 }
@@ -465,6 +476,12 @@ function renderTenantIdentity() {
     const element = document.getElementById(id);
     if (element) element.textContent = value;
   });
+  const balanceLabel = document.getElementById('tenant-invoice-balance');
+  if (balanceLabel) {
+    const invoices = repository.listInvoiceSummaries().filter(invoice => invoice.tenantId === DEMO_TENANT_ID);
+    const outstanding = invoices.reduce((sum, invoice) => sum + Math.round(invoice.balance * 100), 0) / 100;
+    balanceLabel.textContent = `Invoice balance: ${formatNaira(outstanding)}`;
+  }
   const details = document.getElementById('tenant-lease-details');
   if (details) details.innerHTML = `<h3 class="mb-16">${escapeHtml(name)}</h3>` + repository.listTenancies(DEMO_TENANT_ID).map(tenancy => {
     const unit = repository.getUnit(tenancy.unitId);
@@ -481,17 +498,6 @@ function renderTenantDashboard() {
       <div class="receipt-icon">✅</div>
       <div class="receipt-info"><div class="receipt-name">${p.period} Annual Rent</div><div class="receipt-date">${formatDate(p.date)} · ${p.method} · ${payStatusBadge(p.status)}</div></div>
       <div><div class="receipt-amount">₦${p.amount.toLocaleString()}</div><div class="receipt-ref">${p.ref}</div></div>
-    </div>`).join('');
-}
-
-function renderReceipts() {
-  const list = document.getElementById('tenant-receipts-list');
-  if (!list) return;
-  list.innerHTML = repository.listPayments().filter(p => p.tenantId === DEMO_TENANT_ID && p.status === 'paid').map(p => `
-    <div class="receipt-item">
-      <div class="receipt-icon">🧾</div>
-      <div class="receipt-info"><div class="receipt-name">${p.period} Annual Rent — Unit ${p.unit}</div><div class="receipt-date">${formatDate(p.date)} · via ${p.method} · Ref: ${p.ref}</div></div>
-      <div style="text-align:right;"><div class="receipt-amount">₦${p.amount.toLocaleString()}</div><div style="display:flex;gap:6px;margin-top:6px;justify-content:flex-end;"><button class="btn btn-sm btn-ghost" onclick="showToast('Receipt PDF downloaded','info')">📄 PDF</button><button class="btn btn-sm btn-ghost" onclick="showToast('Receipt emailed to you','info')">📧</button></div></div>
     </div>`).join('');
 }
 
@@ -578,194 +584,6 @@ function renderTenantNotifs() {
 }
 
 /* ---- Payment Flow ---- */
-function getSelectedTenantTenancy(allowFallback = true) {
-  const tenant = repository.getTenant(DEMO_TENANT_ID);
-  if (!tenant || tenant.archived) return null;
-  const active = repository.listActiveTenancies(DEMO_TENANT_ID);
-  const selected = active.find(tenancy => tenancy.id === selectedTenancyId) || (allowFallback ? active[0] : null);
-  if (!selected) return null;
-  selectedTenancyId = selected.id;
-  return repository.getTenancyRow(selected.id);
-}
-
-function selectTenantTenancy(value) {
-  const id = Number(value);
-  if (!repository.listActiveTenancies(DEMO_TENANT_ID).some(tenancy => tenancy.id === id)) return;
-  selectedTenancyId = id;
-  renderPayStep(1);
-}
-
-function renderPayStep(step) {
-  payStep = step;
-  // Update step indicator
-  [1,2,3].forEach(i => {
-    const el = document.getElementById('pstep-'+i);
-    if (!el) return;
-    el.classList.remove('active','done');
-    if (i < step) el.classList.add('done');
-    else if (i === step) el.classList.add('active');
-  });
-  const content = document.getElementById('pay-content');
-  if (!content) return;
-  const assignment = getSelectedTenantTenancy();
-  if (!assignment) { content.innerHTML = '<div class="card"><h3>No active shop assignment</h3><p>Payment evidence requires an active assignment. Your existing payment history remains in My Receipts.</p></div>'; return; }
-  const total = assignment.rent + assignment.fees.reduce((sum, fee) => sum + fee.amount, 0);
-
-  if (step === 1) {
-    content.innerHTML = `
-      <div class="card mb-20">
-        <div class="card-header"><div class="card-title">Shop Payment Reference</div><span class="badge badge-blue">Demo charges</span></div>
-        <div class="form-group mb-16"><label class="form-label" for="tenant-payment-tenancy">Shop assignment</label><select class="form-input" id="tenant-payment-tenancy" onchange="selectTenantTenancy(this.value)">${repository.listActiveTenancies(DEMO_TENANT_ID).map(tenancy => `<option value="${tenancy.id}" ${tenancy.id === assignment.tenancyId ? 'selected' : ''}>${escapeHtml(repository.getUnit(tenancy.unitId).number)}</option>`).join('')}</select></div>
-        <div class="table-wrap">
-          <table class="data-table">
-            <thead><tr><th>Description</th><th>Period</th><th>Amount</th></tr></thead>
-            <tbody>
-              <tr><td>Annual Rent — Unit ${escapeHtml(assignment.shop)}</td><td>${formatDate(assignment.start)} – ${formatDate(assignment.expires)}</td><td style="font-weight:700;">${formatNaira(assignment.rent)}</td></tr>
-              ${assignment.fees.map(fee => `<tr><td>${escapeHtml(fee.description)}</td><td>Demo charge</td><td>${formatNaira(fee.amount)}</td></tr>`).join('')}
-              <tr><td colspan="2"><strong>Reference total</strong></td><td>${formatNaira(total)}</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div style="margin-top:14px;padding:12px 14px;background:rgba(59,130,246,0.06);border-radius:8px;font-size:12px;color:var(--text2);">
-          These are sample agreement charges, not an outstanding-balance calculation. Payment allocation and invoices come in the rent-ledger stage.
-        </div>
-      </div>
-      <div style="display:flex;justify-content:flex-end;">
-        <button class="btn btn-primary btn-lg" onclick="renderPayStep(2)">Proceed to Payment →</button>
-      </div>`;
-  } else if (step === 2) {
-    selectedPaymentMethod = 'provider';
-    content.innerHTML = `
-      <div class="card mb-20">
-        <div class="card-header"><div class="card-title">Select Payment Method</div></div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;" id="pay-methods">
-          <div class="pay-method-btn" onclick="selectPayMethod(this,'paystack')" style="border:2px solid var(--accent);border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:rgba(59,130,246,0.06);transition:all 0.2s;">
-            <div style="font-size:26px;margin-bottom:6px;">💳</div><div style="font-size:13px;font-weight:700;">Paystack</div><div style="font-size:11px;color:var(--text3);">Card / USSD / Bank</div>
-          </div>
-          <div class="pay-method-btn" onclick="selectPayMethod(this,'transfer')" style="border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;">
-            <div style="font-size:26px;margin-bottom:6px;">🏦</div><div style="font-size:13px;font-weight:700;">Bank Transfer</div><div style="font-size:11px;color:var(--text3);">Direct to account</div>
-          </div>
-          <div class="pay-method-btn" onclick="selectPayMethod(this,'ussd')" style="border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;">
-            <div style="font-size:26px;margin-bottom:6px;">📱</div><div style="font-size:13px;font-weight:700;">USSD</div><div style="font-size:11px;color:var(--text3);">Dial *822# etc.</div>
-          </div>
-        </div>
-        <div id="pay-method-detail">
-          <div style="background:rgba(11,164,219,0.05);border:1px solid rgba(11,164,219,0.2);border-radius:10px;padding:20px;">
-            <div class="paystack-logo"><div class="paystack-logo-mark">P</div><div class="paystack-logo-text">Payment-provider demo</div></div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Amount to pay: <strong style="color:var(--gold);font-size:16px;">${formatNaira(total)}</strong></div>
-            <input class="paystack-input" placeholder="Enter email address" value="funmi@boutique.ng">
-            <input class="paystack-input" placeholder="Do not enter card details">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-              <input class="paystack-input" placeholder="MM/YY">
-              <input class="paystack-input" placeholder="CVV">
-            </div>
-            <div class="paystack-secure">Demo fields only. Do not enter real payment information.</div>
-          </div>
-        </div>
-      </div>
-      <div style="display:flex;justify-content:space-between;">
-        <button class="btn btn-ghost btn-lg" onclick="renderPayStep(1)">← Back</button>
-        <button class="btn btn-primary btn-lg" onclick="processPayment()">Simulate payment submission →</button>
-      </div>`;
-  } else if (step === 3) {
-    content.innerHTML = `
-      <div class="card">
-        <div class="success-state">
-          <div class="success-icon">✅</div>
-          <div class="success-title">Demo Submission Recorded</div>
-          <p class="success-sub">This is a simulated submission for <strong style="color:var(--gold);">${formatNaira(total)}</strong>. No money was collected, no receipt was issued, and no lease was renewed.</p>
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;max-width:360px;margin:0 auto 28px;text-align:left;">
-            <div class="lease-row"><div class="lease-key">Reference</div><div class="lease-val" style="font-family:monospace;color:var(--accent2);">TXN-2026-0001</div></div>
-            <div class="lease-row"><div class="lease-key">Reference amount</div><div class="lease-val" style="color:var(--gold);">${formatNaira(total)}</div></div>
-            <div class="lease-row"><div class="lease-key">Selected shop</div><div class="lease-val">${escapeHtml(assignment.shop)}</div></div>
-            <div class="lease-row"><div class="lease-key">Status</div><div class="lease-val"><span class="badge badge-orange">Demo only</span></div></div>
-          </div>
-          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-            <button class="btn btn-primary btn-lg" onclick="showToast('Receipt downloads need a backend-generated document.','info')">📄 Receipt unavailable in demo</button>
-            <button class="btn btn-ghost btn-lg" onclick="navTo('tenant-dashboard')">← Back to Dashboard</button>
-          </div>
-        </div>
-      </div>`;
-  }
-}
-
-function selectPayMethod(el, method) {
-  const assignment = getSelectedTenantTenancy();
-  if (!assignment) return;
-  const total = assignment.rent + assignment.fees.reduce((sum, fee) => sum + fee.amount, 0);
-  selectedPaymentMethod = method;
-  document.querySelectorAll('.pay-method-btn').forEach(b => {
-    b.style.border = '1px solid var(--border)';
-    b.style.background = 'transparent';
-  });
-  el.style.border = '2px solid var(--accent)';
-  el.style.background = 'rgba(59,130,246,0.06)';
-  const detail = document.getElementById('pay-method-detail');
-  if (method === 'transfer') {
-    detail.innerHTML = `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:14px;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Bank Transfer Details</div>
-      <div class="form-grid-2" style="gap:12px;margin-bottom:12px;">
-        <div><div style="font-size:11px;color:var(--text3);">Bank</div><div style="font-weight:700;font-size:15px;">Zenith Bank PLC</div></div>
-        <div><div style="font-size:11px;color:var(--text3);">Account Number</div><div style="font-weight:800;font-size:17px;color:var(--accent2);">2103456789</div></div>
-        <div><div style="font-size:11px;color:var(--text3);">Account Name</div><div style="font-weight:700;font-size:14px;">Sunshine Business Plaza Ltd</div></div>
-        <div><div style="font-size:11px;color:var(--text3);">Reference Code</div><div style="font-weight:800;font-size:17px;color:var(--gold);">DEMO-${assignment.tenancyId}</div></div>
-      </div>
-      <div class="form-group mb-16"><label class="form-label" for="transfer-amount">Amount transferred (₦) — shop ${escapeHtml(assignment.shop)}</label><input class="form-input" id="transfer-amount" type="number" min="1" value="${total}"></div>
-      <div class="form-group" style="margin-top:16px;"><label class="form-label">Transfer reference</label><input class="form-input" id="transfer-reference" placeholder="e.g. FNB-2026-001"></div>
-      <div class="form-group"><label class="form-label">Receipt evidence</label><input class="form-input" id="transfer-evidence" type="file" accept="image/*,.pdf"><p style="font-size:11px;color:var(--text3);margin-top:6px;">Demo only: the filename is kept in browser memory and the file is not uploaded.</p></div>
-      <div style="font-size:12px;color:var(--orange);padding:10px;background:rgba(249,115,22,0.08);border-radius:6px;">A manager must verify transfer evidence before a payment is approved.</div>
-    </div>`;
-  } else if (method === 'ussd') {
-    detail.innerHTML = `<div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;font-weight:700;">USSD Codes — Choose your bank:</div>
-      <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--card);border-radius:6px;"><span>Zenith Bank</span><span style="font-family:monospace;font-weight:700;color:var(--accent2);">*966*Amount#</span></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--card);border-radius:6px;"><span>GTBank</span><span style="font-family:monospace;font-weight:700;color:var(--accent2);">*737*Amount#</span></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--card);border-radius:6px;"><span>Access Bank</span><span style="font-family:monospace;font-weight:700;color:var(--accent2);">*901*Amount#</span></div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--card);border-radius:6px;"><span>First Bank</span><span style="font-family:monospace;font-weight:700;color:var(--accent2);">*894*Amount#</span></div>
-      </div>
-    </div>`;
-  } else {
-    detail.innerHTML = `<div style="background:rgba(11,164,219,0.05);border:1px solid rgba(11,164,219,0.2);border-radius:10px;padding:20px;"><div class="paystack-logo"><div class="paystack-logo-mark">P</div><div class="paystack-logo-text">Payment-provider demo</div></div><div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Amount: <strong style="color:var(--gold);font-size:16px;">${formatNaira(total)}</strong></div><p style="font-size:12px;color:var(--text2);">This option is visual only. It does not send data to a payment provider or collect money.</p></div>`;
-  }
-}
-
-function processPayment() {
-  if (selectedPaymentMethod === 'transfer') {
-    submitTransferEvidence();
-    return;
-  }
-  showToast('Simulating a payment submission...','info');
-  setTimeout(() => { renderPayStep(3); showToast('Demo submission complete. No payment was processed.','info'); }, 1500);
-}
-
-function submitTransferEvidence() {
-  const tenant = repository.getTenant(DEMO_TENANT_ID);
-  const assignment = getSelectedTenantTenancy(false);
-  if (!assignment) {
-    showToast('This demo tenant no longer has a tenancy. Restore the sample data by refreshing.', 'error');
-    return;
-  }
-  const reference = document.getElementById('transfer-reference')?.value.trim();
-  const evidence = document.getElementById('transfer-evidence')?.files[0];
-  const amount = Number(document.getElementById('transfer-amount')?.value);
-  if (!reference || !evidence || !Number.isFinite(amount) || amount <= 0) {
-    showToast('Enter a positive transferred amount, transfer reference, and receipt file name.','error');
-    return;
-  }
-  const ref = `EVD-2026-${String(repository.listPayments().filter(p => p.ref.startsWith('EVD-2026-')).length + 1).padStart(3, '0')}`;
-  const payment = { ref, tenantId:tenant.id, tenancyId:assignment.tenancyId, tenant:tenant.name, unit:assignment.shop, amount, period:'Unallocated', method:'Bank Transfer', date:new Date().toISOString().slice(0,10), status:'pending', transferReference:reference, evidenceFile:evidence.name };
-  try { repository.addPayment(payment); }
-  catch (error) { showToast(error.message, 'error'); return; }
-  renderEvidenceSubmitted(payment);
-  showToast('Evidence submitted for manager review. It is not approved yet.','success');
-}
-
-function renderEvidenceSubmitted(payment) {
-  renderPayStep(3);
-  const content = document.getElementById('pay-content');
-  content.innerHTML = `<div class="card"><div class="success-state"><div class="success-icon">⏳</div><div class="success-title">Evidence Submitted for Review</div><p class="success-sub">Your bank-transfer evidence is pending manager verification. It has not been counted as a payment.</p><div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;max-width:420px;margin:0 auto 28px;text-align:left;"><div class="lease-row"><div class="lease-key">Submission reference</div><div class="lease-val" style="font-family:monospace;color:var(--accent2);">${payment.ref}</div></div><div class="lease-row"><div class="lease-key">Bank reference</div><div class="lease-val">${escapeHtml(payment.transferReference)}</div></div><div class="lease-row"><div class="lease-key">Evidence file</div><div class="lease-val">${escapeHtml(payment.evidenceFile)}</div></div><div class="lease-row"><div class="lease-key">Status</div><div class="lease-val">${payStatusBadge('pending')}</div></div></div><button class="btn btn-ghost btn-lg" onclick="navTo('tenant-dashboard')">Back to Dashboard</button></div></div>`;
-}
 
 function submitMaintenanceRequest() {
   if (session.role !== 'tenant') return;
@@ -993,91 +811,6 @@ function saveUnit() {
   showToast(`Unit ${number} added for this demo session.`,'success');
 }
 
-function openRecordPayment() {
-  openModal('Record Manual Payment', `
-    <div class="form-grid-2 mb-14">
-      <div class="form-group"><label class="form-label">Tenant / shop assignment</label>
-        <select class="form-input" id="manual-payment-tenant">${repository.listOccupancies().map(t=>`<option value="${t.tenancyId}">${escapeHtml(t.name)} (${escapeHtml(t.shop)})</option>`).join('')}</select>
-      </div>
-      <div class="form-group"><label class="form-label">Amount (₦)</label><input class="form-input" id="manual-payment-amount" type="number" min="1" placeholder="480000"></div>
-    </div>
-    <div class="form-grid-2 mb-14">
-      <div class="form-group"><label class="form-label">Payment Method</label>
-        <select class="form-input" id="manual-payment-method"><option>Bank Transfer</option><option>Cash</option><option>Paystack</option><option>Cheque</option></select>
-      </div>
-      <div class="form-group"><label class="form-label">Payment Date</label><input class="form-input" id="manual-payment-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
-    </div>
-    <div class="form-group mb-4"><label class="form-label">Period</label>
-      <select class="form-input" id="manual-payment-period"><option>2026</option><option>2025</option><option>2024</option></select>
-    </div>`,
-  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-primary" onclick="saveManualPayment()">Record Payment</button>`);
-}
-
-function saveManualPayment() {
-  if (session.role !== 'admin') return;
-  const tenancyId = Number(document.getElementById('manual-payment-tenant')?.value);
-  const amount = Number(document.getElementById('manual-payment-amount')?.value);
-  const method = document.getElementById('manual-payment-method')?.value;
-  const date = document.getElementById('manual-payment-date')?.value;
-  const period = document.getElementById('manual-payment-period')?.value;
-  const tenant = repository.getTenancyRow(tenancyId);
-  if (!tenant || tenant.lifecycle !== 'active' || tenant.archived || tenant.plazaId !== DEMO_PLAZA_ID || !method || !period || !date || !Number.isFinite(amount) || amount <= 0) {
-    showToast('Select a tenant and enter a positive amount, method, date, and period.','error');
-    return;
-  }
-  if (Number.isNaN(new Date(`${date}T00:00:00`).getTime())) {
-    showToast('Enter a valid payment date.','error');
-    return;
-  }
-  const year = date.slice(0, 4);
-  const ref = `MAN-${year}-${String(repository.listPayments().filter(payment => payment.ref.startsWith(`MAN-${year}-`)).length + 1).padStart(3, '0')}`;
-  repository.addPayment({ ref, tenancyId, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, amount, period, method, date, status:'paid', source:'manual' });
-  closeModalDirect();
-  renderPayments();
-  renderAdminDashboard();
-  renderTenantDashboard();
-  renderReceipts();
-  showToast(`Manual payment ${ref} recorded as paid for this demo session.`,'success');
-}
-
-function openPaymentReview(ref) {
-  const payment = repository.listPayments().find(p => p.ref === ref);
-  if (!payment || payment.status !== 'pending') return;
-  openModal('Review Transfer Evidence', `
-    <div class="lease-card">
-      <div class="lease-row"><div class="lease-key">Tenant</div><div class="lease-val">${escapeHtml(payment.tenant)}</div></div>
-      <div class="lease-row"><div class="lease-key">Amount submitted</div><div class="lease-val" style="color:var(--gold);">₦${payment.amount.toLocaleString()}</div></div>
-      <div class="lease-row"><div class="lease-key">Bank reference</div><div class="lease-val">${escapeHtml(payment.transferReference || 'Not recorded')}</div></div>
-      <div class="lease-row"><div class="lease-key">Evidence file</div><div class="lease-val">${escapeHtml(payment.evidenceFile || 'No file name recorded')}</div></div>
-    </div>
-    <div class="form-group" style="margin-top:16px;"><label class="form-label">Review note</label><textarea class="form-input" id="payment-review-reason" rows="3" placeholder="Required if rejecting; optional when approving."></textarea></div>
-    <p style="font-size:12px;color:var(--text3);margin-top:10px;">Demo only: review decisions reset on refresh and do not verify a real bank transfer.</p>`,
-  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-red" onclick="rejectPaymentEvidence('${payment.ref}')">Reject</button><button class="btn btn-primary" onclick="approvePaymentEvidence('${payment.ref}')">Approve</button>`);
-}
-
-function approvePaymentEvidence(ref) {
-  const payment = repository.listPayments().find(p => p.ref === ref);
-  if (!payment || payment.status !== 'pending') return;
-  repository.updatePayment(ref, { status:'paid', reviewReason:document.getElementById('payment-review-reason')?.value.trim() || 'Approved in demo' });
-  closeModalDirect();
-  renderPayments();
-  showToast('Evidence approved in this demo. No bank verification occurred.','success');
-}
-
-function rejectPaymentEvidence(ref) {
-  const reason = document.getElementById('payment-review-reason')?.value.trim();
-  if (!reason) {
-    showToast('Enter a reason before rejecting payment evidence.','error');
-    return;
-  }
-  const payment = repository.listPayments().find(p => p.ref === ref);
-  if (!payment || payment.status !== 'pending') return;
-  repository.updatePayment(ref, { status:'rejected', reviewReason:reason });
-  closeModalDirect();
-  renderPayments();
-  showToast('Evidence rejected and the reason was recorded for this demo session.','info');
-}
-
 function openAddPlaza() {
   if (session.role !== 'super') return;
   openModal('Onboard New Plaza Manually', `
@@ -1222,7 +955,8 @@ export const actions = {
   escapeHtml, statusBadge, avatarStyle, checkMobile, scrollToFeatures,
   openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms,
   openEndTenancy, endTenancy, getSelectedTenantTenancy, selectTenantTenancy, readTenantProfile,
-  refreshTenantViews
+  refreshTenantViews, renderInvoiceList, openCreateInvoice, saveInvoice, openInvoiceDetails,
+  selectTenantInvoice, openPaymentRecord
 };
 const inlineHandlers = {
   approvePaymentEvidence, closeModal, closeModalDirect, confirmPlazaStatusChange, deleteTenant,
@@ -1235,7 +969,8 @@ const inlineHandlers = {
   showLanding, showLogin, showRegister, showToast, showUnitDetail,
   submitMaintenanceRequest, switchLoginTab, switchRole, toggleMobileSidebar, toggleThis,
   openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms,
-  openEndTenancy, endTenancy, selectTenantTenancy
+  openEndTenancy, endTenancy, selectTenantTenancy, renderInvoiceList, openCreateInvoice,
+  saveInvoice, openInvoiceDetails, selectTenantInvoice, openPaymentRecord
 };
 Object.assign(window, inlineHandlers);
 
