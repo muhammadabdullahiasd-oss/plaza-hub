@@ -26,6 +26,7 @@ export function createNavigation({ repository, renderPage, ui }) {
       ]},
       { label:'Services', items:[
         { icon:'🔧', text:'Maintenance', page:'admin-maintenance' },
+        { icon:'📁', text:'Documents', page:'admin-documents' },
       ]},
       { label:'Analytics', items:[
         { icon:'📈', text:'Reports',             page:'admin-reports' },
@@ -45,6 +46,7 @@ export function createNavigation({ repository, renderPage, ui }) {
       { label:'Services', items:[
         { icon:'🔧', text:'Maintenance',         page:'tenant-maintenance' },
         { icon:'📄', text:'My Lease',            page:'tenant-lease' },
+        { icon:'📁', text:'My Documents',        page:'tenant-documents' },
         { icon:'🔔', text:'Notifications',       page:'tenant-notifications' },
       ]},
       { label:'Account', items:[
@@ -169,9 +171,11 @@ export function createNavigation({ repository, renderPage, ui }) {
       'admin-units':'Units & Shops', 'admin-payments':'Payments',
       'admin-reports':'Reports', 'admin-notifications':'Notifications',
       'admin-settings':'Settings', 'admin-maintenance':'Maintenance Requests',
+      'admin-documents':'Documents',
       'tenant-dashboard':'My Dashboard', 'tenant-pay':'Pay Fees',
       'tenant-receipts':'My Receipts', 'tenant-maintenance':'Maintenance Requests',
       'tenant-lease':'My Lease', 'tenant-notifications':'Notifications',
+      'tenant-documents':'My Documents',
     };
     document.getElementById('topbar-title').textContent = titles[page] || 'PlazaHub';
     // Render dynamic content

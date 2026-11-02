@@ -82,6 +82,8 @@ Stage 1 is preserved in commit `e7b09b2`. The existing screens and working workf
 | `js/features/announcements.js` | Announcement form, admin history, tenant notices and unread indicator. |
 | `js/data/rent-adjustments.js` | Rent-notice snapshots, advance-date validation, application/cancellation and read state. |
 | `js/features/rent-adjustments.js` | Notice forms, details, admin/tenant history and explicit application controls. |
+| `js/data/documents.js` | Metadata registry, scoped tenant queries, visibility history and withdrawal. |
+| `js/features/documents.js` | Document forms, admin/tenant directories, filters and visibility dialogs. |
 | `tests/helpers/load-app.cjs` | Loads real modules in isolated test contexts; legacy data aliases exist only in tests. |
 
 `export` makes a value available to another module; `import` names the values a file needs. For example, `app.js` imports `formatNaira` from `utils.js` rather than relying on a global function. Modules run once per page load and share their imported repository instance. `createRepository()` can also create independent data for tests.
@@ -264,4 +266,50 @@ Learning exercise: trace `publishRentAdjustment` and `applyRentAdjustment` in th
 
 Still incomplete: durable notices and read/application history, real login and server-enforced authorization, delivery channels, contract-specific adjustment policies, correction/credit workflows, automatic billing, backups and audit logs. All notices remain explicitly demo records and reset on refresh. No backend or dependency was introduced.
 
-Recommended next stage: a document directory with explicit demo access rules, followed by a backend design review before persistent accounts, payments or sensitive document storage.
+Stage 8 below adds a document directory with explicit demo access rules. A backend design review should precede persistent accounts, payments or sensitive document storage.
+
+## Stage 8: document metadata and demo visibility rules
+
+Stage 7 is preserved in commit `177d338`. Admin → Documents now provides a metadata directory with categories, title/filename/tenant/shop search, active/withdrawn filters, details, visibility changes and withdrawal history. Tenant → My Documents lists only permitted active records. Both start empty: there are no invented uploaded contracts. Manage Shops can open registration with a specific agreement preselected, including historical agreements.
+
+This stage registers metadata only: title (up to 120 characters), category, scope, tenancy reference where applicable, example filename (up to 160), optional shared description (up to 2,000), visibility and creation time. A filename is a label, not a URL, filesystem path or stored object. No file picker, upload, file-byte storage, preview, download, signature or email delivery is implemented. Use made-up details, not sensitive customer data.
+
+Visibility is deliberately explicit:
+
+| Visibility | Scope | Tenant view |
+| --- | --- | --- |
+| Management only (default) | Tenancy or plaza | Not listed, searchable or available through tenant detail lookup. |
+| Original tenancy tenant | Specific tenancy | Only the saved tenant ID for that agreement, including after occupancy ends, until access is revoked or the record is withdrawn. A replacement shop occupant cannot inherit it. |
+| Current plaza tenants | Plaza-wide information | Nonarchived profiles with an active assignment in that plaza, including later arrivals. Former/unassigned occupants lose access. |
+
+The platform-admin presentation does not open operational document records. These rules are frontend demonstrations, not production authorization. A real API must enforce the current session's plaza membership and document permissions independently of supplied tenant/record IDs.
+
+Lease-category records must target a specific tenancy and cannot be shared plaza-wide. Plaza records cannot also retain a tenancy target. Changing scope while registering resets visibility to Management Only, avoiding accidental broad sharing. Current membership follows the existing assignment lifecycle: a passed lease-end date does not itself release a shop. The continued availability of historical tenancy documents and access by future plaza occupants are explicit demo policies that need review before production.
+
+Registration saves stable tenant/tenancy/unit/plaza IDs and tenant/shop label snapshots. Profile renaming, rent corrections, closure, archiving and replacement occupancy cannot rewrite those labels or retarget a lease record. Registration ignores arbitrary fields rather than storing a file/URL object. Metadata corrections use withdrawal plus a new record; existing content/identity is not edited through this UI.
+
+Visibility changes retain an in-memory from/to/time history available to management, omitted from the tenant query. Repeatedly saving the same visibility adds no duplicate history event. Making a record management-only or withdrawing it removes it from subsequent tenant list/detail queries. This cannot retract information someone has already viewed. Withdrawal requires a reason (up to 500 characters), retains the admin history and cannot be reversed by sharing it again. A replacement receives a new ID.
+
+An active record with the same filename, case-insensitively, cannot be registered twice for the same plaza/scope/agreement. The same filename can belong to different agreements. After withdrawal it can be registered as a replacement with a distinct identity. This prevents accidental repeated metadata submissions; it is not file-content deduplication or version control. Filename checks reject paths, URLs, control characters and invalid label characters; they do not validate any file bytes or establish upload safety.
+
+### Try the document directory
+
+1. Refresh the preview, open Admin → Documents → Register Metadata, and choose a sample lease record for Funmi Boutique / D-09. Enter `d09-lease-demo.pdf` as a made-up filename. Keep Management Only and register. View Record should clearly state that no actual file exists.
+2. Switch to Tenant → My Documents. The private record must be absent, including when searching its title or filename. A direct detail action must not open it in the tenant view.
+3. Back in Admin → Documents, change visibility to Original Tenancy Tenant. The record should appear for Funmi, with its example filename and description. Another tenant's lease record must remain absent. Tenant details should not include management visibility history.
+4. Register a Plaza Rules record with Plaza-Wide Information scope and Current Plaza Tenants visibility. Current tenants, including a newly registered occupant, can see it. This is an evergreen-information policy, unlike the fixed recipient snapshot for announcements.
+5. Change the lease record back to Management Only, or withdraw it with a reason. It should disappear from tenant queries. Use the admin Withdrawn/All Records filter to inspect its retained history.
+6. End/archive Funmi and register a replacement occupant for D-09. A still-shared original lease record remains associated with Funmi's old agreement; the replacement cannot inherit it. Shared plaza information follows current membership instead.
+7. Try a path/URL instead of a filename, missing required fields, invalid audience/scope combinations and duplicate active filenames. Failed submissions must retain your draft and create no partial record. Search/category/status filters must preserve the correct record actions.
+
+The My Lease page retains its live agreement summaries and invoice guidance. Its inactive PDF control, toast-only email/renewal actions, stale static fallback amounts and unverified hard-coded contract terms have been replaced with a document-access panel and links to My Documents. No functioning file delivery or renewal workflow was removed; neither existed in the inspected source. The previous placeholders remain available in the Stage 7 checkpoint. Real renewal requests are still a separate future workflow.
+
+Data flow: the form validates through `repository.registerDocument`; the document store creates the metadata snapshot only after every field/scope check passes. Renderers read copies. Tenant search and counts operate on `listTenantDocuments` results, so private metadata is filtered before searching. Detail actions independently call the scoped lookup again, including after visibility changes. All displayed user text is escaped; descriptions preserve line breaks.
+
+Run `npm.cmd test`. New tests cover default private records, owner-only sharing, lifecycle/replacement occupants, evergreen plaza rules, invalid scopes/audiences/paths/text, duplicate/replacement records, visibility revocation/history copies, withdrawal, cross-plaza shop names, unchanged financial records, independent repositories, form preselection/validation, search/count privacy, role presentation, escaped text, module routes and removed misleading lease placeholders. These simulated DOM/domain/HTTP checks do not verify native Chrome/mobile layout or production security; browser QA remains paused.
+
+Learning exercise: compare `getDocument` with `getTenantDocument` in `js/data/documents.js`. Trace why tenant filtering happens before search, and why a document linked by tenancy ID stays with an old tenant while a document linked only by shop number could leak to a replacement occupant.
+
+Production still needs real authentication, server-side authorization for every metadata/content request, private object storage, validated uploads with file-type/size/content checks, authorized downloads, durable visibility/audit history, versioning, retention rules and backups. Browser memory is not secure storage. All demo metadata resets on refresh; no backend or dependency was introduced.
+
+Recommended next stage: document the backend design and migration plan—data model, authenticated sessions, plaza isolation, transaction-safe payment approval, private document storage and deployment—before adding real persistence or accounts. Implement that migration only after the design and trade-offs are reviewed.

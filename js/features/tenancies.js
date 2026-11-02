@@ -30,6 +30,7 @@ export function createTenancyActions({ repository, ui, refresh, getRole }) {
       return `<article class="lease-card mb-16">
         <div class="flex justify-between mb-8"><strong>Shop ${escapeHtml(unit.number)}</strong><span class="badge ${tenancy.status === 'active' ? 'badge-blue' : 'badge-gray'}">${tenancy.status === 'active' ? 'Occupied' : escapeHtml(tenancy.status)}</span></div>
         <p>${formatNaira(tenancy.rent)} annual rent · ${formatDate(tenancy.start)} – ${formatDate(tenancy.expires)}</p>
+        <button class="btn btn-sm btn-ghost" onclick="openRegisterDocument(${tenancy.id})">Register document metadata</button>
         ${tenancy.status !== 'active' ? `<p class="maint-description">Closed ${formatDate(tenancy.endedAt)}: ${escapeHtml(tenancy.endReason)}</p>` : `<div class="flex gap-8 wrap" style="margin-top:12px;"><button class="btn btn-sm btn-ghost" onclick="openEditTenancy(${tenancy.id})">Edit terms</button><button class="btn btn-sm btn-ghost" onclick="openPublishRentAdjustment(${tenancy.id})">Issue rent notice</button><button class="btn btn-sm btn-red" onclick="openEndTenancy(${tenancy.id})">End assignment</button></div>`}
       </article>`;
     }).join('') || '<p class="maint-desc">No shop assignments yet.</p>';

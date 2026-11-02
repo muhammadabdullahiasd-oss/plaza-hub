@@ -9,6 +9,7 @@ import { createPaymentActions } from './features/payments.js';
 import { createReceiptActions } from './features/receipts.js';
 import { createAnnouncementActions } from './features/announcements.js';
 import { createRentAdjustmentActions } from './features/rent-adjustments.js';
+import { createDocumentActions } from './features/documents.js';
 
 const { showLanding, showLogin, showRegister, hideAll, switchLoginTab, doLogin, doRegister, switchRole, buildSidebar, navTo } = createNavigation({ repository, ui, renderPage:page => renderPage(page) });
 const { openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms, openEndTenancy, endTenancy } = createTenancyActions({ repository, ui, getRole:() => session.role, refresh:() => refreshTenantViews() });
@@ -29,6 +30,8 @@ const { openPublishRentAdjustment, updateRentAdjustmentPreview, publishRentAdjus
   applyRentAdjustment, openCancelRentAdjustment, cancelRentAdjustment, renderAdminRentAdjustments,
   renderTenantRentAdjustments, markRentAdjustmentRead } = createRentAdjustmentActions({ repository, ui, getRole:() => session.role,
   updateIndicators:updateAnnouncementIndicators, refresh:() => { refreshTenantViews(); renderAdminNotifs(); renderTenantNotifs(); } });
+const { renderAdminDocuments, renderTenantDocuments, openRegisterDocument, updateDocumentScope, saveDocumentRecord,
+  openDocumentRecord, openDocumentVisibility, saveDocumentVisibility, openWithdrawDocument, withdrawDocument } = createDocumentActions({ repository, ui, getRole:() => session.role });
 
 function refreshFinancialViews() {
   renderPayments();
@@ -59,11 +62,13 @@ function renderPage(page) {
     case 'admin-reports':      renderReports(); break;
     case 'admin-notifications':renderAdminNotifs(); break;
     case 'admin-maintenance':  renderAdminMaintenance(); break;
+    case 'admin-documents':    renderAdminDocuments(); break;
     case 'tenant-dashboard':   renderTenantDashboard(); break;
     case 'tenant-lease':       renderTenantIdentity(); break;
     case 'tenant-pay':         renderPayStep(1); break;
     case 'tenant-receipts':    renderReceipts(); break;
     case 'tenant-maintenance': renderMaintenance(); break;
+    case 'tenant-documents':   renderTenantDocuments(); break;
     case 'tenant-notifications':renderTenantNotifs(); break;
   }
   updateAnnouncementIndicators();
@@ -477,7 +482,7 @@ function renderTenantIdentity() {
   const assignments = repository.listOccupancies().filter(row => row.tenantId === DEMO_TENANT_ID);
   const name = tenant?.name || 'Tenant no longer assigned';
   const nextExpiry = assignments.map(row => row.expires).sort()[0];
-  const values = { 'tenant-welcome-name':`${name} 👋`, 'tenant-lease-name':name,
+  const values = { 'tenant-welcome-name':`${name} 👋`,
     'tenant-shop-summary':assignments.length ? `Shops ${assignments.map(row => row.shop).join(', ')} · ${repository.listPlazas().find(plaza => plaza.id === DEMO_PLAZA_ID).name}` : 'No active shop assignments',
     'tenant-rent-total':formatNaira(assignments.reduce((sum, row) => sum + row.rent, 0)),
     'tenant-shop-numbers':assignments.map(row => row.shop).join(', ') || '—',
@@ -975,7 +980,9 @@ export const actions = {
   renderTenantAnnouncements, updateAnnouncementAudience, updateAnnouncementIndicators,
   publishAnnouncement, markAnnouncementRead, openPublishRentAdjustment, updateRentAdjustmentPreview,
   publishRentAdjustment, openRentAdjustmentNotice, applyRentAdjustment, openCancelRentAdjustment,
-  cancelRentAdjustment, renderAdminRentAdjustments, renderTenantRentAdjustments, markRentAdjustmentRead
+  cancelRentAdjustment, renderAdminRentAdjustments, renderTenantRentAdjustments, markRentAdjustmentRead,
+  renderAdminDocuments, renderTenantDocuments, openRegisterDocument, updateDocumentScope, saveDocumentRecord,
+  openDocumentRecord, openDocumentVisibility, saveDocumentVisibility, openWithdrawDocument, withdrawDocument
 };
 const inlineHandlers = {
   approvePaymentEvidence, closeModal, closeModalDirect, confirmPlazaStatusChange, deleteTenant,
@@ -992,7 +999,9 @@ const inlineHandlers = {
   saveInvoice, openInvoiceDetails, selectTenantInvoice, openPaymentRecord, printReceipt,
   updateAnnouncementAudience, publishAnnouncement, markAnnouncementRead, openPublishRentAdjustment,
   updateRentAdjustmentPreview, publishRentAdjustment, openRentAdjustmentNotice, applyRentAdjustment,
-  openCancelRentAdjustment, cancelRentAdjustment, renderAdminRentAdjustments, markRentAdjustmentRead
+  openCancelRentAdjustment, cancelRentAdjustment, renderAdminRentAdjustments, markRentAdjustmentRead,
+  renderAdminDocuments, renderTenantDocuments, openRegisterDocument, updateDocumentScope, saveDocumentRecord,
+  openDocumentRecord, openDocumentVisibility, saveDocumentVisibility, openWithdrawDocument, withdrawDocument
 };
 Object.assign(window, inlineHandlers);
 

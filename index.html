@@ -796,6 +796,21 @@
           </div>
         </div>
 
+        <!-- Admin: Document metadata -->
+        <div class="app-page" id="page-admin-documents">
+          <div class="card">
+            <div class="card-header wrap gap-8"><div><div class="card-title">Document Directory</div><div class="card-subtitle">Demo metadata and visibility rules. No file uploads or storage.</div></div><button class="btn btn-primary" onclick="openRegisterDocument()">+ Register metadata</button></div>
+            <p class="maint-meta mb-16">Use made-up details. Records start management-only unless explicitly shared. Withdrawal retains admin history and removes tenant access. No actual document can be downloaded or emailed here.</p>
+            <div class="form-grid-3 mb-16">
+              <div class="form-group"><label class="form-label" for="admin-document-search">Search title, filename, tenant or shop</label><input class="form-input" id="admin-document-search" maxlength="160" oninput="renderAdminDocuments()"></div>
+              <div class="form-group"><label class="form-label" for="admin-document-category">Category</label><select class="form-input" id="admin-document-category" onchange="renderAdminDocuments()"><option value="all">All categories</option><option value="lease">Lease agreement</option><option value="rules">Plaza rules</option><option value="inspection">Inspection record</option><option value="other">Other</option></select></div>
+              <div class="form-group"><label class="form-label" for="admin-document-status">Status</label><select class="form-input" id="admin-document-status" onchange="renderAdminDocuments()"><option value="active">Active</option><option value="withdrawn">Withdrawn</option><option value="all">All records</option></select></div>
+            </div>
+            <p class="maint-meta mb-16" id="admin-document-summary" aria-live="polite"></p>
+            <div id="admin-document-list"></div>
+          </div>
+        </div>
+
         <!-- Admin: Settings -->
         <div class="app-page" id="page-admin-settings">
           <div class="grid-2">
@@ -924,37 +939,37 @@
         <div class="app-page" id="page-tenant-lease">
           <div class="grid-2">
             <div class="card">
-              <div class="card-header"><div class="card-title">Lease Agreement Details</div><button class="btn btn-sm btn-ghost">📄 Download PDF</button></div>
+              <div class="card-header wrap gap-8"><div class="card-title">Demo Agreement Details</div><button class="btn btn-sm btn-ghost" onclick="navTo('tenant-documents')">View permitted document records</button></div>
               <div class="lease-card" id="tenant-lease-details">
-                <div class="lease-row"><div class="lease-key">Tenant Name</div><div class="lease-val" id="tenant-lease-name">Funmi Boutique</div></div>
-                <div class="lease-row"><div class="lease-key">Plaza Name</div><div class="lease-val">Sunshine Business Plaza</div></div>
-                <div class="lease-row"><div class="lease-key">Shop / Unit Number</div><div class="lease-val">Unit D-09, Block D</div></div>
-                <div class="lease-row"><div class="lease-key">Floor / Level</div><div class="lease-val">Ground Floor</div></div>
-                <div class="lease-row"><div class="lease-key">Unit Size</div><div class="lease-val">45 square meters</div></div>
-                <div class="lease-row"><div class="lease-key">Business Type</div><div class="lease-val">Fashion Boutique / Retail</div></div>
-                <div class="lease-row"><div class="lease-key">Annual Rent</div><div class="lease-val" style="color:var(--gold);font-family:'Syne',sans-serif;font-size:16px;">₦480,000</div></div>
-                <div class="lease-row"><div class="lease-key">Lease Start Date</div><div class="lease-val">January 14, 2022</div></div>
-                <div class="lease-row"><div class="lease-key">Current Lease Period</div><div class="lease-val">Jan 14, 2025 — Aug 14, 2026</div></div>
-                <div class="lease-row"><div class="lease-key">Payment Due Date</div><div class="lease-val">Every January 14th</div></div>
-                <div class="lease-row"><div class="lease-key">Lease Status</div><div class="lease-val"><span class="badge badge-green">✓ Active</span></div></div>
-                <div class="lease-row"><div class="lease-key">Security Deposit</div><div class="lease-val">₦480,000 (paid)</div></div>
-                <div class="lease-row"><div class="lease-key">Management Contact</div><div class="lease-val">admin@sunshineplaza.ng</div></div>
+                <p>Agreement details appear when this demo page opens.</p>
               </div>
             </div>
             <div class="card">
-              <div class="card-header"><div class="card-title">Lease Terms Summary</div></div>
+              <div class="card-header"><div class="card-title">Lease Documents &amp; Records</div></div>
               <div style="display:flex;flex-direction:column;gap:14px;font-size:13px;color:var(--text2);line-height:1.8;">
                 <p>📋 <strong style="color:var(--text);">Demo Billing:</strong> Each invoice shows its own billing period and due date. Partial approved payments reduce that invoice only. Grace periods and late penalties are not implemented.</p>
-                <p>🔧 <strong style="color:var(--text);">Maintenance:</strong> The tenant is responsible for interior maintenance and fixtures. Structural repairs are the responsibility of plaza management.</p>
-                <p>🚫 <strong style="color:var(--text);">Subletting:</strong> Subletting or transferring the tenancy to a third party without written consent from plaza management is strictly prohibited.</p>
-                <p>📢 <strong style="color:var(--text);">Termination:</strong> Either party may terminate this lease with 90 days written notice. Breach of terms may result in immediate termination.</p>
-                <p>🔄 <strong style="color:var(--text);">Renewal:</strong> The tenant must notify management at least 30 days before expiry to confirm renewal. Rent may be reviewed annually.</p>
+                <p>These agreement figures come from in-memory demo records. No lease PDF, signature, deposit confirmation or renewal request has been stored.</p>
+                <p>My Documents lists metadata management has shared with your tenant profile. A filename is a reference only; no file has been uploaded.</p>
+                <p>Actual lease terms must come from the relevant agreement. This prototype does not establish maintenance, termination or renewal conditions.</p>
               </div>
               <div style="margin-top:20px;padding-top:18px;border-top:1px solid var(--border);">
-                <button class="btn btn-primary w-full mb-8" onclick="showToast('Renewal request submitted. Management will contact you shortly.','success')">🔄 Request Lease Renewal</button>
-                <button class="btn btn-ghost w-full" onclick="showToast('A copy has been sent to your email.','info')">📧 Email Me a Copy</button>
+                <button class="btn btn-primary w-full mb-8" onclick="navTo('tenant-documents')">View My Documents</button>
               </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Tenant: Permitted document metadata -->
+        <div class="app-page" id="page-tenant-documents">
+          <div class="card">
+            <div class="card-header"><div><div class="card-title">My Documents</div><div class="card-subtitle">Permitted demo metadata only. Actual files and secure downloads are not implemented.</div></div></div>
+            <p class="maint-meta mb-16">Shared tenancy records stay with their original tenant. Shared plaza information is available while you have a current assignment. Management-only and withdrawn records do not appear.</p>
+            <div class="form-grid-2 mb-16">
+              <div class="form-group"><label class="form-label" for="tenant-document-search">Search permitted records</label><input class="form-input" id="tenant-document-search" maxlength="160" oninput="renderTenantDocuments()"></div>
+              <div class="form-group"><label class="form-label" for="tenant-document-category">Category</label><select class="form-input" id="tenant-document-category" onchange="renderTenantDocuments()"><option value="all">All categories</option><option value="lease">Lease agreement</option><option value="rules">Plaza rules</option><option value="inspection">Inspection record</option><option value="other">Other</option></select></div>
+            </div>
+            <p class="maint-meta mb-16" id="tenant-document-summary" aria-live="polite"></p>
+            <div id="tenant-document-list"></div>
           </div>
         </div>
 
