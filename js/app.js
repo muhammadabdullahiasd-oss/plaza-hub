@@ -7,7 +7,7 @@ let currentPage = '';
 let payStep = 1;
 let loginRole = 'super';
 let selectedPaymentMethod = 'provider';
-const DEMO_TENANT_NAME = 'Funmi Boutique';
+const DEMO_TENANT_ID = 6;
 
 /* ============================================================
    SAMPLE DATA
@@ -27,6 +27,9 @@ const TENANTS = [
   { id:12,name:'Leke Tailoring',       shop:'B-15', block:'B', business:'Tailoring & Alterations',rent:200000,start:'2024-03-01',expires:'2027-03-01', paid:true,  status:'active' },
 ];
 
+// Session-only sequence: deleting a tenant must never give their ID to someone else.
+let nextTenantId = Math.max(0, ...TENANTS.map(tenant => tenant.id)) + 1;
+
 const UNITS = [];
 ['A', 'B'].forEach(block => {
   for (let number = 1; number <= 24; number += 1) {
@@ -36,16 +39,16 @@ const UNITS = [];
 UNITS.push({ number:'D-09', block:'D', size:45, suggestedRent:480000 });
 
 const PAYMENTS = [
-  { ref:'TXN-2025-0841', tenant:'Funmi Boutique',       unit:'D-09', amount:480000, period:'2025', method:'Paystack',       date:'2025-01-05', status:'paid' },
-  { ref:'TXN-2025-0840', tenant:'Jide Legal Services',  unit:'B-12', amount:600000, period:'2025', method:'Bank Transfer',  date:'2025-01-04', status:'paid' },
-  { ref:'TXN-2025-0839', tenant:'Grace Pharmacy',       unit:'B-03', amount:540000, period:'2025', method:'Paystack',       date:'2025-01-03', status:'paid' },
-  { ref:'TXN-2025-0838', tenant:'Damilola Electronics', unit:'A-10', amount:420000, period:'2025', method:'Paystack',       date:'2025-01-02', status:'paid' },
-  { ref:'TXN-2025-0837', tenant:'Hassan Auto Parts',    unit:'B-06', amount:380000, period:'2025', method:'Bank Transfer',  date:'2024-12-30', status:'paid' },
-  { ref:'TXN-2024-0819', tenant:'Emeka POS Agent',      unit:'A-13', amount:180000, period:'2024', method:'Bank Transfer',  date:'2024-11-01', status:'pending' },
-  { ref:'TXN-2024-0805', tenant:'Ifeoma Catering',      unit:'B-09', amount:240000, period:'2024', method:'—',              date:'2024-09-10', status:'overdue' },
-  { ref:'TXN-2025-0842', tenant:'Chidi Fabrics',        unit:'A-07', amount:280000, period:'2025', method:'USSD',           date:'2025-01-06', status:'paid' },
-  { ref:'TXN-2025-0843', tenant:'Kemi Baby World',      unit:'A-16', amount:260000, period:'2025', method:'Paystack',       date:'2025-01-07', status:'paid' },
-  { ref:'TXN-2025-0844', tenant:'Leke Tailoring',       unit:'B-15', amount:200000, period:'2025', method:'Bank Transfer',  date:'2025-01-08', status:'paid' },
+  { ref:'TXN-2025-0841', tenantId:6, tenant:'Funmi Boutique',       unit:'D-09', amount:480000, period:'2025', method:'Paystack',       date:'2025-01-05', status:'paid' },
+  { ref:'TXN-2025-0840', tenantId:10,tenant:'Jide Legal Services',  unit:'B-12', amount:600000, period:'2025', method:'Bank Transfer',  date:'2025-01-04', status:'paid' },
+  { ref:'TXN-2025-0839', tenantId:7, tenant:'Grace Pharmacy',       unit:'B-03', amount:540000, period:'2025', method:'Paystack',       date:'2025-01-03', status:'paid' },
+  { ref:'TXN-2025-0838', tenantId:4, tenant:'Damilola Electronics', unit:'A-10', amount:420000, period:'2025', method:'Paystack',       date:'2025-01-02', status:'paid' },
+  { ref:'TXN-2025-0837', tenantId:8, tenant:'Hassan Auto Parts',    unit:'B-06', amount:380000, period:'2025', method:'Bank Transfer',  date:'2024-12-30', status:'paid' },
+  { ref:'TXN-2024-0819', tenantId:5, tenant:'Emeka POS Agent',      unit:'A-13', amount:180000, period:'2024', method:'Bank Transfer',  date:'2024-11-01', status:'pending' },
+  { ref:'TXN-2024-0805', tenantId:9, tenant:'Ifeoma Catering',      unit:'B-09', amount:240000, period:'2024', method:'—',              date:'2024-09-10', status:'overdue' },
+  { ref:'TXN-2025-0842', tenantId:3, tenant:'Chidi Fabrics',        unit:'A-07', amount:280000, period:'2025', method:'USSD',           date:'2025-01-06', status:'paid' },
+  { ref:'TXN-2025-0843', tenantId:11,tenant:'Kemi Baby World',      unit:'A-16', amount:260000, period:'2025', method:'Paystack',       date:'2025-01-07', status:'paid' },
+  { ref:'TXN-2025-0844', tenantId:12,tenant:'Leke Tailoring',       unit:'B-15', amount:200000, period:'2025', method:'Bank Transfer',  date:'2025-01-08', status:'paid' },
 ];
 
 const PLAZAS = [
@@ -99,7 +102,8 @@ const MAINTENANCE_REQUESTS = [
 
 // Seed requests belong to the tenant represented by this demo portal.
 MAINTENANCE_REQUESTS.forEach(request => {
-  request.tenant = DEMO_TENANT_NAME;
+  request.tenantId = DEMO_TENANT_ID;
+  request.tenant = 'Funmi Boutique';
   request.unit = 'D-09';
   request.description = '';
   request.managerNote = '';
@@ -216,7 +220,8 @@ function switchRole(role) {
     document.getElementById('rbtn-'+r)?.classList.toggle('active', r===role);
   });
   // Sidebar user info
-  const u = ROLE_USER[role];
+  const demoTenant = TENANTS.find(tenant => tenant.id === DEMO_TENANT_ID);
+  const u = role === 'tenant' && demoTenant ? { ...ROLE_USER.tenant, name:demoTenant.name, initial:demoTenant.name[0] } : ROLE_USER[role];
   document.getElementById('sidebar-avatar').style.background = u.bg;
   document.getElementById('sidebar-avatar').style.color = u.color;
   document.getElementById('sidebar-avatar').textContent = u.initial;
@@ -301,6 +306,7 @@ function renderPage(page) {
     case 'admin-notifications':renderAdminNotifs(); break;
     case 'admin-maintenance':  renderAdminMaintenance(); break;
     case 'tenant-dashboard':   renderTenantDashboard(); break;
+    case 'tenant-lease':       renderTenantIdentity(); break;
     case 'tenant-pay':         renderPayStep(1); break;
     case 'tenant-receipts':    renderReceipts(); break;
     case 'tenant-maintenance': renderMaintenance(); break;
@@ -454,8 +460,8 @@ function getQuarterlyCollections(records) {
   return quarterly;
 }
 
-function getTenantApprovedAmount(tenantName) {
-  return PAYMENTS.filter(payment => payment.tenant === tenantName && payment.status === 'paid')
+function getTenantApprovedAmount(tenantId) {
+  return PAYMENTS.filter(payment => payment.tenantId === tenantId && payment.status === 'paid')
     .reduce((total, payment) => total + payment.amount, 0);
 }
 
@@ -498,7 +504,8 @@ function renderOperationalSummaries() {
     if (element) element.textContent = value;
   });
   const occupiedPercent = UNITS.length ? Math.round(summary.occupied / UNITS.length * 100) : 0;
-  const approvedTenants = new Set(PAYMENTS.filter(payment => payment.status === 'paid').map(payment => payment.tenant)).size;
+  const approvedIds = new Set(PAYMENTS.filter(payment => payment.status === 'paid').map(payment => payment.tenantId));
+  const approvedTenants = TENANTS.filter(tenant => approvedIds.has(tenant.id)).length;
   const overduePercent = TENANTS.length ? Math.round(summary.overdue / TENANTS.length * 100) : 0;
   const reportStats = {
     'report-occupied-stat': `${summary.occupied}/${UNITS.length} — ${occupiedPercent}%`,
@@ -555,9 +562,9 @@ function renderTenants(list) {
   tbody.innerHTML = list.map(t => {
     const days = daysUntil(t.expires);
     return `<tr>
-      <td><div class="cell-user"><div class="avatar" style="${avatarStyle(t.name)}">${t.name[0]}</div><div><div class="cell-name">${t.name}</div></div></div></td>
+      <td><div class="cell-user"><div class="avatar" style="${avatarStyle(t.name)}">${escapeHtml(t.name[0])}</div><div><div class="cell-name">${escapeHtml(t.name)}</div><div class="cell-sub">${[t.email, t.phone].filter(Boolean).map(escapeHtml).join(' · ')}</div></div></div></td>
       <td><span class="badge badge-gray">${t.shop}</span></td>
-      <td>${t.business}</td>
+      <td>${escapeHtml(t.business)}</td>
       <td style="font-weight:700;">₦${t.rent.toLocaleString()}</td>
       <td>${formatDate(t.start)}</td>
       <td>${formatDate(t.expires)}</td>
@@ -624,13 +631,13 @@ function showUnitDetail(no, status) {
     <div class="lease-card">
       <div class="lease-row"><div class="lease-key">Unit</div><div class="lease-val">${no}</div></div>
       <div class="lease-row"><div class="lease-key">Block</div><div class="lease-val">Block ${no[0]}</div></div>
-      <div class="lease-row"><div class="lease-key">Tenant</div><div class="lease-val">${t.name}</div></div>
-      <div class="lease-row"><div class="lease-key">Business</div><div class="lease-val">${t.business}</div></div>
+      <div class="lease-row"><div class="lease-key">Tenant</div><div class="lease-val">${escapeHtml(t.name)}</div></div>
+      <div class="lease-row"><div class="lease-key">Business</div><div class="lease-val">${escapeHtml(t.business)}</div></div>
       <div class="lease-row"><div class="lease-key">Annual Rent</div><div class="lease-val" style="color:var(--gold);">₦${t.rent.toLocaleString()}</div></div>
       <div class="lease-row"><div class="lease-key">Lease Expires</div><div class="lease-val">${formatDate(t.expires)}</div></div>
       <div class="lease-row"><div class="lease-key">Status</div><div class="lease-val">${expiryBadge(daysUntil(t.expires))}</div></div>
     </div>` : `<div class="empty-state"><div class="empty-icon">⬜</div><h3>Unit is Vacant</h3><p>This unit currently has no tenant assigned.</p></div>`,
-  `<button class="btn btn-ghost" onclick="closeModalDirect()">Close</button>${t ? '<button class="btn btn-primary" onclick="openEditTenant('+t.id+')">Edit Tenant</button>' : '<button class="btn btn-primary" onclick="closeModalDirect();openAddTenant()">Assign Tenant</button>'}`);
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Close</button>${t ? '<button class="btn btn-primary" onclick="openEditTenant('+t.id+')">Edit Tenant</button>' : `<button class="btn btn-primary" onclick="closeModalDirect();openAddTenant('${no}')">Assign Tenant</button>`}`);
 }
 
 function renderPayments() {
@@ -675,7 +682,7 @@ function renderReports() {
 
 function getUnitReportRows() {
   return [...TENANTS].sort((a, b) => b.rent - a.rent).slice(0, 8).map(tenant => {
-    const collected = getTenantApprovedAmount(tenant.name);
+    const collected = getTenantApprovedAmount(tenant.id);
     const balance = Math.max(tenant.rent - collected, 0);
     return { tenant, collected, balance, status:balance === 0 ? 'Paid' : tenant.status === 'overdue' ? 'Overdue' : 'Partial' };
   });
@@ -692,7 +699,7 @@ function buildCsv(rows) {
 
 function getExportData(kind) {
   if (currentRole === 'admin' && kind === 'tenants') {
-    return { name:'all-tenants', rows:[['Tenant', 'Unit', 'Business', 'Annual rent (NGN)', 'Lease start', 'Lease end', 'Lease status'], ...TENANTS.map(t => [t.name, t.shop, t.business, t.rent, t.start, t.expires, t.status])] };
+    return { name:'all-tenants', rows:[['Tenant ID', 'Tenant', 'Email', 'Phone', 'Unit', 'Business', 'Annual rent (NGN)', 'Lease start', 'Lease end', 'Lease status'], ...TENANTS.map(t => [t.id, t.name, t.email || '', t.phone || '', t.shop, t.business, t.rent, t.start, t.expires, t.status])] };
   }
   if (currentRole === 'admin' && kind === 'payments') {
     return { name:'all-payment-records', rows:[['Reference', 'Tenant', 'Unit', 'Amount (NGN)', 'Period', 'Method', 'Date', 'Status'], ...PAYMENTS.map(p => [p.ref, p.tenant, p.unit, p.amount, p.period, p.method, p.date, p.status])] };
@@ -732,10 +739,21 @@ function renderAdminNotifs() {
 }
 
 /* ---- Tenant ---- */
+function renderTenantIdentity() {
+  const tenant = TENANTS.find(item => item.id === DEMO_TENANT_ID);
+  const name = tenant?.name || 'Tenant no longer assigned';
+  const values = { 'tenant-welcome-name':`${name} 👋`, 'tenant-lease-name':name };
+  Object.entries(values).forEach(([id, value]) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  });
+}
+
 function renderTenantDashboard() {
+  renderTenantIdentity();
   const list = document.getElementById('tenant-recent-payments');
   if (!list) return;
-  list.innerHTML = PAYMENTS.filter(p => p.tenant === DEMO_TENANT_NAME).slice(0,3).map(p => `
+  list.innerHTML = PAYMENTS.filter(p => p.tenantId === DEMO_TENANT_ID).slice(0,3).map(p => `
     <div class="receipt-item">
       <div class="receipt-icon">✅</div>
       <div class="receipt-info"><div class="receipt-name">${p.period} Annual Rent</div><div class="receipt-date">${formatDate(p.date)} · ${p.method} · ${payStatusBadge(p.status)}</div></div>
@@ -746,7 +764,7 @@ function renderTenantDashboard() {
 function renderReceipts() {
   const list = document.getElementById('tenant-receipts-list');
   if (!list) return;
-  list.innerHTML = PAYMENTS.filter(p => p.tenant === DEMO_TENANT_NAME && p.status === 'paid').map(p => `
+  list.innerHTML = PAYMENTS.filter(p => p.tenantId === DEMO_TENANT_ID && p.status === 'paid').map(p => `
     <div class="receipt-item">
       <div class="receipt-icon">🧾</div>
       <div class="receipt-info"><div class="receipt-name">${p.period} Annual Rent — Unit ${p.unit}</div><div class="receipt-date">${formatDate(p.date)} · via ${p.method} · Ref: ${p.ref}</div></div>
@@ -757,7 +775,7 @@ function renderReceipts() {
 function renderMaintenance() {
   const list = document.getElementById('maintenance-list');
   if (!list) return;
-  const requests = MAINTENANCE_REQUESTS.filter(request => request.tenant === DEMO_TENANT_NAME);
+  const requests = MAINTENANCE_REQUESTS.filter(request => request.tenantId === DEMO_TENANT_ID);
   list.innerHTML = requests.map(request => renderMaintenanceCard(request)).join('') || '<p class="maint-desc">No maintenance requests yet.</p>';
 }
 
@@ -969,6 +987,11 @@ function processPayment() {
 }
 
 function submitTransferEvidence() {
+  const tenant = TENANTS.find(item => item.id === DEMO_TENANT_ID);
+  if (!tenant) {
+    showToast('This demo tenant no longer has a tenancy. Restore the sample data by refreshing.', 'error');
+    return;
+  }
   const reference = document.getElementById('transfer-reference')?.value.trim();
   const evidence = document.getElementById('transfer-evidence')?.files[0];
   if (!reference || !evidence) {
@@ -976,7 +999,7 @@ function submitTransferEvidence() {
     return;
   }
   const ref = `EVD-2026-${String(PAYMENTS.filter(p => p.ref.startsWith('EVD-2026-')).length + 1).padStart(3, '0')}`;
-  const payment = { ref, tenant:DEMO_TENANT_NAME, unit:'D-09', amount:510000, period:'2026', method:'Bank Transfer', date:new Date().toISOString().slice(0,10), status:'pending', transferReference:reference, evidenceFile:evidence.name };
+  const payment = { ref, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, amount:510000, period:'2026', method:'Bank Transfer', date:new Date().toISOString().slice(0,10), status:'pending', transferReference:reference, evidenceFile:evidence.name };
   PAYMENTS.unshift(payment);
   renderEvidenceSubmitted(payment);
   showToast('Evidence submitted for manager review. It is not approved yet.','success');
@@ -998,14 +1021,14 @@ function submitMaintenanceRequest() {
     showToast('Choose a category and priority, and enter a subject (up to 120 characters) and description (up to 2,000).', 'error');
     return;
   }
-  const tenant = TENANTS.find(item => item.name === DEMO_TENANT_NAME);
+  const tenant = TENANTS.find(item => item.id === DEMO_TENANT_ID);
   if (!tenant) {
     showToast('This demo tenant no longer has a tenancy. Restore the sample data by refreshing.', 'error');
     return;
   }
   const nextId = Math.max(0, ...MAINTENANCE_REQUESTS.map(request => Number(request.id.replace('MR-', '')))) + 1;
   const id = `MR-${String(nextId).padStart(3, '0')}`;
-  MAINTENANCE_REQUESTS.unshift({ id, tenant:DEMO_TENANT_NAME, unit:tenant.shop, category, priority, subject, description, date:formatDate(new Date()), status:'pending', managerNote:'' });
+  MAINTENANCE_REQUESTS.unshift({ id, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, category, priority, subject, description, date:formatDate(new Date()), status:'pending', managerNote:'' });
   document.getElementById('maintenance-form').reset();
   renderMaintenance();
   showToast(`Request ${id} submitted for this demo session.`, 'success');
@@ -1042,7 +1065,7 @@ function closeModal(e) { if (e.target === document.getElementById('modal-overlay
 function closeModalDirect() { document.getElementById('modal-overlay').classList.remove('open'); }
 
 /* TENANT MODALS */
-function openAddTenant() {
+function openAddTenant(preferredUnit = '') {
   const availableUnits = getAvailableUnits();
   if (!availableUnits.length) {
     showToast('There are no vacant units available for a new tenant.','error');
@@ -1051,11 +1074,11 @@ function openAddTenant() {
   openModal('Add New Tenant', `
     <div class="form-section-title">Tenant Information</div>
     <div class="form-grid-2 mb-14">
-      <div class="form-group"><label class="form-label">Full Name / Business Name</label><input class="form-input" placeholder="e.g. Adaeze Boutique" id="nt-name"></div>
-      <div class="form-group"><label class="form-label">Phone Number</label><input class="form-input" placeholder="0801 234 5678" id="nt-phone"></div>
+      <div class="form-group"><label class="form-label" for="nt-name">Full Name / Business Name</label><input class="form-input" placeholder="e.g. Adaeze Boutique" id="nt-name" maxlength="120"></div>
+      <div class="form-group"><label class="form-label" for="nt-phone">Phone Number (optional)</label><input class="form-input" type="tel" placeholder="0801 234 5678" id="nt-phone" maxlength="40"></div>
     </div>
     <div class="form-grid-2 mb-14">
-      <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" placeholder="tenant@email.com" id="nt-email"></div>
+      <div class="form-group"><label class="form-label" for="nt-email">Email Address (optional)</label><input class="form-input" type="email" placeholder="tenant@email.com" id="nt-email" maxlength="254"></div>
       <div class="form-group"><label class="form-label">Business Type</label>
         <select class="form-input" id="nt-biz"><option>Fashion & Retail</option><option>Food & Catering</option><option>Electronics</option><option>Pharmacy & Health</option><option>Financial Services</option><option>Professional Services</option><option>Provisions / FMCG</option><option>Other</option></select>
       </div>
@@ -1063,7 +1086,7 @@ function openAddTenant() {
     <div class="form-section-title">Shop & Lease</div>
     <div class="form-grid-2 mb-14">
       <div class="form-group"><label class="form-label">Shop / Unit Number</label>
-        <select class="form-input" id="nt-unit">${availableUnits.map(unit => `<option>${unit}</option>`).join('')}</select>
+        <select class="form-input" id="nt-unit">${availableUnits.map(unit => `<option${unit === preferredUnit ? ' selected' : ''}>${unit}</option>`).join('')}</select>
       </div>
       <div class="form-group"><label class="form-label">Annual Rent (₦)</label><input class="form-input" type="number" placeholder="300000" id="nt-rent"></div>
     </div>
@@ -1081,7 +1104,7 @@ function saveTenant() {
     showToast('That unit is already occupied. Choose a vacant unit.','error');
     return;
   }
-  TENANTS.push({ id:Math.max(...TENANTS.map(tenant => tenant.id)) + 1, ...details });
+  TENANTS.push({ id:nextTenantId++, ...details, paid:false });
   closeModalDirect();
   renderTenants(TENANTS);
   renderUnits();
@@ -1095,6 +1118,10 @@ function openEditTenant(id) {
     <div class="form-grid-2 mb-14">
       <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" id="et-name" value="${escapeHtml(t.name)}"></div>
       <div class="form-group"><label class="form-label">Business Type</label><input class="form-input" id="et-biz" value="${escapeHtml(t.business)}"></div>
+    </div>
+    <div class="form-grid-2 mb-14">
+      <div class="form-group"><label class="form-label" for="et-phone">Phone Number (optional)</label><input class="form-input" id="et-phone" type="tel" maxlength="40" value="${escapeHtml(t.phone || '')}"></div>
+      <div class="form-group"><label class="form-label" for="et-email">Email Address (optional)</label><input class="form-input" id="et-email" type="email" maxlength="254" value="${escapeHtml(t.email || '')}"></div>
     </div>
     <div class="form-grid-2 mb-14">
       <div class="form-group"><label class="form-label">Unit</label><input class="form-input" id="et-unit" value="${t.shop}" disabled></div>
@@ -1117,10 +1144,19 @@ function saveTenantChanges(id) {
   const tenant = TENANTS.find(item => item.id === id);
   const details = readTenantForm('et');
   if (!tenant || !details) return;
+  if (details.shop !== tenant.shop) {
+    showToast('Shop reassignment is not supported by this edit form. Keep the existing unit.', 'error');
+    return;
+  }
+  if (TENANTS.some(item => item.id !== id && item.shop === details.shop)) {
+    showToast('That unit is already occupied by another tenant.', 'error');
+    return;
+  }
   Object.assign(tenant, details);
   closeModalDirect();
   renderTenants(TENANTS);
   renderUnits();
+  renderTenantIdentity();
   showToast(`Tenant "${details.name}" updated for this demo session.`,'success');
 }
 
@@ -1145,20 +1181,42 @@ function readTenantForm(prefix) {
   const rent = Number(document.getElementById(`${prefix}-rent`)?.value);
   const start = document.getElementById(`${prefix}-start`)?.value;
   const expires = document.getElementById(`${prefix}-end`)?.value;
-  if (!name || !business || !shop || !start || !expires || !Number.isFinite(rent) || rent <= 0) {
+  const email = document.getElementById(`${prefix}-email`)?.value.trim() || '';
+  const phoneInput = document.getElementById(`${prefix}-phone`)?.value.trim() || '';
+  const phone = phoneInput.replace(/[\s()-]/g, '');
+  if (!name || name.length > 120 || !business || business.length > 100 || !shop || !start || !expires || !Number.isFinite(rent) || rent <= 0) {
     showToast('Enter a name, business type, unit, positive rent, and both lease dates.','error');
+    return null;
+  }
+  if (!UNITS.some(unit => unit.number === shop)) {
+    showToast('Choose an existing shop unit.', 'error');
+    return null;
+  }
+  if ((email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) || (phoneInput && (phoneInput.length > 40 || !/^\+?\d{7,15}$/.test(phone)))) {
+    showToast('Enter a valid email and phone number, or leave the optional contact fields blank.', 'error');
     return null;
   }
   if (/[<>]/.test(name) || /[<>]/.test(business)) {
     showToast('Names and business types cannot contain angle brackets.','error');
     return null;
   }
-  if (new Date(expires) <= new Date(start)) {
+  if (!isValidDateOnly(start) || !isValidDateOnly(expires)) {
+    showToast('Enter valid lease dates.', 'error');
+    return null;
+  }
+  if (expires <= start) {
     showToast('The lease end date must be after the start date.','error');
     return null;
   }
   const days = daysUntil(expires);
-  return { name, shop, block:shop[0], business, rent, start, expires, paid:false, status:days < 0 ? 'overdue' : days <= 60 ? 'expiring' : 'active' };
+  // Profile edits must not overwrite payment state or historical record snapshots.
+  return { name, email, phone, shop, block:shop[0], business, rent, start, expires, status:days < 0 ? 'overdue' : days <= 60 ? 'expiring' : 'active' };
+}
+
+function isValidDateOnly(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 function openAddUnit() {
@@ -1230,7 +1288,7 @@ function saveManualPayment() {
   }
   const year = date.slice(0, 4);
   const ref = `MAN-${year}-${String(PAYMENTS.filter(payment => payment.ref.startsWith(`MAN-${year}-`)).length + 1).padStart(3, '0')}`;
-  PAYMENTS.unshift({ ref, tenant:tenant.name, unit:tenant.shop, amount, period, method, date, status:'paid', source:'manual' });
+  PAYMENTS.unshift({ ref, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, amount, period, method, date, status:'paid', source:'manual' });
   closeModalDirect();
   renderPayments();
   renderAdminDashboard();

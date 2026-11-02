@@ -110,7 +110,7 @@ test('user text is escaped, tenant lists are scoped, and review is admin-only', 
   element('maintenance-note').value = 'Unauthorized';
   run("saveMaintenanceReview('MR-005');");
   assert.equal(run('MAINTENANCE_REQUESTS[0].status'), 'pending');
-  run("MAINTENANCE_REQUESTS[0].tenant = 'Another tenant'; renderMaintenance();");
+  run("MAINTENANCE_REQUESTS[0].tenantId = 7; renderMaintenance();");
   assert.doesNotMatch(element('maintenance-list').innerHTML, /MR-005/);
 });
 
