@@ -1,11 +1,12 @@
 export const DEMO_TENANT_ID = 6;
+export const DEMO_PLAZA_ID = 1;
 export const MAINTENANCE_STATUSES = { pending:'Pending', 'in-progress':'In progress', resolved:'Resolved', completed:'Completed' };
 export const MAINTENANCE_CATEGORIES = ['Electrical', 'Plumbing', 'Structural / Walls', 'Roof / Ceiling', 'Doors / Windows', 'Cleaning', 'Security', 'Other'];
 export const MAINTENANCE_PRIORITIES = ['Low', 'Medium', 'High', 'Emergency'];
 
 // Each repository receives fresh sample records. Nothing here is customer data.
 export function createDemoData() {
-  const TENANTS = [
+  const TENANT_SEEDS = [
     { id:1, name:'Adaeze Obi',          shop:'A-01', block:'A', business:'Fashion Retail',       rent:360000, start:'2022-01-10', expires:'2025-01-10', paid:true,  status:'expiring' },
     { id:2, name:'Biodun Stores',        shop:'A-04', block:'A', business:'Provisions / FMCG',    rent:300000, start:'2022-02-01', expires:'2025-02-01', paid:true,  status:'expiring' },
     { id:3, name:'Chidi Fabrics',        shop:'A-07', block:'A', business:'Textile & Fabrics',    rent:280000, start:'2023-03-15', expires:'2026-03-15', paid:true,  status:'active' },
@@ -100,7 +101,24 @@ export function createDemoData() {
     request.managerNote = '';
   });
 
-  return { tenants:TENANTS, units:UNITS, payments:PAYMENTS, plazas:PLAZAS,
+  // Separate people, physical shops, and the agreements linking them.
+  const units = UNITS.map((unit, index) => ({ ...unit, id:index + 1, plazaId:DEMO_PLAZA_ID }));
+  const tenants = TENANT_SEEDS.map(({ id, name, business }) => ({ id, plazaId:DEMO_PLAZA_ID, name, business, email:'', phone:'', archived:false }));
+  const tenancies = TENANT_SEEDS.map(seed => ({
+    id:seed.id, plazaId:DEMO_PLAZA_ID, tenantId:seed.id,
+    unitId:units.find(unit => unit.number === seed.shop).id,
+    rent:seed.rent, start:seed.start, expires:seed.expires, paid:seed.paid,
+    status:'active', endedAt:null, endReason:'',
+    fees:seed.id === DEMO_TENANT_ID ? [{ description:'Service Charge', amount:24000 }, { description:'Waste Management Levy', amount:6000 }] : [],
+  }));
+  PAYMENTS.forEach(payment => {
+    const tenancy = tenancies.find(item => item.tenantId === payment.tenantId && units.find(unit => unit.id === item.unitId).number === payment.unit);
+    Object.assign(payment, { plazaId:tenancy.plazaId, tenancyId:tenancy.id, unitId:tenancy.unitId });
+  });
+  const demoTenancy = tenancies.find(tenancy => tenancy.tenantId === DEMO_TENANT_ID);
+  MAINTENANCE_REQUESTS.forEach(request => Object.assign(request, { plazaId:DEMO_PLAZA_ID, tenancyId:demoTenancy.id, unitId:demoTenancy.unitId }));
+
+  return { tenants, units, tenancies, payments:PAYMENTS, plazas:PLAZAS,
     subscriptionPayments:SUB_PAYMENTS, plans:PLANS, adminNotifications:ADMIN_NOTIFICATIONS,
     tenantNotifications:TENANT_NOTIFICATIONS, maintenanceRequests:MAINTENANCE_REQUESTS };
 }

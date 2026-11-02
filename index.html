@@ -575,13 +575,13 @@
         <div class="app-page" id="page-admin-dashboard">
           <div class="grid-4 mb-24">
             <div class="stat-card">
-              <div class="stat-top"><div><div class="stat-value">48</div><div class="stat-label">Total Units</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏪</div></div>
-              <div class="stat-trend neutral">Block A (24) + Block B (24)</div>
+              <div class="stat-top"><div><div class="stat-value" id="admin-unit-count">—</div><div class="stat-label">Total Units</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏪</div></div>
+              <div class="stat-trend neutral">Shops registered in this plaza</div>
               <div class="stat-bar"><div class="stat-bar-fill" style="width:100%;background:var(--accent);"></div></div>
             </div>
             <div class="stat-card">
-              <div class="stat-top"><div><div class="stat-value">41</div><div class="stat-label">Active Tenants</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">👥</div></div>
-              <div class="stat-trend up">↑ 85.4% occupancy</div>
+              <div class="stat-top"><div><div class="stat-value" id="admin-tenant-count">—</div><div class="stat-label">Tenants with Shops</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">👥</div></div>
+              <div class="stat-trend neutral">Distinct tenants with occupied shops</div>
               <div class="stat-bar"><div class="stat-bar-fill" style="width:85%;background:var(--green);"></div></div>
             </div>
             <div class="stat-card">
@@ -639,7 +639,9 @@
               <option value="">All Status</option>
               <option value="active">Active</option>
               <option value="expiring">Expiring Soon</option>
-              <option value="overdue">Overdue</option>
+              <option value="overdue">Expired lease</option>
+              <option value="unassigned">Unassigned</option>
+              <option value="archived">Archived profiles</option>
             </select>
             <button class="btn btn-primary ml-auto" onclick="openAddTenant()">+ Add Tenant</button>
             <button class="btn btn-ghost" onclick="exportCsv('tenants')">📥 Export All CSV</button>
@@ -647,7 +649,7 @@
           <div class="card">
             <div class="table-wrap">
               <table class="data-table">
-                <thead><tr><th>Tenant</th><th>Unit</th><th>Business Type</th><th>Annual Rent</th><th>Lease Start</th><th>Lease Expires</th><th>Status</th><th>Actions</th></tr></thead>
+                <thead><tr><th>Tenant</th><th>Active Shops</th><th>Business Type</th><th>Total Annual Rent</th><th>Earliest Start</th><th>Next Lease End</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody id="tenants-tbody"></tbody>
               </table>
             </div>
@@ -837,24 +839,22 @@ For assistance, contact plaza management.
             <div>
               <div style="font-size:12px;color:var(--text3);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px;">Welcome back</div>
               <h2 id="tenant-welcome-name" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:6px;">Funmi Boutique 👋</h2>
-              <p style="font-size:14px;color:var(--text2);">Unit D-09 · Block D, Sunshine Business Plaza, Lagos</p>
+              <p id="tenant-shop-summary" style="font-size:14px;color:var(--text2);"></p>
               <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
-                <span class="badge badge-green"><span class="dot dot-green"></span> Rent Paid</span>
-                <span class="badge badge-blue">Active Lease</span>
-                <span class="badge badge-gray">Standard Plan</span>
+                <span class="badge badge-blue">Demo tenancy records</span>
               </div>
             </div>
             <div style="text-align:right;">
-              <div style="font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:var(--gold);line-height:1;">247</div>
+              <div id="tenant-next-expiry" style="font-family:'Syne',sans-serif;font-size:52px;font-weight:800;color:var(--gold);line-height:1;">—</div>
               <div style="font-size:12px;color:var(--text3);margin-top:4px;">days until lease expires</div>
-              <div style="font-size:11px;color:var(--text3);margin-top:2px;">Expires Aug 14, 2026</div>
+              <div id="tenant-next-expiry-date" style="font-size:11px;color:var(--text3);margin-top:2px;"></div>
             </div>
           </div>
 
           <div class="grid-3 mb-24">
-            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">₦480,000</div><div class="stat-label">Annual Rent</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">💰</div></div><div class="stat-trend up">✓ Paid in full — Dec 5, 2024</div></div>
-            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">D-09</div><div class="stat-label">Your Shop Unit</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏪</div></div><div class="stat-trend neutral">Ground Floor · 45 sqm</div></div>
-            <div class="stat-card"><div class="stat-top"><div><div class="stat-value">3 yrs</div><div class="stat-label">Tenancy Duration</div></div><div class="stat-icon" style="background:rgba(245,158,11,0.12);">🌟</div></div><div class="stat-trend up">Since January 2022</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="tenant-rent-total">—</div><div class="stat-label">Combined Annual Rent</div></div><div class="stat-icon" style="background:rgba(16,185,129,0.12);">💰</div></div><div class="stat-trend neutral">Agreement amounts, not outstanding balances</div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="tenant-shop-numbers">—</div><div class="stat-label">Your Shops</div></div><div class="stat-icon" style="background:rgba(59,130,246,0.12);">🏪</div></div></div>
+            <div class="stat-card"><div class="stat-top"><div><div class="stat-value" id="tenant-shop-count">—</div><div class="stat-label">Active Assignments</div></div><div class="stat-icon" style="background:rgba(245,158,11,0.12);">🏪</div></div><div class="stat-trend neutral">History remains in My Lease</div></div>
           </div>
 
           <div class="grid-2">
@@ -898,6 +898,7 @@ For assistance, contact plaza management.
           <div class="grid-2">
             <form class="card" id="maintenance-form" onsubmit="event.preventDefault();submitMaintenanceRequest()">
               <div class="card-header"><div class="card-title">Submit New Request</div></div>
+              <div class="form-group mb-16"><label class="form-label" for="maintenance-tenancy">Shop assignment</label><select class="form-input" id="maintenance-tenancy" required><option value="">Choose a shop</option></select></div>
               <div class="form-group mb-14"><label class="form-label" for="maintenance-category">Issue Category</label>
                 <select class="form-input" id="maintenance-category"><option>Electrical</option><option>Plumbing</option><option>Structural / Walls</option><option>Roof / Ceiling</option><option>Doors / Windows</option><option>Cleaning</option><option>Security</option><option>Other</option></select>
               </div>
@@ -921,7 +922,7 @@ For assistance, contact plaza management.
           <div class="grid-2">
             <div class="card">
               <div class="card-header"><div class="card-title">Lease Agreement Details</div><button class="btn btn-sm btn-ghost">📄 Download PDF</button></div>
-              <div class="lease-card">
+              <div class="lease-card" id="tenant-lease-details">
                 <div class="lease-row"><div class="lease-key">Tenant Name</div><div class="lease-val" id="tenant-lease-name">Funmi Boutique</div></div>
                 <div class="lease-row"><div class="lease-key">Plaza Name</div><div class="lease-val">Sunshine Business Plaza</div></div>
                 <div class="lease-row"><div class="lease-key">Shop / Unit Number</div><div class="lease-val">Unit D-09, Block D</div></div>

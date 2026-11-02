@@ -1,12 +1,22 @@
-import { DEMO_TENANT_ID, MAINTENANCE_STATUSES, MAINTENANCE_CATEGORIES, MAINTENANCE_PRIORITIES } from './data/demo-data.js';
+import { DEMO_TENANT_ID, DEMO_PLAZA_ID, MAINTENANCE_STATUSES, MAINTENANCE_CATEGORIES, MAINTENANCE_PRIORITIES } from './data/demo-data.js';
 import { repository } from './data/repository.js';
 import { session, createNavigation } from './navigation.js';
 import { getMonthlyCollections, getQuarterlyCollections, buildCsv, isValidDateOnly, formatDate, formatNaira, daysUntil, expiryBadge, payStatusBadge, escapeHtml, statusBadge, avatarStyle } from './utils.js';
 import { ui } from './ui.js';
+import { createTenancyActions } from './features/tenancies.js';
 
 let payStep = 1;
 let selectedPaymentMethod = 'provider';
+let selectedTenancyId = 6;
 const { showLanding, showLogin, showRegister, hideAll, switchLoginTab, doLogin, doRegister, switchRole, buildSidebar, navTo } = createNavigation({ repository, ui, renderPage:page => renderPage(page) });
+const { openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms, openEndTenancy, endTenancy } = createTenancyActions({ repository, ui, getRole:() => session.role, refresh:() => refreshTenantViews() });
+
+function refreshTenantViews() {
+  filterTenants(document.getElementById('tenant-search')?.value || '');
+  renderUnits();
+  renderOperationalSummaries();
+  renderTenantIdentity();
+}
 
 // Wrappers preserve existing callers while shared UI lives in its own module.
 function showToast(...args) { return ui.showToast(...args); }
@@ -166,18 +176,18 @@ function getTenantApprovedAmount(tenantId) {
 }
 
 function calculateOperationalSummary() {
-  const tenantMap = Object.fromEntries(repository.listTenants().map(tenant => [tenant.shop, tenant]));
+  const tenantMap = Object.fromEntries(repository.listOccupancies().map(tenant => [tenant.shop, tenant]));
   const occupied = repository.listUnits().filter(unit => tenantMap[unit.number]).length;
-  const expiring = repository.listTenants().filter(tenant => {
+  const expiring = repository.listOccupancies().filter(tenant => {
     const days = daysUntil(tenant.expires);
     return days >= 0 && days <= 30;
   }).length;
-  const overdue = repository.listTenants().filter(tenant => tenant.status === 'overdue' || daysUntil(tenant.expires) < 0).length;
+  const overdue = repository.listOccupancies().filter(tenant => daysUntil(tenant.expires) < 0).length;
   const approvedPayments = repository.listPayments().filter(payment => payment.status === 'paid');
   const pendingPayments = repository.listPayments().filter(payment => payment.status === 'pending');
   const collected = approvedPayments.reduce((total, payment) => total + payment.amount, 0);
   const pending = pendingPayments.reduce((total, payment) => total + payment.amount, 0);
-  const outstanding = repository.listTenants().filter(tenant => !tenant.paid).reduce((total, tenant) => total + tenant.rent, 0);
+  const outstanding = repository.listOccupancies().filter(tenant => !tenant.paid).reduce((total, tenant) => total + tenant.rent, 0);
   const collectionRate = collected + outstanding > 0 ? Math.round(collected / (collected + outstanding) * 100) : 0;
   return { occupied, vacant:Math.max(repository.listUnits().length - occupied, 0), expiring, overdue, collected, pending, outstanding, collectionRate, approvedCount:approvedPayments.length, pendingCount:pendingPayments.length };
 }
@@ -185,6 +195,8 @@ function calculateOperationalSummary() {
 function renderOperationalSummaries() {
   const summary = calculateOperationalSummary();
   const values = {
+    'admin-unit-count':repository.listUnits().length,
+    'admin-tenant-count':new Set(repository.listActiveTenancies().map(tenancy => tenancy.tenantId)).size,
     'admin-annual-revenue': formatNaira(summary.collected),
     'admin-expiring-count': summary.expiring,
     'unit-occupied-count': summary.occupied,
@@ -197,7 +209,7 @@ function renderOperationalSummaries() {
     'payments-collection-rate': `${summary.collectionRate}%`,
     'payments-paid-count': `${summary.approvedCount} approved records`,
     'payments-pending-count': `${summary.pendingCount} pending transfers`,
-    'payments-overdue-count': `${summary.overdue} tenant obligations`,
+    'payments-overdue-count': `${summary.overdue} expired assignments`,
   };
   Object.entries(values).forEach(([id, value]) => {
     const element = document.getElementById(id);
@@ -206,11 +218,12 @@ function renderOperationalSummaries() {
   const occupiedPercent = repository.listUnits().length ? Math.round(summary.occupied / repository.listUnits().length * 100) : 0;
   const approvedIds = new Set(repository.listPayments().filter(payment => payment.status === 'paid').map(payment => payment.tenantId));
   const approvedTenants = repository.listTenants().filter(tenant => approvedIds.has(tenant.id)).length;
-  const overduePercent = repository.listTenants().length ? Math.round(summary.overdue / repository.listTenants().length * 100) : 0;
+  const assignmentCount = repository.listActiveTenancies().length;
+  const overduePercent = assignmentCount ? Math.round(summary.overdue / assignmentCount * 100) : 0;
   const reportStats = {
     'report-occupied-stat': `${summary.occupied}/${repository.listUnits().length} — ${occupiedPercent}%`,
     'report-collected-stat': `${approvedTenants}/${repository.listTenants().length} tenants — ${summary.collectionRate}%`,
-    'report-overdue-stat': `${summary.overdue}/${repository.listTenants().length} — ${overduePercent}%`,
+    'report-overdue-stat': `${summary.overdue}/${assignmentCount} assignments — ${overduePercent}%`,
   };
   Object.entries(reportStats).forEach(([id, value]) => {
     const element = document.getElementById(id);
@@ -229,7 +242,7 @@ function renderAdminDashboard() {
   // Expiring leases
   const expTbody = document.getElementById('admin-expiring-body');
   if (expTbody) {
-    const expiring = repository.listTenants().filter(t => t.status === 'expiring' || t.status === 'overdue');
+    const expiring = repository.listOccupancies().filter(t => daysUntil(t.expires) >= 0 && daysUntil(t.expires) <= 90);
     expTbody.innerHTML = expiring.slice(0,5).map(t => {
       const days = daysUntil(t.expires);
       return `<tr>
@@ -260,30 +273,35 @@ function renderTenants(list) {
   const tbody = document.getElementById('tenants-tbody');
   if (!tbody) return;
   tbody.innerHTML = list.map(t => {
-    const days = daysUntil(t.expires);
+    const assignments = repository.listOccupancies().filter(row => row.tenantId === t.id);
+    const totalRent = assignments.reduce((total, row) => total + row.rent, 0);
+    const starts = assignments.map(row => row.start).sort();
+    const ends = assignments.map(row => row.expires).sort();
     return `<tr>
       <td><div class="cell-user"><div class="avatar" style="${avatarStyle(t.name)}">${escapeHtml(t.name[0])}</div><div><div class="cell-name">${escapeHtml(t.name)}</div><div class="cell-sub">${[t.email, t.phone].filter(Boolean).map(escapeHtml).join(' · ')}</div></div></div></td>
-      <td><span class="badge badge-gray">${t.shop}</span></td>
+      <td>${assignments.map(row => `<span class="badge badge-gray">${escapeHtml(row.shop)}</span>`).join(' ') || '—'}</td>
       <td>${escapeHtml(t.business)}</td>
-      <td style="font-weight:700;">₦${t.rent.toLocaleString()}</td>
-      <td>${formatDate(t.start)}</td>
-      <td>${formatDate(t.expires)}</td>
-      <td>${expiryBadge(days)}</td>
+      <td style="font-weight:700;">${formatNaira(totalRent)}</td>
+      <td>${formatDate(starts[0])}</td>
+      <td>${formatDate(ends[0])}</td>
+      <td>${t.archived ? '<span class="badge badge-gray">Archived</span>' : assignments.length ? assignments.map(row => `${escapeHtml(row.shop)} ${expiryBadge(daysUntil(row.expires))}`).join('<br>') : '<span class="badge badge-gray">Unassigned</span>'}</td>
       <td>
         <div style="display:flex;gap:6px;">
-          <button class="btn btn-sm btn-ghost" onclick="openEditTenant(${t.id})">✏️ Edit</button>
-          <button class="btn btn-sm btn-red" onclick="deleteTenant(${t.id})">🗑</button>
+          ${!t.archived ? `<button class="btn btn-sm btn-ghost" onclick="openEditTenant(${t.id})">Edit profile</button>` : ''}
+          <button class="btn btn-sm btn-ghost" onclick="openManageTenancies(${t.id})">Manage shops</button>
+          ${!t.archived && !assignments.length ? `<button class="btn btn-sm btn-red" onclick="deleteTenant(${t.id})">Archive</button>` : ''}
         </div>
       </td>
     </tr>`;
-  }).join('');
+  }).join('') || '<tr><td colspan="8">No tenants match your search.</td></tr>';
 }
 
 function filterTenants(q) {
   const filter = (document.getElementById('tenant-status-filter')?.value || '').toLowerCase();
   const filtered = repository.listTenants().filter(t => {
-    const matchQ = !q || t.name.toLowerCase().includes(q.toLowerCase()) || t.shop.toLowerCase().includes(q.toLowerCase()) || t.business.toLowerCase().includes(q.toLowerCase());
-    const matchF = !filter || t.status === filter;
+    const assignments = repository.listOccupancies().filter(row => row.tenantId === t.id);
+    const matchQ = !q || [t.name, t.business, ...assignments.map(row => row.shop)].some(value => value.toLowerCase().includes(q.trim().toLowerCase()));
+    const matchF = !filter || (filter === 'archived' ? t.archived : !t.archived && (filter === 'unassigned' ? !assignments.length : assignments.some(row => row.status === filter)));
     return matchQ && matchF;
   });
   renderTenants(filtered);
@@ -291,7 +309,7 @@ function filterTenants(q) {
 
 function renderUnits() {
   renderOperationalSummaries();
-  const tenantMap = Object.fromEntries(repository.listTenants().map(tenant => [tenant.shop, tenant]));
+  const tenantMap = Object.fromEntries(repository.listOccupancies().map(tenant => [tenant.shop, tenant]));
   const blocks = [...new Set(repository.listUnits().map(unit => unit.block))];
   const map = document.getElementById('unit-map-blocks');
   if (map) {
@@ -325,7 +343,7 @@ function renderUnits() {
 }
 
 function showUnitDetail(no, status) {
-  const tenantMap = {}; repository.listTenants().forEach(t => { tenantMap[t.shop] = t; });
+  const tenantMap = {}; repository.listOccupancies().forEach(t => { tenantMap[t.shop] = t; });
   const t = tenantMap[no];
   openModal(`Unit ${no} Details`, t ? `
     <div class="lease-card">
@@ -337,7 +355,7 @@ function showUnitDetail(no, status) {
       <div class="lease-row"><div class="lease-key">Lease Expires</div><div class="lease-val">${formatDate(t.expires)}</div></div>
       <div class="lease-row"><div class="lease-key">Status</div><div class="lease-val">${expiryBadge(daysUntil(t.expires))}</div></div>
     </div>` : `<div class="empty-state"><div class="empty-icon">⬜</div><h3>Unit is Vacant</h3><p>This unit currently has no tenant assigned.</p></div>`,
-  `<button class="btn btn-ghost" onclick="closeModalDirect()">Close</button>${t ? '<button class="btn btn-primary" onclick="openEditTenant('+t.id+')">Edit Tenant</button>' : `<button class="btn btn-primary" onclick="closeModalDirect();openAddTenant('${no}')">Assign Tenant</button>`}`);
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Close</button>${t ? `<button class="btn btn-primary" onclick="openManageTenancies(${t.id})">Manage shops</button>` : `<button class="btn btn-ghost" onclick="openAssignTenancy(0,${repository.listUnits().find(unit => unit.number === no)?.id})">Assign existing tenant</button><button class="btn btn-primary" onclick="openAddTenant('${no}')">Register new tenant</button>`}`);
 }
 
 function renderPayments() {
@@ -381,8 +399,8 @@ function renderReports() {
 }
 
 function getUnitReportRows() {
-  return [...repository.listTenants()].sort((a, b) => b.rent - a.rent).slice(0, 8).map(tenant => {
-    const collected = getTenantApprovedAmount(tenant.id);
+  return [...repository.listOccupancies()].sort((a, b) => b.rent - a.rent).slice(0, 8).map(tenant => {
+    const collected = repository.getTenancyApprovedAmount(tenant.tenancyId);
     const balance = Math.max(tenant.rent - collected, 0);
     return { tenant, collected, balance, status:balance === 0 ? 'Paid' : tenant.status === 'overdue' ? 'Overdue' : 'Partial' };
   });
@@ -390,7 +408,7 @@ function getUnitReportRows() {
 
 function getExportData(kind) {
   if (session.role === 'admin' && kind === 'tenants') {
-    return { name:'all-tenants', rows:[['Tenant ID', 'Tenant', 'Email', 'Phone', 'Unit', 'Business', 'Annual rent (NGN)', 'Lease start', 'Lease end', 'Lease status'], ...repository.listTenants().map(t => [t.id, t.name, t.email || '', t.phone || '', t.shop, t.business, t.rent, t.start, t.expires, t.status])] };
+    return { name:'all-tenants', rows:[['Tenant ID', 'Tenant', 'Email', 'Phone', 'Business', 'Active shops', 'Annual rent total (NGN)', 'Archived'], ...repository.listTenants().map(t => { const rows = repository.listOccupancies().filter(row => row.tenantId === t.id); return [t.id, t.name, t.email, t.phone, t.business, rows.map(row => row.shop).join('; '), rows.reduce((sum, row) => sum + row.rent, 0), t.archived ? 'Yes' : 'No']; })] };
   }
   if (session.role === 'admin' && kind === 'payments') {
     return { name:'all-payment-records', rows:[['Reference', 'Tenant', 'Unit', 'Amount (NGN)', 'Period', 'Method', 'Date', 'Status'], ...repository.listPayments().map(p => [p.ref, p.tenant, p.unit, p.amount, p.period, p.method, p.date, p.status])] };
@@ -431,13 +449,27 @@ function renderAdminNotifs() {
 
 /* ---- Tenant ---- */
 function renderTenantIdentity() {
-  const tenant = repository.listTenants().find(item => item.id === DEMO_TENANT_ID);
+  const tenant = repository.getTenant(DEMO_TENANT_ID);
+  const assignments = repository.listOccupancies().filter(row => row.tenantId === DEMO_TENANT_ID);
   const name = tenant?.name || 'Tenant no longer assigned';
-  const values = { 'tenant-welcome-name':`${name} 👋`, 'tenant-lease-name':name };
+  const nextExpiry = assignments.map(row => row.expires).sort()[0];
+  const values = { 'tenant-welcome-name':`${name} 👋`, 'tenant-lease-name':name,
+    'tenant-shop-summary':assignments.length ? `Shops ${assignments.map(row => row.shop).join(', ')} · ${repository.listPlazas().find(plaza => plaza.id === DEMO_PLAZA_ID).name}` : 'No active shop assignments',
+    'tenant-rent-total':formatNaira(assignments.reduce((sum, row) => sum + row.rent, 0)),
+    'tenant-shop-numbers':assignments.map(row => row.shop).join(', ') || '—',
+    'tenant-shop-count':assignments.length,
+    'tenant-next-expiry':nextExpiry ? daysUntil(nextExpiry) : '—',
+    'tenant-next-expiry-date':nextExpiry ? `Next lease end: ${formatDate(nextExpiry)}` : 'No active lease',
+  };
   Object.entries(values).forEach(([id, value]) => {
     const element = document.getElementById(id);
     if (element) element.textContent = value;
   });
+  const details = document.getElementById('tenant-lease-details');
+  if (details) details.innerHTML = `<h3 class="mb-16">${escapeHtml(name)}</h3>` + repository.listTenancies(DEMO_TENANT_ID).map(tenancy => {
+    const unit = repository.getUnit(tenancy.unitId);
+    return `<article class="lease-card mb-16"><strong>Shop ${escapeHtml(unit.number)}</strong><p>${formatNaira(tenancy.rent)} annual rent</p><p>${formatDate(tenancy.start)} – ${formatDate(tenancy.expires)}</p><p>Assignment: ${escapeHtml(tenancy.status)}</p>${tenancy.endedAt ? `<p class="maint-description">Closed ${formatDate(tenancy.endedAt)}: ${escapeHtml(tenancy.endReason)}</p>` : expiryBadge(daysUntil(tenancy.expires))}</article>`;
+  }).join('');
 }
 
 function renderTenantDashboard() {
@@ -464,9 +496,15 @@ function renderReceipts() {
 }
 
 function renderMaintenance() {
+  renderTenantIdentity();
   const list = document.getElementById('maintenance-list');
   if (!list) return;
   const requests = repository.listMaintenanceRequests().filter(request => request.tenantId === DEMO_TENANT_ID);
+  const select = document.getElementById('maintenance-tenancy');
+  if (select) {
+    const selected = Number(select.value);
+    select.innerHTML = '<option value="">Choose a shop</option>' + repository.listActiveTenancies(DEMO_TENANT_ID).map(tenancy => `<option value="${tenancy.id}" ${tenancy.id === selected ? 'selected' : ''}>${escapeHtml(repository.getUnit(tenancy.unitId).number)}</option>`).join('');
+  }
   list.innerHTML = requests.map(request => renderMaintenanceCard(request)).join('') || '<p class="maint-desc">No maintenance requests yet.</p>';
 }
 
@@ -540,6 +578,23 @@ function renderTenantNotifs() {
 }
 
 /* ---- Payment Flow ---- */
+function getSelectedTenantTenancy(allowFallback = true) {
+  const tenant = repository.getTenant(DEMO_TENANT_ID);
+  if (!tenant || tenant.archived) return null;
+  const active = repository.listActiveTenancies(DEMO_TENANT_ID);
+  const selected = active.find(tenancy => tenancy.id === selectedTenancyId) || (allowFallback ? active[0] : null);
+  if (!selected) return null;
+  selectedTenancyId = selected.id;
+  return repository.getTenancyRow(selected.id);
+}
+
+function selectTenantTenancy(value) {
+  const id = Number(value);
+  if (!repository.listActiveTenancies(DEMO_TENANT_ID).some(tenancy => tenancy.id === id)) return;
+  selectedTenancyId = id;
+  renderPayStep(1);
+}
+
 function renderPayStep(step) {
   payStep = step;
   // Update step indicator
@@ -552,24 +607,27 @@ function renderPayStep(step) {
   });
   const content = document.getElementById('pay-content');
   if (!content) return;
+  const assignment = getSelectedTenantTenancy();
+  if (!assignment) { content.innerHTML = '<div class="card"><h3>No active shop assignment</h3><p>Payment evidence requires an active assignment. Your existing payment history remains in My Receipts.</p></div>'; return; }
+  const total = assignment.rent + assignment.fees.reduce((sum, fee) => sum + fee.amount, 0);
 
   if (step === 1) {
     content.innerHTML = `
       <div class="card mb-20">
-        <div class="card-header"><div class="card-title">Annual Fee Invoice — 2026</div><span class="badge badge-blue">Renewal Due</span></div>
+        <div class="card-header"><div class="card-title">Shop Payment Reference</div><span class="badge badge-blue">Demo charges</span></div>
+        <div class="form-group mb-16"><label class="form-label" for="tenant-payment-tenancy">Shop assignment</label><select class="form-input" id="tenant-payment-tenancy" onchange="selectTenantTenancy(this.value)">${repository.listActiveTenancies(DEMO_TENANT_ID).map(tenancy => `<option value="${tenancy.id}" ${tenancy.id === assignment.tenancyId ? 'selected' : ''}>${escapeHtml(repository.getUnit(tenancy.unitId).number)}</option>`).join('')}</select></div>
         <div class="table-wrap">
           <table class="data-table">
             <thead><tr><th>Description</th><th>Period</th><th>Amount</th></tr></thead>
             <tbody>
-              <tr><td>Annual Rent — Unit D-09</td><td>Jan 2026 – Dec 2026</td><td style="font-weight:700;">₦480,000</td></tr>
-              <tr><td>Service Charge</td><td>2026</td><td>₦24,000</td></tr>
-              <tr><td>Waste Management Levy</td><td>2026</td><td>₦6,000</td></tr>
-              <tr style="border-top:2px solid var(--border);"><td colspan="2" style="font-weight:800;font-size:14px;">Total Due</td><td style="font-weight:800;font-size:18px;color:var(--gold);">₦510,000</td></tr>
+              <tr><td>Annual Rent — Unit ${escapeHtml(assignment.shop)}</td><td>${formatDate(assignment.start)} – ${formatDate(assignment.expires)}</td><td style="font-weight:700;">${formatNaira(assignment.rent)}</td></tr>
+              ${assignment.fees.map(fee => `<tr><td>${escapeHtml(fee.description)}</td><td>Demo charge</td><td>${formatNaira(fee.amount)}</td></tr>`).join('')}
+              <tr><td colspan="2"><strong>Reference total</strong></td><td>${formatNaira(total)}</td></tr>
             </tbody>
           </table>
         </div>
         <div style="margin-top:14px;padding:12px 14px;background:rgba(59,130,246,0.06);border-radius:8px;font-size:12px;color:var(--text2);">
-          📅 <strong>Payment due date:</strong> January 14, 2026 &nbsp;·&nbsp; ⚠️ Late payments attract a 5% monthly penalty
+          These are sample agreement charges, not an outstanding-balance calculation. Payment allocation and invoices come in the rent-ledger stage.
         </div>
       </div>
       <div style="display:flex;justify-content:flex-end;">
@@ -594,7 +652,7 @@ function renderPayStep(step) {
         <div id="pay-method-detail">
           <div style="background:rgba(11,164,219,0.05);border:1px solid rgba(11,164,219,0.2);border-radius:10px;padding:20px;">
             <div class="paystack-logo"><div class="paystack-logo-mark">P</div><div class="paystack-logo-text">Payment-provider demo</div></div>
-            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Amount to pay: <strong style="color:var(--gold);font-size:16px;">₦510,000</strong></div>
+            <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Amount to pay: <strong style="color:var(--gold);font-size:16px;">${formatNaira(total)}</strong></div>
             <input class="paystack-input" placeholder="Enter email address" value="funmi@boutique.ng">
             <input class="paystack-input" placeholder="Do not enter card details">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -615,11 +673,11 @@ function renderPayStep(step) {
         <div class="success-state">
           <div class="success-icon">✅</div>
           <div class="success-title">Demo Submission Recorded</div>
-          <p class="success-sub">This is a simulated submission for <strong style="color:var(--gold);">₦510,000</strong>. No money was collected, no receipt was issued, and no lease was renewed.</p>
+          <p class="success-sub">This is a simulated submission for <strong style="color:var(--gold);">${formatNaira(total)}</strong>. No money was collected, no receipt was issued, and no lease was renewed.</p>
           <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;max-width:360px;margin:0 auto 28px;text-align:left;">
             <div class="lease-row"><div class="lease-key">Reference</div><div class="lease-val" style="font-family:monospace;color:var(--accent2);">TXN-2026-0001</div></div>
-            <div class="lease-row"><div class="lease-key">Amount Paid</div><div class="lease-val" style="color:var(--gold);">₦510,000</div></div>
-            <div class="lease-row"><div class="lease-key">Lease Renewed Until</div><div class="lease-val">December 31, 2026</div></div>
+            <div class="lease-row"><div class="lease-key">Reference amount</div><div class="lease-val" style="color:var(--gold);">${formatNaira(total)}</div></div>
+            <div class="lease-row"><div class="lease-key">Selected shop</div><div class="lease-val">${escapeHtml(assignment.shop)}</div></div>
             <div class="lease-row"><div class="lease-key">Status</div><div class="lease-val"><span class="badge badge-orange">Demo only</span></div></div>
           </div>
           <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
@@ -632,6 +690,9 @@ function renderPayStep(step) {
 }
 
 function selectPayMethod(el, method) {
+  const assignment = getSelectedTenantTenancy();
+  if (!assignment) return;
+  const total = assignment.rent + assignment.fees.reduce((sum, fee) => sum + fee.amount, 0);
   selectedPaymentMethod = method;
   document.querySelectorAll('.pay-method-btn').forEach(b => {
     b.style.border = '1px solid var(--border)';
@@ -647,8 +708,9 @@ function selectPayMethod(el, method) {
         <div><div style="font-size:11px;color:var(--text3);">Bank</div><div style="font-weight:700;font-size:15px;">Zenith Bank PLC</div></div>
         <div><div style="font-size:11px;color:var(--text3);">Account Number</div><div style="font-weight:800;font-size:17px;color:var(--accent2);">2103456789</div></div>
         <div><div style="font-size:11px;color:var(--text3);">Account Name</div><div style="font-weight:700;font-size:14px;">Sunshine Business Plaza Ltd</div></div>
-        <div><div style="font-size:11px;color:var(--text3);">Reference Code</div><div style="font-weight:800;font-size:17px;color:var(--gold);">D09-2026-FNM</div></div>
+        <div><div style="font-size:11px;color:var(--text3);">Reference Code</div><div style="font-weight:800;font-size:17px;color:var(--gold);">DEMO-${assignment.tenancyId}</div></div>
       </div>
+      <div class="form-group mb-16"><label class="form-label" for="transfer-amount">Amount transferred (₦) — shop ${escapeHtml(assignment.shop)}</label><input class="form-input" id="transfer-amount" type="number" min="1" value="${total}"></div>
       <div class="form-group" style="margin-top:16px;"><label class="form-label">Transfer reference</label><input class="form-input" id="transfer-reference" placeholder="e.g. FNB-2026-001"></div>
       <div class="form-group"><label class="form-label">Receipt evidence</label><input class="form-input" id="transfer-evidence" type="file" accept="image/*,.pdf"><p style="font-size:11px;color:var(--text3);margin-top:6px;">Demo only: the filename is kept in browser memory and the file is not uploaded.</p></div>
       <div style="font-size:12px;color:var(--orange);padding:10px;background:rgba(249,115,22,0.08);border-radius:6px;">A manager must verify transfer evidence before a payment is approved.</div>
@@ -664,7 +726,7 @@ function selectPayMethod(el, method) {
       </div>
     </div>`;
   } else {
-    detail.innerHTML = `<div style="background:rgba(11,164,219,0.05);border:1px solid rgba(11,164,219,0.2);border-radius:10px;padding:20px;"><div class="paystack-logo"><div class="paystack-logo-mark">P</div><div class="paystack-logo-text">Payment-provider demo</div></div><div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Amount: <strong style="color:var(--gold);font-size:16px;">₦510,000</strong></div><p style="font-size:12px;color:var(--text2);">This option is visual only. It does not send data to a payment provider or collect money.</p></div>`;
+    detail.innerHTML = `<div style="background:rgba(11,164,219,0.05);border:1px solid rgba(11,164,219,0.2);border-radius:10px;padding:20px;"><div class="paystack-logo"><div class="paystack-logo-mark">P</div><div class="paystack-logo-text">Payment-provider demo</div></div><div style="font-size:12px;color:var(--text2);margin-bottom:16px;">Amount: <strong style="color:var(--gold);font-size:16px;">${formatNaira(total)}</strong></div><p style="font-size:12px;color:var(--text2);">This option is visual only. It does not send data to a payment provider or collect money.</p></div>`;
   }
 }
 
@@ -678,20 +740,23 @@ function processPayment() {
 }
 
 function submitTransferEvidence() {
-  const tenant = repository.listTenants().find(item => item.id === DEMO_TENANT_ID);
-  if (!tenant) {
+  const tenant = repository.getTenant(DEMO_TENANT_ID);
+  const assignment = getSelectedTenantTenancy(false);
+  if (!assignment) {
     showToast('This demo tenant no longer has a tenancy. Restore the sample data by refreshing.', 'error');
     return;
   }
   const reference = document.getElementById('transfer-reference')?.value.trim();
   const evidence = document.getElementById('transfer-evidence')?.files[0];
-  if (!reference || !evidence) {
-    showToast('Add both a transfer reference and a receipt file name.','error');
+  const amount = Number(document.getElementById('transfer-amount')?.value);
+  if (!reference || !evidence || !Number.isFinite(amount) || amount <= 0) {
+    showToast('Enter a positive transferred amount, transfer reference, and receipt file name.','error');
     return;
   }
   const ref = `EVD-2026-${String(repository.listPayments().filter(p => p.ref.startsWith('EVD-2026-')).length + 1).padStart(3, '0')}`;
-  const payment = { ref, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, amount:510000, period:'2026', method:'Bank Transfer', date:new Date().toISOString().slice(0,10), status:'pending', transferReference:reference, evidenceFile:evidence.name };
-  repository.addPayment(payment);
+  const payment = { ref, tenantId:tenant.id, tenancyId:assignment.tenancyId, tenant:tenant.name, unit:assignment.shop, amount, period:'Unallocated', method:'Bank Transfer', date:new Date().toISOString().slice(0,10), status:'pending', transferReference:reference, evidenceFile:evidence.name };
+  try { repository.addPayment(payment); }
+  catch (error) { showToast(error.message, 'error'); return; }
   renderEvidenceSubmitted(payment);
   showToast('Evidence submitted for manager review. It is not approved yet.','success');
 }
@@ -712,14 +777,16 @@ function submitMaintenanceRequest() {
     showToast('Choose a category and priority, and enter a subject (up to 120 characters) and description (up to 2,000).', 'error');
     return;
   }
-  const tenant = repository.listTenants().find(item => item.id === DEMO_TENANT_ID);
-  if (!tenant) {
+  const tenant = repository.getTenant(DEMO_TENANT_ID);
+  const tenancyId = Number(document.getElementById('maintenance-tenancy')?.value);
+  const assignment = repository.listActiveTenancies(DEMO_TENANT_ID).find(tenancy => tenancy.id === tenancyId);
+  if (!tenant || tenant.archived || !assignment) {
     showToast('This demo tenant no longer has a tenancy. Restore the sample data by refreshing.', 'error');
     return;
   }
   const nextId = Math.max(0, ...repository.listMaintenanceRequests().map(request => Number(request.id.replace('MR-', '')))) + 1;
   const id = `MR-${String(nextId).padStart(3, '0')}`;
-  repository.addMaintenanceRequest({ id, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, category, priority, subject, description, date:formatDate(new Date()), status:'pending', managerNote:'' });
+  repository.addMaintenanceRequest({ id, tenantId:tenant.id, tenancyId, category, priority, subject, description, date:formatDate(new Date()), status:'pending', managerNote:'' });
   document.getElementById('maintenance-form').reset();
   renderMaintenance();
   showToast(`Request ${id} submitted for this demo session.`, 'success');
@@ -745,6 +812,7 @@ function buildBarChart(containerId, values, labels, colors, height) {
 
 /* TENANT MODALS */
 function openAddTenant(preferredUnit = '') {
+  if (session.role !== 'admin') return;
   const availableUnits = getAvailableUnits();
   if (!availableUnits.length) {
     showToast('There are no vacant units available for a new tenant.','error');
@@ -777,9 +845,10 @@ function openAddTenant(preferredUnit = '') {
 }
 
 function saveTenant() {
+  if (session.role !== 'admin') return;
   const details = readTenantForm('nt');
   if (!details) return;
-  if (repository.listTenants().some(tenant => tenant.shop === details.shop)) {
+  if (repository.listOccupancies().some(tenant => tenant.shop === details.shop)) {
     showToast('That unit is already occupied. Choose a vacant unit.','error');
     return;
   }
@@ -792,8 +861,9 @@ function saveTenant() {
 }
 
 function openEditTenant(id) {
+  if (session.role !== 'admin') return;
   const t = repository.listTenants().find(x => x.id === id);
-  if (!t) return;
+  if (!t || t.archived) return;
   openModal(`Edit Tenant — ${t.name}`, `
     <div class="form-grid-2 mb-14">
       <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" id="et-name" value="${escapeHtml(t.name)}"></div>
@@ -803,35 +873,24 @@ function openEditTenant(id) {
       <div class="form-group"><label class="form-label" for="et-phone">Phone Number (optional)</label><input class="form-input" id="et-phone" type="tel" maxlength="40" value="${escapeHtml(t.phone || '')}"></div>
       <div class="form-group"><label class="form-label" for="et-email">Email Address (optional)</label><input class="form-input" id="et-email" type="email" maxlength="254" value="${escapeHtml(t.email || '')}"></div>
     </div>
-    <div class="form-grid-2 mb-14">
-      <div class="form-group"><label class="form-label">Unit</label><input class="form-input" id="et-unit" value="${t.shop}" disabled></div>
-      <div class="form-group"><label class="form-label">Annual Rent (₦)</label><input class="form-input" id="et-rent" type="number" value="${t.rent}"></div>
-    </div>
-    <div class="form-grid-2 mb-4">
-      <div class="form-group"><label class="form-label">Lease Start</label><input class="form-input" id="et-start" type="date" value="${t.start}"></div>
-      <div class="form-group"><label class="form-label">Lease End</label><input class="form-input" id="et-end" type="date" value="${t.expires}"></div>
-    </div>`,
+    <p class="maint-meta">Profile changes apply to the tenant. Use Manage Shops for individual lease terms and assignment history.</p>`,
   `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-primary" onclick="saveTenantChanges(${t.id})">Save Changes</button>`);
 }
 
 function deleteTenant(id) {
+  if (session.role !== 'admin') return;
   const t = repository.listTenants().find(x => x.id === id);
-  openModal('Confirm Delete', `<p style="font-size:14px;line-height:1.7;">Are you sure you want to remove <strong>${t?.name}</strong> from the system? This action cannot be undone.</p>`,
-  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-red" onclick="removeTenant(${id})">Delete Tenant</button>`);
+  if (!t || t.archived) return;
+  if (repository.listActiveTenancies(id).length) { showToast('End active shop assignments in Manage Shops before archiving.', 'error'); return; }
+  openModal('Archive Tenant', `<p>Archive <strong>${escapeHtml(t.name)}</strong>? Their profile, assignments, and payment history will be retained.</p>`,
+  `<button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button><button class="btn btn-red" onclick="removeTenant(${id})">Archive Tenant</button>`);
 }
 
 function saveTenantChanges(id) {
+  if (session.role !== 'admin') return;
   const tenant = repository.listTenants().find(item => item.id === id);
-  const details = readTenantForm('et');
+  const details = readTenantProfile('et');
   if (!tenant || !details) return;
-  if (details.shop !== tenant.shop) {
-    showToast('Shop reassignment is not supported by this edit form. Keep the existing unit.', 'error');
-    return;
-  }
-  if (repository.listTenants().some(item => item.id !== id && item.shop === details.shop)) {
-    showToast('That unit is already occupied by another tenant.', 'error');
-    return;
-  }
   try { repository.updateTenant(id, details); }
   catch (error) { showToast(error.message, 'error'); return; }
   closeModalDirect();
@@ -842,35 +901,31 @@ function saveTenantChanges(id) {
 }
 
 function removeTenant(id) {
+  if (session.role !== 'admin') return;
   const index = repository.listTenants().findIndex(tenant => tenant.id === id);
   if (index < 0) return;
-  const removed = repository.removeTenant(id);
+  let removed;
+  try { removed = repository.removeTenant(id); }
+  catch (error) { showToast(error.message, 'error'); return; }
   closeModalDirect();
   renderTenants(repository.listTenants());
   renderUnits();
-  showToast(`Tenant "${removed.name}" removed. This change resets on refresh.`,'info');
+  renderTenantIdentity();
+  showToast(`Tenant "${removed.name}" archived for this demo session.`,'info');
 }
 
 function getAvailableUnits() {
-  return repository.listUnits().filter(unit => !repository.listTenants().some(tenant => tenant.shop === unit.number)).map(unit => unit.number);
+  return repository.listUnits().filter(unit => !repository.listActiveTenancies().some(tenancy => tenancy.unitId === unit.id)).map(unit => unit.number);
 }
 
-function readTenantForm(prefix) {
+function readTenantProfile(prefix) {
   const name = document.getElementById(`${prefix}-name`)?.value.trim();
   const business = document.getElementById(`${prefix}-biz`)?.value.trim();
-  const shop = document.getElementById(`${prefix}-unit`)?.value;
-  const rent = Number(document.getElementById(`${prefix}-rent`)?.value);
-  const start = document.getElementById(`${prefix}-start`)?.value;
-  const expires = document.getElementById(`${prefix}-end`)?.value;
   const email = document.getElementById(`${prefix}-email`)?.value.trim() || '';
   const phoneInput = document.getElementById(`${prefix}-phone`)?.value.trim() || '';
   const phone = phoneInput.replace(/[\s()-]/g, '');
-  if (!name || name.length > 120 || !business || business.length > 100 || !shop || !start || !expires || !Number.isFinite(rent) || rent <= 0) {
-    showToast('Enter a name, business type, unit, positive rent, and both lease dates.','error');
-    return null;
-  }
-  if (!repository.listUnits().some(unit => unit.number === shop)) {
-    showToast('Choose an existing shop unit.', 'error');
+  if (!name || name.length > 120 || !business || business.length > 100) {
+    showToast('Enter a name (up to 120 characters) and business type (up to 100).', 'error');
     return null;
   }
   if ((email && (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) || (phoneInput && (phoneInput.length > 40 || !/^\+?\d{7,15}$/.test(phone)))) {
@@ -881,6 +936,20 @@ function readTenantForm(prefix) {
     showToast('Names and business types cannot contain angle brackets.','error');
     return null;
   }
+  return { name, email, phone, business };
+}
+
+function readTenantForm(prefix) {
+  const profile = readTenantProfile(prefix);
+  if (!profile) return null;
+  const shop = document.getElementById(`${prefix}-unit`)?.value;
+  const rent = Number(document.getElementById(`${prefix}-rent`)?.value);
+  const start = document.getElementById(`${prefix}-start`)?.value;
+  const expires = document.getElementById(`${prefix}-end`)?.value;
+  if (!repository.listUnits().some(unit => unit.number === shop) || !Number.isFinite(rent) || rent <= 0) {
+    showToast('Choose an existing shop and enter positive rent.', 'error');
+    return null;
+  }
   if (!isValidDateOnly(start) || !isValidDateOnly(expires)) {
     showToast('Enter valid lease dates.', 'error');
     return null;
@@ -889,9 +958,7 @@ function readTenantForm(prefix) {
     showToast('The lease end date must be after the start date.','error');
     return null;
   }
-  const days = daysUntil(expires);
-  // Profile edits must not overwrite payment state or historical record snapshots.
-  return { name, email, phone, shop, block:shop[0], business, rent, start, expires, status:days < 0 ? 'overdue' : days <= 60 ? 'expiring' : 'active' };
+  return { ...profile, shop, rent, start, expires };
 }
 
 function openAddUnit() {
@@ -929,8 +996,8 @@ function saveUnit() {
 function openRecordPayment() {
   openModal('Record Manual Payment', `
     <div class="form-grid-2 mb-14">
-      <div class="form-group"><label class="form-label">Tenant</label>
-        <select class="form-input" id="manual-payment-tenant">${repository.listTenants().map(t=>`<option value="${t.id}">${escapeHtml(t.name)} (${t.shop})</option>`).join('')}</select>
+      <div class="form-group"><label class="form-label">Tenant / shop assignment</label>
+        <select class="form-input" id="manual-payment-tenant">${repository.listOccupancies().map(t=>`<option value="${t.tenancyId}">${escapeHtml(t.name)} (${escapeHtml(t.shop)})</option>`).join('')}</select>
       </div>
       <div class="form-group"><label class="form-label">Amount (₦)</label><input class="form-input" id="manual-payment-amount" type="number" min="1" placeholder="480000"></div>
     </div>
@@ -947,13 +1014,14 @@ function openRecordPayment() {
 }
 
 function saveManualPayment() {
-  const tenantId = Number(document.getElementById('manual-payment-tenant')?.value);
+  if (session.role !== 'admin') return;
+  const tenancyId = Number(document.getElementById('manual-payment-tenant')?.value);
   const amount = Number(document.getElementById('manual-payment-amount')?.value);
   const method = document.getElementById('manual-payment-method')?.value;
   const date = document.getElementById('manual-payment-date')?.value;
   const period = document.getElementById('manual-payment-period')?.value;
-  const tenant = repository.listTenants().find(item => item.id === tenantId);
-  if (!tenant || !method || !period || !date || !Number.isFinite(amount) || amount <= 0) {
+  const tenant = repository.getTenancyRow(tenancyId);
+  if (!tenant || tenant.lifecycle !== 'active' || tenant.archived || tenant.plazaId !== DEMO_PLAZA_ID || !method || !period || !date || !Number.isFinite(amount) || amount <= 0) {
     showToast('Select a tenant and enter a positive amount, method, date, and period.','error');
     return;
   }
@@ -963,7 +1031,7 @@ function saveManualPayment() {
   }
   const year = date.slice(0, 4);
   const ref = `MAN-${year}-${String(repository.listPayments().filter(payment => payment.ref.startsWith(`MAN-${year}-`)).length + 1).padStart(3, '0')}`;
-  repository.addPayment({ ref, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, amount, period, method, date, status:'paid', source:'manual' });
+  repository.addPayment({ ref, tenancyId, tenantId:tenant.id, tenant:tenant.name, unit:tenant.shop, amount, period, method, date, status:'paid', source:'manual' });
   closeModalDirect();
   renderPayments();
   renderAdminDashboard();
@@ -1151,7 +1219,10 @@ export const actions = {
   approvePaymentEvidence, rejectPaymentEvidence, openAddPlaza, savePlaza, openEditPlan,
   savePlan, renderPlanCards, showToast, toggleThis, toggleMobileSidebar,
   formatDate, formatNaira, daysUntil, expiryBadge, payStatusBadge,
-  escapeHtml, statusBadge, avatarStyle, checkMobile, scrollToFeatures
+  escapeHtml, statusBadge, avatarStyle, checkMobile, scrollToFeatures,
+  openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms,
+  openEndTenancy, endTenancy, getSelectedTenantTenancy, selectTenantTenancy, readTenantProfile,
+  refreshTenantViews
 };
 const inlineHandlers = {
   approvePaymentEvidence, closeModal, closeModalDirect, confirmPlazaStatusChange, deleteTenant,
@@ -1162,7 +1233,9 @@ const inlineHandlers = {
   renderPlazasList, saveMaintenanceReview, saveManualPayment, savePlan, savePlaza,
   savePlazaStatus, saveTenant, saveTenantChanges, saveUnit, selectPayMethod,
   showLanding, showLogin, showRegister, showToast, showUnitDetail,
-  submitMaintenanceRequest, switchLoginTab, switchRole, toggleMobileSidebar, toggleThis
+  submitMaintenanceRequest, switchLoginTab, switchRole, toggleMobileSidebar, toggleThis,
+  openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms,
+  openEndTenancy, endTenancy, selectTenantTenancy
 };
 Object.assign(window, inlineHandlers);
 

@@ -44,7 +44,7 @@ test('profile edits preserve paid flag, identity, and optional unrelated fields'
   const { run, editDemo } = await createDemo();
   run("TENANTS.find(t => t.id === 6).customNote = 'Preserve me';");
   editDemo({ name:'Renamed Boutique' });
-  assert.equal(run('TENANTS.find(t => t.id === 6).paid'), true);
+  assert.equal(run('repository.getTenancy(6).paid'), true);
   assert.equal(run('TENANTS.find(t => t.id === 6).customNote'), 'Preserve me');
   assert.equal(run('TENANTS.find(t => t.id === 6).email'), 'shop@example.com');
 });
@@ -65,7 +65,7 @@ test('renaming keeps payment totals, receipt ownership, and record snapshots', a
 
 test('matching names never grant another tenant payment or maintenance ownership', async () => {
   const { run, element } = await createDemo();
-  run("TENANTS.find(t => t.id === 7).name = 'Funmi Boutique'; PAYMENTS.push({tenantId:7, tenant:'Funmi Boutique', ref:'OTHER-TENANT', amount:999, status:'paid'}); MAINTENANCE_REQUESTS.push({id:'MR-099', tenantId:7, tenant:'Funmi Boutique', subject:'Private', category:'Other', priority:'Low', date:'Today', status:'pending'}); renderReceipts(); renderMaintenance();");
+  run("TENANTS.find(t => t.id === 7).name = 'Funmi Boutique'; repository.addPayment({tenancyId:7, ref:'OTHER-TENANT', amount:999, status:'paid'}); repository.addMaintenanceRequest({id:'MR-099', tenancyId:7, subject:'Private', category:'Other', priority:'Low', date:'Today', status:'pending'}); renderReceipts(); renderMaintenance();");
   assert.equal(run('getTenantApprovedAmount(6)'), 480000);
   assert.doesNotMatch(element('tenant-receipts-list').innerHTML, /OTHER-TENANT/);
   assert.doesNotMatch(element('maintenance-list').innerHTML, /MR-099/);
@@ -73,12 +73,12 @@ test('matching names never grant another tenant payment or maintenance ownership
 
 test('new IDs remain finite and do not reuse a removed tenant identity', async () => {
   const { run, fill } = await createDemo();
-  run('TENANTS.splice(0);');
+  run("TENANCIES.forEach(t => repository.endTenancy(t.id, 'Vacated')); TENANTS.forEach(t => repository.removeTenant(t.id));");
   fill();
   run('saveTenant();');
-  assert.equal(run('Number.isSafeInteger(TENANTS[0].id)'), true);
-  assert.ok(run('TENANTS[0].id') > 12);
-  assert.equal(run('getTenantApprovedAmount(TENANTS[0].id)'), 0);
+  assert.equal(run('Number.isSafeInteger(TENANTS.at(-1).id)'), true);
+  assert.ok(run('TENANTS.at(-1).id') > 12);
+  assert.equal(run('getTenantApprovedAmount(TENANTS.at(-1).id)'), 0);
 });
 
 test('unknown and occupied units reject without changing the tenant list', async () => {
@@ -91,11 +91,10 @@ test('unknown and occupied units reject without changing the tenant list', async
   }
 });
 
-test('edit cannot move a tenant through a tampered disabled unit input', async () => {
+test('profile edits cannot move an assignment through a stale unit input', async () => {
   const { run, editDemo } = await createDemo();
   editDemo({ unit:'A-02' });
-  assert.equal(run('TENANTS.find(t => t.id === 6).shop'), 'D-09');
-  assert.equal(run('toast.type'), 'error');
+  assert.equal(run('repository.getTenancyRow(6).shop'), 'D-09');
 });
 
 test('invalid contact fields and dates reject without mutation', async () => {
@@ -125,6 +124,7 @@ test('new manual payments and transfer evidence use stable tenant IDs', async ()
   assert.equal(run('PAYMENTS[0].tenantId'), 6);
   assert.equal(run('getTenantApprovedAmount(6)'), 490000);
   element('transfer-reference').value = 'BANK-001';
+  element('transfer-amount').value = '510000';
   element('transfer-evidence').files = [{ name:'proof.pdf' }];
   run("session.role = 'tenant'; submitTransferEvidence();");
   assert.equal(run('PAYMENTS[0].tenantId'), 6);
@@ -135,13 +135,14 @@ test('new manual payments and transfer evidence use stable tenant IDs', async ()
 
 test('seed payment identities preserve the original tenant and unit links', async () => {
   const { run } = await createDemo();
-  assert.equal(run('PAYMENTS.every(payment => TENANTS.some(tenant => tenant.id === payment.tenantId && tenant.name === payment.tenant && tenant.shop === payment.unit))'), true);
+  assert.equal(run('PAYMENTS.every(payment => { const row = repository.getTenancyRow(payment.tenancyId); return row.tenantId === payment.tenantId && row.name === payment.tenant && row.shop === payment.unit; })'), true);
 });
 
 test('maintenance submission still works after the tenant is renamed', async () => {
   const { run, editDemo, element } = await createDemo();
   editDemo({ name:'New Boutique Name' });
   element('maintenance-category').value = 'Electrical';
+  element('maintenance-tenancy').value = '6';
   element('maintenance-priority').value = 'High';
   element('maintenance-subject').value = 'Broken light';
   element('maintenance-description').value = 'The entrance light does not turn on.';
@@ -156,7 +157,7 @@ test('maintenance submission still works after the tenant is renamed', async () 
 test('removing and replacing a tenant frees the unit without transferring history', async () => {
   const { run, fill, element } = await createDemo();
   const history = run('JSON.stringify(PAYMENTS)');
-  run('removeTenant(6);');
+  run("repository.endTenancy(6, 'Moved out'); removeTenant(6);");
   assert.equal(run("getAvailableUnits().includes('D-09')"), true);
   fill('nt', { name:'Funmi Boutique', unit:'D-09' });
   run('saveTenant();');

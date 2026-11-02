@@ -59,7 +59,7 @@ Data flow: HTML inputs provide values to `readTenantForm`, validation returns an
 4. Switch back to Admin → Units & Shops. Open vacant B-24 and choose Assign Tenant. B-24 should already be selected.
 5. Add that tenant with valid lease dates. Their unit should become occupied. Attempting to reuse the same unit must fail.
 
-Remaining limitations: edits still reset on refresh; balances still need the invoice ledger; deleting a tenant is not yet a formal tenancy closure; role checks are not authentication; fixed invoice and lease details remain demo content. No backend migration is part of this stage.
+At the end of Stage 1, edits still reset on refresh, balances needed an invoice ledger, and tenant deletion was not yet a tenancy closure. Stage 3 below replaces deletion with assignment closure and profile archiving. Role checks remain presentation only; no backend migration is part of these stages.
 
 ## Stage 2: JavaScript modules and data access
 
@@ -73,6 +73,7 @@ Stage 1 is preserved in commit `e7b09b2`. The existing screens and working workf
 | `js/navigation.js` | Demo session state, login/registration presentation, sidebar menus, and page switching. |
 | `js/ui.js` | Shared modal and toast behavior. |
 | `js/utils.js` | Reusable date, currency, escaping, status, chart-aggregation, and CSV helpers. |
+| `js/features/tenancies.js` | Shop assignment, history, ending/cancellation, and tenancy-term dialogs. |
 | `tests/helpers/load-app.cjs` | Loads real modules in isolated test contexts; legacy data aliases exist only in tests. |
 
 `export` makes a value available to another module; `import` names the values a file needs. For example, `app.js` imports `formatNaira` from `utils.js` rather than relying on a global function. Modules run once per page load and share their imported repository instance. `createRepository()` can also create independent data for tests.
@@ -86,3 +87,41 @@ HTML still has inline handlers during this migration. `app.js` exposes only the 
 Checks cover all prior workflows, independent repository instances, all role page routes and handler names, module URLs/content types, the legacy entry, and preview file restrictions. These simulated DOM/HTTP checks do not replace visual browser testing.
 
 To try the extraction, refresh the preview, navigate all three roles, edit a tenant, review maintenance, and export a CSV. The interface should behave as before. Your learning exercise: trace `saveTenantChanges` in `app.js` into `updateTenant` in `repository.js`, then identify which fields the repository allows it to change.
+
+## Stage 3: shops, tenant profiles, and tenancies
+
+The previous runnable stage is preserved in commit `383fa49`. The demo now stores these separately:
+
+| Record | Owns |
+| --- | --- |
+| Plaza | Plaza identity and its operational scope. |
+| Unit | Stable unit ID, plaza ID, shop number, block, size, suggested rent. |
+| Tenant | Stable tenant ID, plaza membership, name, business type, contacts, archive flag. |
+| Tenancy | Stable agreement ID, tenant ID, unit ID, plaza ID, rent, dates, lifecycle, closure date/reason, and sample fees. |
+| Payment / maintenance request | Tenancy, tenant, unit and plaza IDs, plus names/shop labels captured as record snapshots. |
+
+One tenant can have several shop agreements. A shop can have only one active assignment. A passed lease-end date does not make it vacant: management must explicitly end occupancy. Closing a future-starting assignment marks it cancelled. These lifecycle actions free the shop immediately and retain the old agreement. There is no automatic future reservation scheduler or historical date-overlap engine in this stage.
+
+The admin's Manage Shops dialog lists current and past agreements. Assign Another Shop uses an existing profile; Register New Tenant creates a profile plus its first agreement. Profile editing changes contacts and business information only. Edit Terms corrects an active agreement's rent/dates; ended/cancelled records are read-only. Effective-dated rent-change notices are a later MVP workflow, not the purpose of Edit Terms.
+
+Archiving replaces deletion: it is allowed only after all active assignments have ended, and it retains the profile and payment history. The tenant directory includes archived/unassigned filters. The repository does not reuse old tenant, unit, or tenancy IDs during the demo session.
+
+Occupancy, floor-map details, tenant shop lists and total annual rents use joined views of profile + tenancy + unit. A joined view assembles related fields for display without storing rent or a shop number back on the person. For example, tenant 6 can own tenancy 6 for D-09 and another tenancy for B-24. Ending the B-24 agreement does not remove D-09 or either agreement's records.
+
+Payment and maintenance forms now select a shop agreement. New records require an active matching assignment. Reports sum approved records per tenancy, preventing one tenant's collections from being repeated for each of their shops. Transfer evidence remains pending and unallocated; a lease end year is not assumed to be a billing period. Existing D-09 sample fees are preserved as agreement metadata; charge references are not invoices or outstanding-balance calculations.
+
+The operational demo is scoped to Sunshine plaza (ID 1). Unit numbers can repeat in other plazas because IDs and plaza membership distinguish them. Repository scope and matching-ID checks are consistency checks only; a server must enforce actual authorization and tenant isolation. Other platform plaza listings remain sample account summaries rather than fully seeded operating plazas.
+
+### Try multiple shops and history
+
+1. Refresh the local preview and open Admin → Tenants → Funmi Boutique → Manage Shops.
+2. Choose Assign Another Shop, select B-24, and enter positive rent and valid lease dates. Save. The directory and Tenant dashboard should list both D-09 and B-24.
+3. Open Tenant → Maintenance and choose B-24 when submitting an issue. In Pay Fees, the shop selector chooses the relevant agreement. The entered transfer amount must be positive; no money is collected.
+4. Back in Admin → Manage Shops, end B-24 with a reason. It should become vacant while D-09 stays assigned. B-24's ended agreement and any existing records remain visible in history.
+5. End the tenant's remaining assignment to make Archive available. After archiving, find the profile with the Archived filter. A replacement occupant gets a new tenant/tenancy identity and does not inherit the previous occupant's receipts.
+
+Run `npm.cmd test` for the complete regression suite. Tests cover duplicate occupancy, mismatched plazas, several shops for one tenant, closure/archiving, immutable ended terms, stale evidence forms, per-shop collection totals, and prior workflows. DOM/HTTP simulation is not visual browser QA.
+
+Still incomplete: persistent storage and real authorization; a period-based invoice ledger for due dates, partial payments and arrears; receipt documents; announcements and effective-dated notices. Profile archiving is not a production retention/restore policy. All demo changes still reset on refresh.
+
+Learning exercise: compare `repository.getTenant(6)` with `repository.getTenancyRow(6)`. The first is the stored person; the second joins the person, agreement, and shop for display. Then trace `assignTenancy` to see why vacancy is checked before adding a new agreement.

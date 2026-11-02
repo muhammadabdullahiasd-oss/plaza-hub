@@ -62,7 +62,7 @@ test('report export matches the displayed rows and excludes unapproved amounts',
   assert.equal((element('reports-top-units').innerHTML.match(/<tr>/g) || []).length, 8);
   assert.match(element('reports-top-units').innerHTML, new RegExp(rows[1][1]));
   const before = run("JSON.stringify(getExportData('report').rows)");
-  run("PAYMENTS.push({tenantId:10, tenant:'Jide Legal Services', amount:99999999, status:'pending'});");
+  run("repository.addPayment({ref:'PENDING-TEST', tenancyId:10, amount:99999999, status:'pending'});");
   assert.equal(run("JSON.stringify(getExportData('report').rows)"), before);
 });
 

@@ -26,6 +26,7 @@ async function createDemo() {
   };
   element('maintenance-filter').value = 'all';
   function submit(subject = 'Leaking pipe', description = 'Water is leaking beside the shop entrance.') {
+    element('maintenance-tenancy').value = '6';
     element('maintenance-category').value = 'Plumbing';
     element('maintenance-priority').value = 'High';
     element('maintenance-subject').value = subject;

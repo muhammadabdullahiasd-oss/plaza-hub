@@ -23,11 +23,8 @@ async function loadApp(context) {
   const { repository, session, ui, actions } = app.namespace;
   Object.assign(context, actions, { repository, session });
   // Legacy fixture aliases are test-only; production screens use repository queries.
-  Object.assign(context, {
-    TENANTS:repository.listTenants(), UNITS:repository.listUnits(), PAYMENTS:repository.listPayments(),
-    PLAZAS:repository.listPlazas(), PLANS:repository.getPlans(), SUB_PAYMENTS:repository.listSubscriptionPayments(),
-    MAINTENANCE_REQUESTS:repository.listMaintenanceRequests(),
-  });
+  const fixtures = { TENANTS:'listTenants', TENANCIES:'listTenancies', UNITS:'listUnits', PAYMENTS:'listPayments', PLAZAS:'listPlazas', PLANS:'getPlans', SUB_PAYMENTS:'listSubscriptionPayments', MAINTENANCE_REQUESTS:'listMaintenanceRequests' };
+  for (const [name, query] of Object.entries(fixtures)) Object.defineProperty(context, name, { configurable:true, get:() => repository[query]() });
   for (const key of ['showToast', 'openModal', 'closeModalDirect']) Object.defineProperty(context, key, {
     configurable:true, get:() => ui[key], set:value => { ui[key] = value; },
   });
