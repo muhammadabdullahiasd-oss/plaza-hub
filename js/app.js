@@ -6,6 +6,7 @@ import { ui } from './ui.js';
 import { createTenancyActions } from './features/tenancies.js';
 import { createInvoiceActions } from './features/invoices.js';
 import { createPaymentActions } from './features/payments.js';
+import { createReceiptActions } from './features/receipts.js';
 
 const { showLanding, showLogin, showRegister, hideAll, switchLoginTab, doLogin, doRegister, switchRole, buildSidebar, navTo } = createNavigation({ repository, ui, renderPage:page => renderPage(page) });
 const { openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms, openEndTenancy, endTenancy } = createTenancyActions({ repository, ui, getRole:() => session.role, refresh:() => refreshTenantViews() });
@@ -18,7 +19,8 @@ function refreshTenantViews() {
 }
 
 const { renderInvoiceList, openCreateInvoice, saveInvoice, openInvoiceDetails } = createInvoiceActions({ repository, ui, getRole:() => session.role, refresh:() => refreshFinancialViews() });
-const { getSelectedTenantTenancy, selectTenantTenancy, renderPayStep, selectPayMethod, processPayment, submitTransferEvidence, renderEvidenceSubmitted, openRecordPayment, saveManualPayment, openPaymentReview, approvePaymentEvidence, rejectPaymentEvidence, renderReceipts, selectTenantInvoice, openPaymentRecord } = createPaymentActions({ repository, ui, getRole:() => session.role, refresh:() => refreshFinancialViews() });
+const { getSelectedTenantTenancy, selectTenantTenancy, renderPayStep, selectPayMethod, processPayment, submitTransferEvidence, renderEvidenceSubmitted, openRecordPayment, saveManualPayment, openPaymentReview, approvePaymentEvidence, rejectPaymentEvidence, selectTenantInvoice } = createPaymentActions({ repository, ui, getRole:() => session.role, refresh:() => refreshFinancialViews() });
+const { renderReceipts, openPaymentRecord, printReceipt } = createReceiptActions({ repository, ui, getRole:() => session.role });
 
 function refreshFinancialViews() {
   renderPayments();
@@ -378,7 +380,7 @@ function renderPayments() {
       <td><span class="badge badge-gray">${p.method}</span></td>
       <td>${formatDate(p.date)}</td>
       <td>${payStatusBadge(p.status)}</td>
-      <td>${p.status==='pending' ? `<button class="btn btn-sm btn-primary" onclick="openPaymentReview('${p.ref}')">Review</button>` : `<button class="btn btn-sm btn-ghost" onclick="openInvoiceDetails(${p.invoiceId})">Invoice</button>`}</td>
+      <td>${p.status==='pending' ? `<button class="btn btn-sm btn-primary" onclick="openPaymentReview('${p.ref}')">Review</button>` : `${p.status === 'paid' ? `<button class="btn btn-sm btn-ghost" onclick="openPaymentRecord('${p.ref}')">Receipt</button> ` : ''}<button class="btn btn-sm btn-ghost" onclick="openInvoiceDetails(${p.invoiceId})">Invoice</button>`}</td>
     </tr>`).join('');
 }
 
@@ -956,7 +958,7 @@ export const actions = {
   openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms,
   openEndTenancy, endTenancy, getSelectedTenantTenancy, selectTenantTenancy, readTenantProfile,
   refreshTenantViews, renderInvoiceList, openCreateInvoice, saveInvoice, openInvoiceDetails,
-  selectTenantInvoice, openPaymentRecord
+  selectTenantInvoice, openPaymentRecord, printReceipt
 };
 const inlineHandlers = {
   approvePaymentEvidence, closeModal, closeModalDirect, confirmPlazaStatusChange, deleteTenant,
@@ -970,7 +972,7 @@ const inlineHandlers = {
   submitMaintenanceRequest, switchLoginTab, switchRole, toggleMobileSidebar, toggleThis,
   openManageTenancies, openAssignTenancy, saveAssignment, openEditTenancy, saveTenancyTerms,
   openEndTenancy, endTenancy, selectTenantTenancy, renderInvoiceList, openCreateInvoice,
-  saveInvoice, openInvoiceDetails, selectTenantInvoice, openPaymentRecord
+  saveInvoice, openInvoiceDetails, selectTenantInvoice, openPaymentRecord, printReceipt
 };
 Object.assign(window, inlineHandlers);
 

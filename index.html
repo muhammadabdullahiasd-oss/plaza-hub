@@ -871,7 +871,7 @@ For assistance, contact plaza management.
                 <button class="btn btn-primary w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-pay')">💳 View Invoices &amp; Submit Evidence</button>
                 <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-maintenance')">🔧 Submit Maintenance Request</button>
                 <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-lease')">📄 View Lease Agreement</button>
-                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-receipts')">🧾 View Approved Payment Records</button>
+                <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-receipts')">🧾 View Demo Receipts</button>
                 <button class="btn btn-ghost w-full" style="justify-content:flex-start;padding:13px 16px;font-size:14px;" onclick="navTo('tenant-notifications')">🔔 View Notifications</button>
               </div>
             </div>
@@ -891,7 +891,7 @@ For assistance, contact plaza management.
         <!-- Tenant: Receipts -->
         <div class="app-page" id="page-tenant-receipts">
           <div class="card">
-            <div class="card-header"><div class="card-title">Approved Demo Payment Records</div></div>
+            <div class="card-header"><div><div class="card-title">Demo Receipts</div><div class="card-subtitle">Numbered records for approved demo payments. Open a receipt to print or save as PDF using your browser.</div></div></div>
             <div id="tenant-receipts-list"></div>
           </div>
         </div>
@@ -970,6 +970,9 @@ For assistance, contact plaza management.
     </div><!-- /main-wrap -->
   </div><!-- /app-layout -->
 </div><!-- /app-shell -->
+
+<!-- Kept outside the app shell so printing excludes dashboards and other tenants. -->
+<div id="receipt-print-root"></div>
 
 <!-- ============================================================
      JAVASCRIPT

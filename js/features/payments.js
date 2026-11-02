@@ -128,17 +128,6 @@ export function createPaymentActions({ repository, ui, getRole, refresh }) {
   }
   function approvePaymentEvidence(ref) { review(ref, 'paid'); }
   function rejectPaymentEvidence(ref) { review(ref, 'rejected'); }
-  function openPaymentRecord(ref) {
-    const payment = repository.listPayments().find(item => item.ref === ref);
-    const invoice = payment && scopedInvoice(payment.invoiceId);
-    if (!invoice || payment.status !== 'paid') return;
-    ui.openModal('Approved Demo Payment Record', `<p>${escapeHtml(payment.ref)} · ${invoice.number}</p><p>Shop ${escapeHtml(payment.unit)} · ${formatNaira(payment.amount)} · ${formatDate(payment.date)}</p><p>Period: ${formatDate(invoice.periodStart)} – ${formatDate(invoice.periodEnd)}</p><p class="maint-meta">This is a demo record, not an official receipt. PDF generation and email delivery are not implemented.</p>`);
-  }
-  function renderReceipts() {
-    const list = document.getElementById('tenant-receipts-list');
-    if (!list) return;
-    list.innerHTML = repository.listPayments().filter(payment => payment.tenantId === DEMO_TENANT_ID && payment.status === 'paid').map(payment => `<div class="receipt-item"><div class="receipt-info"><div class="receipt-name">Shop ${escapeHtml(payment.unit)} · ${escapeHtml(repository.getInvoice(payment.invoiceId)?.number || 'Legacy record')}</div><div class="receipt-date">${formatDate(payment.date)} · ${escapeHtml(payment.ref)} ${payStatusBadge(payment.status)}</div></div><div>${formatNaira(payment.amount)} <button class="btn btn-sm btn-ghost" onclick="openPaymentRecord('${payment.ref}')">View record</button></div></div>`).join('') || '<p>No approved payment records yet.</p>';
-  }
   return { getSelectedTenantTenancy, selectTenantTenancy, selectTenantInvoice, renderPayStep, selectPayMethod, processPayment, submitTransferEvidence,
-    renderEvidenceSubmitted, openRecordPayment, saveManualPayment, openPaymentReview, approvePaymentEvidence, rejectPaymentEvidence, renderReceipts, openPaymentRecord };
+    renderEvidenceSubmitted, openRecordPayment, saveManualPayment, openPaymentReview, approvePaymentEvidence, rejectPaymentEvidence };
 }

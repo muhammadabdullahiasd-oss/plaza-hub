@@ -77,6 +77,7 @@ Stage 1 is preserved in commit `e7b09b2`. The existing screens and working workf
 | `js/data/ledger.js` | Invoice issuance, allocation validation, payment review, balances and overdue calculations. |
 | `js/features/invoices.js` | Admin invoice forms/list and role-scoped demo invoice details. |
 | `js/features/payments.js` | Tenant evidence, admin manual records/review, and approved demo payment records. |
+| `js/features/receipts.js` | Shared receipt details, tenant receipt list, and isolated browser print layout. |
 | `tests/helpers/load-app.cjs` | Loads real modules in isolated test contexts; legacy data aliases exist only in tests. |
 
 `export` makes a value available to another module; `import` names the values a file needs. For example, `app.js` imports `formatNaira` from `utils.js` rather than relying on a global function. Modules run once per page load and share their imported repository instance. `createRepository()` can also create independent data for tests.
@@ -163,4 +164,34 @@ Run `npm.cmd test`. The suite covers partial settlement, period separation, pend
 
 Learning exercise: follow `submitTransferEvidence` in `payments.js` into `ledger.addPayment`, then `reviewPayment`. Identify why recording pending evidence leaves `approvedKobo` unchanged, and why approval must check capacity again even after submission passed validation.
 
-Recommended next stage: receipt record numbering and printable demo views for approved allocations, followed by announcements and effective-dated rent notices. Secure document storage, official receipt issuance and notification delivery remain backend work.
+Stage 5 below adds receipt numbering and printable demo views. Secure document storage, official receipt issuance and notification delivery remain backend work.
+
+## Stage 5: numbered and printable demo receipts
+
+Stage 4 is preserved in commit `963471e`. Each confirmed manual payment or approved evidence allocation now receives one `DEMO-RCT-000001` style number. Receipt creation happens inside the ledger's confirmation operation; opening, rerendering or printing a view never issues another number. Repeated approval returns the same receipt. Pending, rejected, failed overpayments and stale approvals produce none.
+
+Existing approved sample payments receive demo receipts when the repository starts, in payment-date order. Their issue date is the current demo initialization date, not a claimed historical issuance date. For imported samples, the remaining balance is reconstructed from approved sample payments in payment-date order. These are sample records only. Numbers are unique within the current repository session; refresh resets them. Persistent, concurrent numbering and real issuance require a server/database.
+
+Receipt snapshots contain the plaza name, tenant and shop labels, invoice number/period/charges, payment reference, payment date/method, amount, issue date, and balance immediately after that allocation. Later profile/term edits, occupancy closure or payments cannot rewrite the snapshot. Receipt queries return copies, including nested charge items.
+
+For example, approving ₦100,000 against `INV-0011` produces a receipt showing ₦510,000 invoiced, ₦100,000 received in that payment, and ₦410,000 remaining. A later ₦410,000 payment gets a separate receipt with zero remaining. Reopening the first receipt still shows ₦410,000. Use the invoice view for today's balance.
+
+The shared `receipts.js` feature replaces the previous payment-record dialog. Tenant → My Receipts lists only that demo tenant's approved receipts. Admin → Payments has Receipt buttons for approved records, while retaining Invoice buttons. The same scoped view is used in both places; platform admin cannot use this operational receipt view. These frontend scope checks are not real authorization.
+
+### Try viewing and printing
+
+1. Refresh the local preview, then open Tenant → My Receipts → View Receipt for the original 2025 sample. Check the number, invoice, tenant, amount and prominent demo label.
+2. Choose Print / Save as PDF. In Chrome's dialog, select a printer or Save as PDF. Only the receipt document should appear, with no sidebar, other tenants, modal controls or dashboard. Close/cancel the dialog and confirm the application remains usable.
+3. Submit a small transfer-evidence sample against `INV-0011`. Before approval it must have no receipt. Approve in Admin → Payments, then open its Receipt button. Tenant → My Receipts should show the same number and details.
+4. Record a second partial payment. The first receipt's balance must remain unchanged, while the invoice's current balance and the newer receipt reflect the additional allocation.
+5. Reject another submission. It must remain in evidence history, with no receipt button or tenant receipt entry. Repeat an approval and reopen/print a receipt; no additional number should appear.
+
+`printReceipt` rechecks the current role and ownership, renders the snapshot into a dedicated sibling of the app shell, enables a print-only CSS layout, and calls `window.print()`. A `finally` block clears the temporary document and class after the dialog returns, including errors. No pop-up, download dependency, email or server upload is involved. Save as PDF is a browser print option; there is no automatic PDF-generation endpoint. Print failures show an error and leave the receipt available for retry.
+
+Run `npm.cmd test`. New tests cover seed numbering, confirmation-only issuance, partial-balance snapshots, repeated approval, failed allocation, immutable copies/lifecycle history, scoped opening and printing, print cleanup/error/retry, escaped user text, empty state, module delivery and print isolation rules. Native printing is simulated in the automated tests. Actual Chrome pagination, paper/PDF output and mobile appearance still need the manual checklist above; browser QA remains paused at the user's request.
+
+All documents are marked DEMO / NOT OFFICIAL on screen and in print. Real bank verification, official receipt issuance, durable numbering, authorized document access and audit logs still require a backend. No signature, tax status or legal validity is implied. This stage adds no production backend or dependencies.
+
+Learning exercise: trace `reviewPayment` → `issueReceipt` in `ledger.js`, then `openPaymentRecord` → `printReceipt` in `receipts.js`. The ledger creates the historical record once; the view only reads it. That separation prevents reprints from changing financial history.
+
+Recommended next stage: announcements with audience selection and tenant visibility, then effective-dated rent-adjustment notices that preserve already-issued invoices. Actual email/SMS delivery remains backend work.

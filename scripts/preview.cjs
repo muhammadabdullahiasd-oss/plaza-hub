@@ -17,6 +17,7 @@ const routes = new Map([
   ['/js/features/tenancies.js', ['js/features/tenancies.js', 'text/javascript; charset=utf-8']],
   ['/js/features/invoices.js', ['js/features/invoices.js', 'text/javascript; charset=utf-8']],
   ['/js/features/payments.js', ['js/features/payments.js', 'text/javascript; charset=utf-8']],
+  ['/js/features/receipts.js', ['js/features/receipts.js', 'text/javascript; charset=utf-8']],
   ['/css/style.css', ['css/style.css', 'text/css; charset=utf-8']],
 ]);
 function createPreviewServer() {

@@ -750,6 +750,38 @@ textarea.form-input { resize: vertical; min-height: 80px; }
 .receipt-date { font-size: 11px; color: var(--text3); }
 .receipt-amount { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; text-align: right; }
 .receipt-ref { font-size: 11px; color: var(--text3); }
+.receipt-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.receipt-info { min-width: 0; overflow-wrap: anywhere; }
+.receipt-document { font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }
+.receipt-heading { margin-bottom: 20px; }
+.receipt-heading h2 { margin: 4px 0; }
+.receipt-demo-label { font-weight: 700; letter-spacing: 0.05em; color: var(--orange); }
+.receipt-details, .receipt-totals { margin: 14px 0; }
+.receipt-detail { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.receipt-detail dt { color: var(--text2); }
+.receipt-detail dd { margin: 0; text-align: right; font-weight: 600; }
+.receipt-totals { border-top: 2px solid var(--border2); }
+.receipt-totals .receipt-detail:nth-child(2) { font-size: 16px; }
+.receipt-footnote { color: var(--text2); margin: 16px 0; }
+.receipt-disclaimer { border: 1px solid var(--border2); border-radius: 8px; padding: 12px; font-size: 12px; }
+#receipt-print-root { display: none; }
+
+@media (max-width: 480px) {
+  .receipt-item { flex-wrap: wrap; gap: 10px; }
+  .receipt-item .receipt-info { flex-basis: 100%; padding: 0; }
+  .receipt-actions { width: 100%; justify-content: space-between; }
+}
+
+@media print {
+  @page { margin: 16mm; }
+  body.printing-receipt { background: white; color: black; }
+  body.printing-receipt > :not(#receipt-print-root) { display: none !important; }
+  body.printing-receipt #receipt-print-root { display: block; }
+  #receipt-print-root .receipt-document { font-family: Arial, sans-serif; font-size: 11pt; color: black; max-width: 180mm; margin: auto; }
+  #receipt-print-root .receipt-detail { border-color: #bbb; break-inside: avoid; }
+  #receipt-print-root .receipt-totals, #receipt-print-root .receipt-disclaimer { border-color: #888; break-inside: avoid; }
+  #receipt-print-root .receipt-demo-label, #receipt-print-root dt, #receipt-print-root .receipt-footnote { color: #333; }
+}
 
 /* ============================================================
    PAYSTACK MOCK UI

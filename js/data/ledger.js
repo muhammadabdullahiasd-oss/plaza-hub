@@ -35,8 +35,37 @@ export function createLedger(data) {
   const validateLink = (invoice, payment) => {
     for (const key of ['tenantId', 'tenancyId', 'unitId', 'plazaId']) if (payment[key] !== undefined && payment[key] !== invoice[key]) throw new Error('Payment does not match the invoice assignment.');
   };
+  // Receipts are issued once on confirmation, never when a view is opened.
+  // Their balances describe that allocation, not today's outstanding balance.
+  const receipts = [];
+  let nextReceiptId = 1;
+  const cloneReceipt = receipt => receipt ? { ...receipt, items:receipt.items.map(item => ({ ...item })) } : null;
+  function issueReceipt(payment, remainingKobo) {
+    if (payment.status !== 'paid' || receipts.some(receipt => receipt.paymentRef === payment.ref)) return;
+    const invoice = findInvoice(payment.invoiceId);
+    if (!invoice) return;
+    const id = nextReceiptId++;
+    receipts.push({ id, number:`DEMO-RCT-${String(id).padStart(6, '0')}`, paymentRef:payment.ref,
+      invoiceId:invoice.id, invoiceNumber:invoice.number, tenantId:invoice.tenantId, tenancyId:invoice.tenancyId,
+      unitId:invoice.unitId, plazaId:invoice.plazaId,
+      plaza:data.plazas.find(plaza => plaza.id === invoice.plazaId)?.name || 'Demo plaza',
+      tenant:invoice.tenant, unit:invoice.unit, periodStart:invoice.periodStart, periodEnd:invoice.periodEnd,
+      items:invoice.items.map(item => ({ ...item })), invoiceAmount:totalKobo(invoice) / 100,
+      amount:payment.amount, balanceAfter:remainingKobo / 100, paymentDate:payment.date, method:payment.method,
+      issuedAt:new Date().toISOString() });
+  }
+  // Import approved sample records in payment-date order. No real receipts exist.
+  const importedAllocations = new Map();
+  data.payments.filter(payment => payment.status === 'paid' && findInvoice(payment.invoiceId))
+    .slice().sort((a, b) => a.date.localeCompare(b.date) || a.ref.localeCompare(b.ref)).forEach(payment => {
+      const allocated = (importedAllocations.get(payment.invoiceId) || 0) + toKobo(payment.amount);
+      importedAllocations.set(payment.invoiceId, allocated);
+      issueReceipt(payment, totalKobo(findInvoice(payment.invoiceId)) - allocated);
+    });
 
   return {
+    listReceipts:(plazaId = DEMO_PLAZA_ID) => receipts.filter(receipt => receipt.plazaId === plazaId).map(cloneReceipt),
+    getReceiptForPayment:ref => cloneReceipt(receipts.find(receipt => receipt.paymentRef === ref)),
     listInvoices:(plazaId = DEMO_PLAZA_ID) => data.invoices.filter(invoice => invoice.plazaId === plazaId).map(cloneInvoice),
     getInvoice:id => cloneInvoice(findInvoice(id)),
     getInvoiceSummary:(id, asOf) => { const result = summary(id, asOf); return result ? { ...result, items:result.items.map(item => ({ ...item })) } : null; },
@@ -80,6 +109,7 @@ export function createLedger(data) {
         tenant:invoice.tenant, unit:invoice.unit, period:`${invoice.periodStart} – ${invoice.periodEnd}`,
         ...(details.status === 'paid' ? { reviewedAt:new Date().toISOString(), reviewReason:'Confirmed manual demo record' } : {}) };
       data.payments.unshift(payment);
+      if (payment.status === 'paid') issueReceipt(payment, balanceKobo(invoice));
       return { ...payment };
     },
     reviewPayment(ref, decision, note = '') {
@@ -92,6 +122,7 @@ export function createLedger(data) {
       if (!invoice) throw new Error('This evidence must be linked to an invoice before review.');
       if (decision === 'paid') requireCapacity(invoice, toKobo(payment.amount));
       Object.assign(payment, { status:decision, reviewReason:note.trim(), reviewedAt:new Date().toISOString() });
+      if (decision === 'paid') issueReceipt(payment, balanceKobo(invoice));
       return { ...payment };
     },
     getLedgerSummary(plazaId = DEMO_PLAZA_ID, asOf) {
