@@ -1,6 +1,6 @@
 # PlazaHub backend design and migration proposal
 
-Status: proposed, not implemented. Prepared 3 November 2026 against checkpoint `bed22bc`. Provider, budget and business-policy decisions remain review items. No account, database, bucket, dependency, deployment or production credential is created by this document.
+Original proposal: prepared 3 November 2026 against checkpoint `bed22bc`. The direction was subsequently reviewed and approved for incremental local implementation; see [Stage 9 review](STAGE_9_REVIEW.md). Stage 10 now provides a separate [local Express foundation](../server/README.md). PostgreSQL, authentication, storage and business APIs remain future work. Provider purchases, budget and business-policy decisions remain review items; no cloud resource or production credential was created.
 
 ## 1. Recommendation and alternatives
 
@@ -213,6 +213,6 @@ These are implementation gates, not reasons to rewrite the frontend or to assume
 
 ## 12. Verification and learning checkpoint
 
-This stage inspected the real source, queried the fresh demo inventory and checked current official documentation. No API, SQL migration, security policy, upload system or backend deployment has been executed. Existing browser tests do not establish the proposed security guarantees. Validate this design with real PostgreSQL/HTTP concurrency and authorization tests when each slice exists; retain the existing demo regression suite alongside them.
+At Stage 9 completion, the work had inspected the real source, queried the fresh demo inventory and checked official documentation. No API, SQL migration, security policy, upload system or backend deployment had been executed then. Stage 10's local HTTP foundation is documented separately. Existing browser tests do not establish the proposed security guarantees. Validate this design with real PostgreSQL/HTTP concurrency and authorization tests when each slice exists; retain the existing demo regression suite alongside them.
 
 Learning exercise: trace `reviewPayment` in the current ledger, then walk through the proposed transaction above with two managers clicking Approve at once. Explain why checking a balance in JavaScript before a later database write is insufficient, and why the receipt and allocation must commit together.

@@ -26,8 +26,19 @@ The built-in Node tests cover domain rules, simulated DOM workflows and local HT
 
 See [DEVELOPMENT.md](DEVELOPMENT.md) for stage history, architecture explanations, manual walkthroughs and limitations.
 
-## Proposed backend
+## Backend direction and local foundation
 
 [The backend design and migration plan](docs/BACKEND_PLAN.md) recommends an Express/PostgreSQL API with managed authentication and private storage while retaining the vanilla frontend. It includes alternatives, permission boundaries, transaction rules, recovery and implementation gates.
 
-This is a proposal: no backend, SQL migration, cloud account, database, bucket or deployment has been added. Review the design and project/provider/budget constraints before beginning that migration.
+The [Stage 9 architectural review](docs/STAGE_9_REVIEW.md) records findings and the reconciled implementation stages. The recommended stack was approved for incremental local implementation.
+
+Stage 10 adds a separate loopback-only Express API. See [server/README.md](server/README.md) for installation, endpoints and limitations.
+
+```powershell
+npm.cmd --prefix server ci --ignore-scripts
+npm.cmd --prefix server start
+```
+
+Open [API health](http://127.0.0.1:4174/api/health). Health confirms only that the process runs; readiness and protected API routes intentionally return 503 until their dependencies exist. The frontend still uses its in-memory demo repository.
+
+PostgreSQL, managed authentication, real uploads and API-backed business workflows remain future stages. No cloud account, database, storage bucket or deployment has been provisioned.

@@ -327,3 +327,25 @@ README now links the plan and gives accurate run/test instructions. No runtime s
 Learning exercise: explain why two simultaneous payment approvals need a shared database transaction/lock, then identify which current UI functions assume data is available synchronously. Those are different problems and require different migration steps.
 
 The first proposed implementation is B1 in the plan: a separate local-only API/database foundation using synthetic data, with protected routes denied until authentication is configured. Review the design and confirm any required stack/provider/budget constraints before introducing that backend. Production accounts, uploads, message delivery and deployment remain later, separately scoped work.
+
+## Stage 10: local Express foundation
+
+The previous checkpoint is `3d91821`. The user requested a critical Stage 9 review and then approved continuing with the recommended architecture. [docs/STAGE_9_REVIEW.md](docs/STAGE_9_REVIEW.md) records the complete 14-section review and its priorities. The review verified Git/source state, reran all 130 existing demo tests, and confirmed the historical-reporting `asOf` caveat using a fresh in-memory repository. The review itself made no file changes; the written artifact accompanies this approved implementation.
+
+The proposed B1 scope is split to match the user's stages: Stage 10 is the local HTTP foundation; Stage 11 is PostgreSQL setup/schema. The full B1 database acceptance criteria are not yet satisfied. Actual evidence storage must precede payment verification in Stage 16, and receipt records must be created inside approval; later Stage 17 adds broader document/content delivery.
+
+The new `server/` package contains Express 5.3.0 with a separate lockfile, `app.js`, validated local configuration, HTTP startup/shutdown and 14 real HTTP/lifecycle tests. Express is the only direct runtime dependency. Node's native environment-file/watch/test/fetch/HTTP support avoids additional setup/testing dependencies. The frontend package and runtime files are unchanged.
+
+GET `/api/health` reports process liveness and explicitly marks database/authentication as not configured. GET `/api/ready` returns 503, and every other `/api` path returns 503 `AUTH_NOT_CONFIGURED`. No supplied role, tenant/plaza ID, cookie or Bearer token opens the boundary. Root/file paths are JSON 404 responses. No business request body is parsed or accepted, and no mock records are returned as live data.
+
+All listeners created by the CLI bind to `127.0.0.1`, default port 4174. Configuration rejects invalid ports, unsupported modes and port conflicts. The server creates request IDs, sets no-store/basic JSON response headers, redacts unexpected error details and handles graceful/deadline shutdown. These are foundation behaviors, not completed production security. Sessions, CSRF, rate limits, resource schemas and database authorization remain dependent stages.
+
+See [server/README.md](server/README.md) for install/start/test instructions and example health requests. Run the existing demo separately at port 4173. `.gitignore` excludes local environment values, node_modules and the npm cache while keeping the secret-free environment example and dependency lockfile reviewable. User-owned untracked files were preserved.
+
+Verification covers liveness versus readiness, rejected spoofed auth across HTTP methods, malformed body rejection without reflection, unsupported methods, no permissive CORS, inaccessible repository files, request IDs, safe sync/async error handling, invalid config, port conflicts and normal/forced shutdown. The dependency audit reported no known vulnerabilities at installation time; that is not a security guarantee. No database/migration/RLS/session/upload/deployment or browser layout test was executed.
+
+After implementation, all 14 API tests and all 130 frontend demo regressions passed. Syntax and documentation-link checks passed. Live checks returned 200 for the frontend and API health, and the expected 503 codes for readiness/protected access. The stopped frontend preview was restarted and opened in the user's browser on request; opening it is not a claim of visual/browser workflow QA.
+
+Learning exercise: trace `createApp` → HTTP middleware → route → JSON response, then explain why the process can be healthy while the application is not ready. Inspect `createErrorHandler` to see why internal exception text is not sent to the client. Separating app creation from listening lets tests exercise real HTTP behavior without opening a fixed port.
+
+Next is Stage 11: choose and verify a local PostgreSQL installation, define the initial scoped schema/constraints and migrations, and test against a disposable database. No real customer import or hosted resource is implied by this foundation.
