@@ -13,6 +13,7 @@
     "db:local": "node scripts/local-postgres.js",
     "db:migrate": "node --env-file-if-exists=../.local-postgres/connection.env --env-file-if-exists=.env migrate.js",
     "db:seed": "node --env-file-if-exists=../.local-postgres/connection.env --env-file-if-exists=.env seed.js",
+    "auth:check": "node --env-file-if-exists=.env scripts/check-auth-config.js",
     "test:db": "node --env-file-if-exists=../.local-postgres/connection.env --env-file-if-exists=.env --test --test-isolation=none tests/*.integration.js"
   },
   "dependencies": {

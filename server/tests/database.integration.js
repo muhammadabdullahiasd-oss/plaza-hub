@@ -52,7 +52,7 @@ test('changed or missing applied migration source is rejected', async () => {
 });
 
 test('failed migration rolls back schema and history together', async () => {
-  await assert.rejects(applyMigrations(pool, [...migrations, { name:'003_probe.sql', checksum:'probe',
+  await assert.rejects(applyMigrations(pool, [...migrations, { name:'004_probe.sql', checksum:'probe',
     sql:'CREATE TABLE plazahub.failed_probe (id integer); SELECT missing_column;' }]), { code:'42703' });
   assert.equal((await pool.query("SELECT to_regclass('plazahub.failed_probe') AS table_name")).rows[0].table_name, null);
   assert.equal((await pool.query('SELECT count(*) AS n FROM plazahub_meta.migrations')).rows[0].n, String(migrations.length));
@@ -155,7 +155,7 @@ test('domain tables enable RLS without policies or public privileges; this is no
   const { rows } = await pool.query(`SELECT c.relname, c.relrowsecurity, c.relacl::text[] AS relacl
     FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = 'plazahub' AND c.relkind = 'r'`);
-  assert.equal(rows.length, 9);
+  assert.equal(rows.length, 11);
   assert.ok(rows.every(row => row.relrowsecurity));
   assert.equal((await pool.query("SELECT count(*) AS n FROM pg_policies WHERE schemaname = 'plazahub'")).rows[0].n, '0');
   assert.ok(rows.every(row => !row.relacl?.some(grant => grant.startsWith('='))));

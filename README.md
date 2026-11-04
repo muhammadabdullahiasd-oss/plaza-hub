@@ -46,3 +46,5 @@ Stage 11 adds a [local PostgreSQL foundation](docs/STAGE_11_DATABASE.md): versio
 Managed authentication, real uploads and API-backed business workflows remain future stages. No cloud account, hosted database, storage bucket or deployment has been provisioned.
 
 [Stage 12A](docs/STAGE_12_AUTH.md) adds locally tested persistent session infrastructure and a provider adapter. Live sign-in remains disabled pending real provider configuration, onboarding and access-control validation. The demo login and role switcher remain simulated.
+
+[Stage 12B](docs/STAGE_12_ONBOARDING.md) adds locally tested single-use invitations and verified account linking. `npm.cmd --prefix server run auth:check` reports missing provider configuration without exposing values or enabling login.

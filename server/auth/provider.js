@@ -22,6 +22,12 @@ export function readAuthConfig(environment = process.env) {
 
 const uuid = value => typeof value === 'string' && value.length === 36 && /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(value);
 
+export function normalizeEmail(value) {
+  if (typeof value !== 'string' || value.length > 254 || /[\u0000-\u001f\u007f]/.test(value)
+    || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return null;
+  return value.trim().toLowerCase();
+}
+
 export function createAuthProvider({ url, publishableKey }, { fetchRequest = fetch, clock = Date.now } = {}) {
   // Validate at this boundary too; credentials must never follow an arbitrary URL.
   const base = readAuthConfig({ SUPABASE_URL:url, SUPABASE_PUBLISHABLE_KEY:publishableKey, SESSION_ENCRYPTION_KEY:'0'.repeat(64) }).url;
@@ -60,10 +66,11 @@ export function createAuthProvider({ url, publishableKey }, { fetchRequest = fet
 
   async function getUser(accessToken) {
     const user = await request('user', { accessToken });
-    if (!uuid(user?.id) || !Number.isFinite(Date.parse(user.email_confirmed_at)) || user.is_anonymous !== false) {
+    if (!uuid(user?.id) || typeof user.email_confirmed_at !== 'string'
+      || !Number.isFinite(Date.parse(user.email_confirmed_at)) || user.is_anonymous !== false || !normalizeEmail(user.email)) {
       throw new AuthenticationError();
     }
-    return { subject:user.id };
+    return { subject:user.id.toLowerCase(), email:normalizeEmail(user.email) };
   }
 
   async function grant(type, body) {
@@ -77,7 +84,7 @@ export function createAuthProvider({ url, publishableKey }, { fetchRequest = fet
     const user = await getUser(result.access_token);
     if (issuedAt + result.expires_in * 1000 <= clock()) throw new AuthenticationError('AUTH_UNAVAILABLE');
     return { accessToken:result.access_token, refreshToken:result.refresh_token,
-      expiresAt:issuedAt + result.expires_in * 1000, subject:user.subject };
+      expiresAt:issuedAt + result.expires_in * 1000, subject:user.subject, email:user.email };
   }
 
   return {

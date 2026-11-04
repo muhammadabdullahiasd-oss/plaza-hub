@@ -2,6 +2,8 @@
 
 Baseline: `b85a439`. Implemented 4 November 2026. This is the **local part of Stage 12**, not completed live authentication. No Supabase project configuration or connector was available. The user was asked whether a development project exists; work proceeded on the independent local infrastructure without assuming an answer.
 
+Continuation: [Stage 12B](STAGE_12_ONBOARDING.md) adds private invitation/account-linking services and lifecycle tests. The provider projection now includes a verified canonical email. Live authentication/recovery remain incomplete.
+
 ## Current behavior
 
 The existing demo remains at port 4173. The normal API CLI still leaves session routes disabled: login and other protected API requests return 503 `AUTH_NOT_CONFIGURED`. Adding provider values to `.env` alone does not enable them. No browser credentials, provider password, email, invitation, real account or real provider request was used in this stage.

@@ -81,4 +81,10 @@ The explicit `test:db` command runs actual PostgreSQL schema and session integra
 
 **Live login remains disabled.** `createApp` accepts an explicitly composed session router for integration tests; CLI startup supplies none. The commented auth values in `.env.example` prepare configuration and do not activate login. A real development provider, verified onboarding/recovery and restricted runtime-role validation are still needed. Stage 12 is not complete yet.
 
+## Stage 12B invitation foundation
+
+[Invitation/account linking](../docs/STAGE_12_ONBOARDING.md) adds private single-use invitations, verified provider-email matching, current issuer/scope checks and transactional grant/history writes. No invitation HTTP endpoint or delivery is enabled. The explicit database suite now covers invitations as well as sessions and operational constraints.
+
+Run `npm.cmd --prefix server run auth:check` for a safe configuration preflight. It prints names/status only and makes no provider request. Missing/invalid configuration returns a nonzero exit; valid format does not activate login or establish provider connectivity. Create/edit `server/.env` using the example and keep actual values local.
+
 See the [architectural review](../docs/STAGE_9_REVIEW.md) for findings, the [migration plan](../docs/BACKEND_PLAN.md) for context, and [development history](../DEVELOPMENT.md) for completed work.

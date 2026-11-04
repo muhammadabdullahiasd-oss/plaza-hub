@@ -7,7 +7,7 @@ import { readSessionCookie } from '../auth/routes.js';
 
 const config = { url:'https://plazahubtest.supabase.co', publishableKey:'sb_publishable_synthetic_example_only' };
 const subject = 'a0000000-0000-4000-8000-000000000001';
-const user = { id:subject, email_confirmed_at:'2026-01-01T00:00:00Z', is_anonymous:false, user_metadata:{ role:'super' } };
+const user = { id:subject, email:'demo@example.test', email_confirmed_at:'2026-01-01T00:00:00Z', is_anonymous:false, user_metadata:{ role:'super' } };
 const grant = { access_token:'synthetic-access', refresh_token:'synthetic-refresh', token_type:'bearer', expires_in:3600 };
 const json = value => Response.json(value);
 
@@ -48,14 +48,14 @@ test('provider configuration is optional but partial, unsafe and service-role va
   }
 });
 
-test('password grant verifies the provider user and projects only the trusted subject', async () => {
+test('password grant verifies the provider user and projects trusted subject/email without roles', async () => {
   const calls = [];
   const provider = createAuthProvider(config, { clock:() => 1000, fetchRequest:async (url, options) => {
     calls.push({ url, options });
     return json(url.includes('/token?') ? grant : user);
   } });
   const result = await provider.password('demo@example.test', 'SYNTHETIC_PASSWORD');
-  assert.deepEqual(result, { accessToken:'synthetic-access', refreshToken:'synthetic-refresh', expiresAt:3601000, subject });
+  assert.deepEqual(result, { accessToken:'synthetic-access', refreshToken:'synthetic-refresh', expiresAt:3601000, subject, email:'demo@example.test' });
   assert.equal(calls[0].url, `${config.url}/auth/v1/token?grant_type=password`);
   assert.deepEqual(JSON.parse(calls[0].options.body), { email:'demo@example.test', password:'SYNTHETIC_PASSWORD' });
   assert.equal(calls[0].options.headers.apikey, config.publishableKey);
@@ -81,7 +81,7 @@ test('refresh is stateless and logout requests only the current provider session
 });
 
 test('unconfirmed, anonymous and malformed identities cannot establish an authenticated subject', async () => {
-  for (const change of [{ email_confirmed_at:null }, { is_anonymous:true }, { id:'not-a-uuid' }]) {
+  for (const change of [{ email_confirmed_at:null }, { email_confirmed_at:1 }, { email:null }, { email:'bad\0@example.test' }, { is_anonymous:true }, { id:'not-a-uuid' }]) {
     const provider = createAuthProvider(config, { fetchRequest:async () => json({ ...user, ...change }) });
     await assert.rejects(provider.getUser('synthetic-access'), { code:'AUTHENTICATION_FAILED' });
   }

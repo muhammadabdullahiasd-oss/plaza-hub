@@ -6,6 +6,8 @@ Original proposal: prepared 3 November 2026 against checkpoint `bed22bc`. The di
 
 Current continuation: [Stage 12A](STAGE_12_AUTH.md) adds the local session infrastructure. Live provider authentication remains disabled; Stage 12 acceptance gates are still open.
 
+[Stage 12B](STAGE_12_ONBOARDING.md) adds the private invitation/account-linking foundation. Stage 13's local credential/isolation work can proceed independently while Stage 12's real-provider/delivery/recovery gates remain open; business APIs require both.
+
 Keep HTML/CSS/vanilla JavaScript. Add one Node.js/Express API, PostgreSQL, managed authentication and private object storage. Supabase is the provisional managed provider for PostgreSQL/Auth/Storage; it is not a requirement or an approved purchase. Keep financial business operations behind the API.
 
 This is my architectural recommendation for this codebase: JavaScript on the server supports the learning goal, SQL fits its related business records, and an explicit API makes authorization and transaction boundaries reviewable. Start as one application with feature modules. Microservices, React, Kubernetes, an accounting engine and payment-provider integrations are unnecessary for the first customer.
