@@ -13,7 +13,7 @@
     "db:local": "node scripts/local-postgres.js",
     "db:migrate": "node --env-file-if-exists=../.local-postgres/connection.env --env-file-if-exists=.env migrate.js",
     "db:seed": "node --env-file-if-exists=../.local-postgres/connection.env --env-file-if-exists=.env seed.js",
-    "test:db": "node --env-file-if-exists=../.local-postgres/connection.env --env-file-if-exists=.env --test --test-isolation=none tests/database.integration.js"
+    "test:db": "node --env-file-if-exists=../.local-postgres/connection.env --env-file-if-exists=.env --test --test-isolation=none tests/*.integration.js"
   },
   "dependencies": {
     "express": "5.3.0",

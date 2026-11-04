@@ -3,37 +3,19 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
-import pg from 'pg';
-import { readDatabaseConfig, createDatabasePool, inTransaction } from '../db.js';
-import { applyMigrations, loadMigrations } from '../migrate.js';
+import { inTransaction } from '../db.js';
+import { applyMigrations } from '../migrate.js';
 import { fixtureIds as id, seedFoundation } from '../fixtures/foundation.js';
+import { createTestDatabase } from './helpers/database.js';
 
-let control, pool, migrations, database, created = false;
+let database, pool, migrations;
 before(async () => {
-  const local = readDatabaseConfig();
-  database = `plazahub_test_${randomBytes(12).toString('hex')}`;
-  const url = new URL(local.connectionString);
-  url.pathname = '/postgres';
-  control = new pg.Client({ connectionString:url.href, connectionTimeoutMillis:5000 });
-  await control.connect();
-  // Identifier is exclusively generated hex, never user input.
-  await control.query(`CREATE DATABASE "${database}"`);
-  created = true;
-  url.pathname = `/${database}`;
-  pool = createDatabasePool(readDatabaseConfig({ LOCAL_DATABASE_URL:url.href }));
-  migrations = await loadMigrations();
-  await applyMigrations(pool, migrations);
+  database = await createTestDatabase();
+  ({ pool, migrations } = database);
   await inTransaction(pool, seedFoundation);
 });
 
-after(async () => {
-  try { await pool?.end(); }
-  finally {
-    try {
-      if (created && /^plazahub_test_[a-f0-9]{24}$/.test(database)) await control.query(`DROP DATABASE "${database}"`);
-    } finally { await control?.end(); }
-  }
-});
+after(async () => { await database?.close(); });
 
 async function rollback(work) {
   const client = await pool.connect();
@@ -61,7 +43,7 @@ test('synthetic setup separates identities, plazas and business profiles', async
 
 test('rerunning/concurrently running migrations applies nothing twice', async () => {
   assert.deepEqual(await Promise.all([applyMigrations(pool, migrations), applyMigrations(pool, migrations)]), [[], []]);
-  assert.equal((await pool.query('SELECT count(*) AS n FROM plazahub_meta.migrations')).rows[0].n, '1');
+  assert.equal((await pool.query('SELECT count(*) AS n FROM plazahub_meta.migrations')).rows[0].n, String(migrations.length));
 });
 
 test('changed or missing applied migration source is rejected', async () => {
@@ -70,10 +52,10 @@ test('changed or missing applied migration source is rejected', async () => {
 });
 
 test('failed migration rolls back schema and history together', async () => {
-  await assert.rejects(applyMigrations(pool, [...migrations, { name:'002_probe.sql', checksum:'probe',
+  await assert.rejects(applyMigrations(pool, [...migrations, { name:'003_probe.sql', checksum:'probe',
     sql:'CREATE TABLE plazahub.failed_probe (id integer); SELECT missing_column;' }]), { code:'42703' });
   assert.equal((await pool.query("SELECT to_regclass('plazahub.failed_probe') AS table_name")).rows[0].table_name, null);
-  assert.equal((await pool.query('SELECT count(*) AS n FROM plazahub_meta.migrations')).rows[0].n, '1');
+  assert.equal((await pool.query('SELECT count(*) AS n FROM plazahub_meta.migrations')).rows[0].n, String(migrations.length));
 });
 
 test('fixtures refuse an existing dataset and preserve all records', async () => {
@@ -173,7 +155,7 @@ test('domain tables enable RLS without policies or public privileges; this is no
   const { rows } = await pool.query(`SELECT c.relname, c.relrowsecurity, c.relacl::text[] AS relacl
     FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
     WHERE n.nspname = 'plazahub' AND c.relkind = 'r'`);
-  assert.equal(rows.length, 8);
+  assert.equal(rows.length, 9);
   assert.ok(rows.every(row => row.relrowsecurity));
   assert.equal((await pool.query("SELECT count(*) AS n FROM pg_policies WHERE schemaname = 'plazahub'")).rows[0].n, '0');
   assert.ok(rows.every(row => !row.relacl?.some(grant => grant.startsWith('='))));

@@ -18,7 +18,7 @@ export function createErrorHandler(reportError = event => console.error(JSON.str
   };
 }
 
-export function createApp({ reportError } = {}) {
+export function createApp({ reportError, sessionRouter } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.disable('etag');
@@ -50,7 +50,10 @@ export function createApp({ reportError } = {}) {
     response.set('Allow', 'GET, HEAD');
     sendError(response, 405, 'METHOD_NOT_ALLOWED', 'Use GET or HEAD for the readiness endpoint.');
   });
-  // No resource routes, token decoding or body processing until auth exists.
+  // Explicit composition only. CLI leaves this absent until real-provider and
+  // non-owner runtime-role validation are complete. Business routes stay closed.
+  if (sessionRouter) app.use('/api/session', sessionRouter);
+  // No resource routes or client-asserted permissions until authorization exists.
   // Supplying a cookie, role, tenant ID or Bearer header cannot open this boundary.
   app.use('/api', (request, response) => {
     sendError(response, 503, 'AUTH_NOT_CONFIGURED', 'Protected API access is unavailable until authentication is configured.');

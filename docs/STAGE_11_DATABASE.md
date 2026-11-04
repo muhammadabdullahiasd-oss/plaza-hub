@@ -2,6 +2,8 @@
 
 Baseline: `main` at `574b47d`. Implemented 3–4 November 2026. The [approved review](STAGE_9_REVIEW.md#14-recommended-implementation-sequence) splits B1 into the Stage 10 HTTP listener and this database slice. No production migration, customer import, cloud account or frontend data-source switch is included.
 
+This records the initial eight-table checkpoint. [Stage 12A](STAGE_12_AUTH.md) subsequently adds a ninth private table for sessions and extends the explicit PostgreSQL test command. The original `001` migration is preserved.
+
 ## Scope and file responsibilities
 
 | File | Responsibility |

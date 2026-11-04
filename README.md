@@ -44,3 +44,5 @@ Open [API health](http://127.0.0.1:4174/api/health). Health confirms only that t
 Stage 11 adds a [local PostgreSQL foundation](docs/STAGE_11_DATABASE.md): versioned SQL migrations, synthetic fixtures and real database constraint/concurrency tests. The database remains separate from HTTP requests and the demo frontend.
 
 Managed authentication, real uploads and API-backed business workflows remain future stages. No cloud account, hosted database, storage bucket or deployment has been provisioned.
+
+[Stage 12A](docs/STAGE_12_AUTH.md) adds locally tested persistent session infrastructure and a provider adapter. Live sign-in remains disabled pending real provider configuration, onboarding and access-control validation. The demo login and role switcher remain simulated.

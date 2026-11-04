@@ -73,6 +73,12 @@ npm.cmd --prefix server run test:db
 
 These commands assume the documented one-time local initialization has completed. `db:seed` is an optional one-time synthetic dataset; it refuses existing records. `db:local -- stop` shuts down this workspace's cluster while retaining its data. No reset command is provided.
 
-The explicit `test:db` command runs 15 actual PostgreSQL integration checks in a disposable test database. The ordinary `test` command does not silently substitute an emulator or skip database failures. PostgreSQL schema/transaction tests do not validate real sessions, runtime-role RLS, private uploads, payment approval, browser layout or production deployment. Those remain later stages.
+The explicit `test:db` command runs actual PostgreSQL schema and session integration checks in disposable test databases. The ordinary `test` command does not silently substitute an emulator or skip database failures. Schema/session tests do not validate live provider authentication, runtime-role RLS, private uploads, payment approval, browser layout or production deployment. Those remain dependent work.
+
+## Stage 12A session infrastructure
+
+[The authentication checkpoint](../docs/STAGE_12_AUTH.md) documents persistent session hashes, encrypted provider tokens, expiry, serialized refresh, CSRF/origin checks and local logout. Provider requests are tested with synthetic responses; session/HTTP tests use real PostgreSQL and a synthetic provider. No new dependencies were added.
+
+**Live login remains disabled.** `createApp` accepts an explicitly composed session router for integration tests; CLI startup supplies none. The commented auth values in `.env.example` prepare configuration and do not activate login. A real development provider, verified onboarding/recovery and restricted runtime-role validation are still needed. Stage 12 is not complete yet.
 
 See the [architectural review](../docs/STAGE_9_REVIEW.md) for findings, the [migration plan](../docs/BACKEND_PLAN.md) for context, and [development history](../DEVELOPMENT.md) for completed work.
