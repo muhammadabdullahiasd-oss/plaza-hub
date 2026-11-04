@@ -9,9 +9,14 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env start.js",
     "dev": "node --watch --env-file-if-exists=.env start.js",
-    "test": "node --test --test-isolation=none tests/*.test.js"
+    "test": "node --test --test-isolation=none tests/*.test.js",
+    "db:local": "node scripts/local-postgres.js",
+    "db:migrate": "node --env-file-if-exists=../.local-postgres/connection.env --env-file-if-exists=.env migrate.js",
+    "db:seed": "node --env-file-if-exists=../.local-postgres/connection.env --env-file-if-exists=.env seed.js",
+    "test:db": "node --env-file-if-exists=../.local-postgres/connection.env --env-file-if-exists=.env --test --test-isolation=none tests/database.integration.js"
   },
   "dependencies": {
-    "express": "5.3.0"
+    "express": "5.3.0",
+    "pg": "8.23.1"
   }
 }

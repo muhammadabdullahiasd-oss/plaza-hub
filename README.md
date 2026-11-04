@@ -41,4 +41,6 @@ npm.cmd --prefix server start
 
 Open [API health](http://127.0.0.1:4174/api/health). Health confirms only that the process runs; readiness and protected API routes intentionally return 503 until their dependencies exist. The frontend still uses its in-memory demo repository.
 
-PostgreSQL, managed authentication, real uploads and API-backed business workflows remain future stages. No cloud account, database, storage bucket or deployment has been provisioned.
+Stage 11 adds a [local PostgreSQL foundation](docs/STAGE_11_DATABASE.md): versioned SQL migrations, synthetic fixtures and real database constraint/concurrency tests. The database remains separate from HTTP requests and the demo frontend.
+
+Managed authentication, real uploads and API-backed business workflows remain future stages. No cloud account, hosted database, storage bucket or deployment has been provisioned.

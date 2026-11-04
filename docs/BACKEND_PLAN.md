@@ -1,6 +1,6 @@
 # PlazaHub backend design and migration proposal
 
-Original proposal: prepared 3 November 2026 against checkpoint `bed22bc`. The direction was subsequently reviewed and approved for incremental local implementation; see [Stage 9 review](STAGE_9_REVIEW.md). Stage 10 now provides a separate [local Express foundation](../server/README.md). PostgreSQL, authentication, storage and business APIs remain future work. Provider purchases, budget and business-policy decisions remain review items; no cloud resource or production credential was created.
+Original proposal: prepared 3 November 2026 against checkpoint `bed22bc`. The direction was subsequently reviewed and approved for incremental local implementation; see [Stage 9 review](STAGE_9_REVIEW.md). Stage 10 provides a separate [local Express foundation](../server/README.md); Stage 11 adds [local PostgreSQL schema/migration tooling](STAGE_11_DATABASE.md). Authentication, runtime-role RLS, storage and business APIs remain future work. Provider purchases, budget and business-policy decisions remain review items; no cloud resource or production credential was created. The original proposed slices below are historical planning context; implementation status is recorded in the stage documents.
 
 ## 1. Recommendation and alternatives
 

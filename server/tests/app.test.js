@@ -90,7 +90,7 @@ test('health/readiness allow read methods only and HEAD never contains a body', 
 
 test('API never serves repository files, credentials or frontend demo data', async () => {
   await withServer(async base => {
-    for (const path of ['/', '/.env', '/.git/config', '/package.json', '/server/.env.example', '/js/data/demo-data.js', '/docs/BACKEND_PLAN.md']) {
+    for (const path of ['/', '/.env', '/.git/config', '/package.json', '/server/.env.example', '/js/data/demo-data.js', '/docs/BACKEND_PLAN.md', '/.local-postgres/connection.env', '/.local-postgres/data/pg_hba.conf', '/server/db.js']) {
       const response = await fetch(base + path);
       assert.equal(response.status, 404, path);
       assert.equal((await response.json()).error.code, 'NOT_FOUND');

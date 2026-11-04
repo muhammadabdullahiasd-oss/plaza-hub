@@ -77,7 +77,7 @@ test('preview serves the complete module graph and keeps private files unavailab
     }
     assert.match(await (await fetch(base + '/')).text(), /<script type="module" src="js\/app.js"><\/script>/);
     assert.match(await (await fetch(base + '/plazahub.html')).text(), /url=index.html/);
-    for (const route of ['/package.json', '/.git/config', '/tests/tenants.test.cjs', '/js/no-such-module.js']) assert.equal((await fetch(base + route)).status, 404);
+    for (const route of ['/package.json', '/.git/config', '/tests/tenants.test.cjs', '/js/no-such-module.js', '/.local-postgres/connection.env', '/.local-postgres/data/pg_hba.conf', '/server/db.js', '/server/.env']) assert.equal((await fetch(base + route)).status, 404);
     const head = await fetch(base + '/index.html', { method:'HEAD' });
     assert.equal(head.status, 200);
     assert.equal(await head.text(), '');

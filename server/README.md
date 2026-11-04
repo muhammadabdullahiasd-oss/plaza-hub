@@ -1,10 +1,10 @@
-# PlazaHub local API — Stage 10
+# PlazaHub local API and database foundation
 
-This is a loopback-only Express foundation. It has no database, user accounts, sessions, authenticated business endpoints or frontend data integration yet. The existing demo continues at port 4173.
+The loopback-only Express foundation remains closed to business requests. Stage 11 adds separate local PostgreSQL schema/migration tooling; it is not connected to HTTP requests yet. Real accounts, sessions, authenticated endpoints and frontend data integration remain incomplete. The existing demo continues at port 4173.
 
 ## Install and run from the repository root
 
-Use a supported Node.js 24 or 26 LTS. This stage was checked on the existing Node.js 24.15.0; install a current patched supported release before deployment. Express 5.3.0 and its transitive dependencies are pinned in this package's lockfile. The root frontend package is unchanged.
+Use a supported Node.js 24 or 26 LTS. This foundation was checked on the existing Node.js 24.15.0; install a current patched supported release before deployment. Express 5.3.0, pg 8.23.1 and transitive dependencies are pinned in this package's lockfile. The root frontend package is unchanged.
 
 ```powershell
 npm.cmd --prefix server ci --ignore-scripts
@@ -59,8 +59,20 @@ npm.cmd test
 npm.cmd audit --prefix server --omit=dev
 ```
 
-The first command runs 14 backend HTTP/lifecycle tests using Node's test runner and native fetch; no test framework or Supertest was added. The second runs the separate frontend demo regressions. The audit is a point-in-time known-advisory check, not a guarantee of security.
+The first command runs the HTTP/lifecycle and database-tooling unit checks using Node's test runner; no test framework or Supertest was added. The second runs the separate frontend demo regressions. The audit is a point-in-time known-advisory check, not a guarantee of security.
 
-No PostgreSQL connection or migration was executed. No RLS, real session, private upload, payment transaction, browser layout or production deployment is validated by these tests. Stage 11 will add a disposable local PostgreSQL foundation after its setup and schema are reviewed.
+## Stage 11 local database
+
+Follow [local PostgreSQL setup and schema](../docs/STAGE_11_DATABASE.md) for Windows portable binaries or an existing local installation, commands, table responsibilities and learning exercises. No hosted database or production account is created.
+
+```powershell
+npm.cmd --prefix server run db:local -- start
+npm.cmd --prefix server run db:migrate
+npm.cmd --prefix server run test:db
+```
+
+These commands assume the documented one-time local initialization has completed. `db:seed` is an optional one-time synthetic dataset; it refuses existing records. `db:local -- stop` shuts down this workspace's cluster while retaining its data. No reset command is provided.
+
+The explicit `test:db` command runs 15 actual PostgreSQL integration checks in a disposable test database. The ordinary `test` command does not silently substitute an emulator or skip database failures. PostgreSQL schema/transaction tests do not validate real sessions, runtime-role RLS, private uploads, payment approval, browser layout or production deployment. Those remain later stages.
 
 See the [architectural review](../docs/STAGE_9_REVIEW.md) for findings, the [migration plan](../docs/BACKEND_PLAN.md) for context, and [development history](../DEVELOPMENT.md) for completed work.
